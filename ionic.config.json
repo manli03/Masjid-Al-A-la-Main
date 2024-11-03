@@ -1,0 +1,7 @@
+{
+  "name": "Masjid-Al-A'la",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
