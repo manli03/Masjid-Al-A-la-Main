@@ -1,0 +1,102 @@
+/* General Styling */
+ion-header {
+  background: #f4f4f4;
+}
+
+ion-toolbar {
+  --background: #ffffff;
+  --color: #333;
+}
+
+/* Segment buttons */
+ion-segment {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  --background: #f8f8f8;
+  --color-activated: var(--ion-color-primary);
+  --border-radius: 10px;
+}
+
+ion-segment-button {
+  --color-activated: var(--ion-color-primary);
+  --background-activated: var(--ion-color-primary);
+  --border-radius: 10px;
+  font-weight: bold;
+}
+
+/* Input Fields */
+ion-input {
+  --background: #f9f9f9;
+  --border-radius: 10px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+ion-label {
+  font-weight: bold;
+}
+
+/* Form styling */
+form {
+  width: 90%;
+  max-width: 400px;         /* Prevent form from being too wide */
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Style for buttons */
+ion-button[color='primary'] {
+  background: linear-gradient(90deg, #00ac5f, #00b486); /* Gradient using primary color */
+  --border-radius: 30px;
+  font-weight: bold;
+}
+
+ion-button[color='secondary'] {
+  background: linear-gradient(90deg, #6a11cb, #2575fc); /* This remains for the signup button */
+  --border-radius: 30px;
+  font-weight: bold;
+}
+
+ion-button {
+  margin-top: 20px;
+  --height: 50px;
+  width: 100%;
+}
+
+/* Forgot password link styling */
+ion-label a {
+  font-size: 14px;
+  text-align: center;
+  display: block;
+  margin-top: 10px;
+  text-decoration: underline;
+  color: var(--ion-color-primary); /* Use primary color for links */
+  font-weight: bold;
+}
+
+/* Adjust padding to prevent overflow */
+ion-content {
+  padding-left: 16px;
+  padding-right: 16px;
+  box-sizing: border-box; /* Ensure padding doesn't cause overflow */
+}
+
+/* Input field adjustments */
+ion-input {
+  --border-radius: 8px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+}
+
+/* Ensuring the form container fits properly */
+form {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+  border-radius: 15px;
+}

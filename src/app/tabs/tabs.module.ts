@@ -7,6 +7,10 @@ import { TabsPageRoutingModule } from './tabs-routing.module';
 
 import { TabsPage } from './tabs.page';
 
+import { AddAnnouncementModalComponent } from '../add-announcement-modal/add-announcement-modal.component';
+import { EditAnnouncementModalComponent } from '../edit-announcement-modal/edit-announcement-modal.component';
+import { EditProfileModalComponent } from '../component/edit-profile-modal/edit-profile-modal.component';
+
 @NgModule({
   imports: [
     IonicModule,
@@ -14,6 +18,11 @@ import { TabsPage } from './tabs.page';
     FormsModule,
     TabsPageRoutingModule
   ],
-  declarations: [TabsPage]
+  declarations: [
+    TabsPage,
+    AddAnnouncementModalComponent,
+    EditAnnouncementModalComponent,
+    EditProfileModalComponent
+  ]
 })
 export class TabsPageModule {}

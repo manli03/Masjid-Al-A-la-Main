@@ -1,0 +1,147 @@
+<div *ngIf="!showYearlyPrayerTimes"  style="height: 100vh;">
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="loading-overlay">
+    <ion-spinner name="bubbles" style="zoom: 2;"></ion-spinner>
+  </div>
+  <ion-header>
+    <ion-toolbar>
+      <ion-title>Waktu Solat</ion-title>
+      <ion-buttons slot="end">
+        <ion-button (click)="refreshData()">
+          <ion-icon name="refresh-outline"></ion-icon>
+        </ion-button>
+        <ion-button (click)="viewYearlyPrayerTimes()">
+          <ion-icon name="calendar-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-content fullscreen>
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+      <ion-refresher-content></ion-refresher-content>
+    </ion-refresher>
+    <!-- Current Prayer Times -->
+    <div class="header">
+      <img alt="Mosque silhouette background" src="https://picsum.photos/600/200" />
+      <h5>{{ location }}</h5>
+      <h1>
+        <ion-spinner *ngIf="!remainingTime && currentHijriDate" name="bubbles"></ion-spinner>
+        {{ closestPrayerTime }}
+      </h1>
+      <p>{{ remainingTime }}</p>
+    </div>
+
+    <div class="container">
+      <div class="date-container d-flex justify-content-between align-items-center">
+        <div class="arrow" style="cursor: pointer; margin-left: 10px;" [ngClass]="{'disabled': !canNavigatePrevious()}"
+          (click)="!canNavigatePrevious() || goToPreviousDay()">
+          <ion-icon name="chevron-back"></ion-icon>
+        </div>
+
+        <div class="date-text text-center mx-3">
+          <h2 class="mb-0">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
+          <p class="mb-0">{{ currentHijriDate }}</p>
+        </div>
+
+        <div class="arrow" style="cursor: pointer; margin-right: 10px;" [ngClass]="{'disabled': !canNavigateNext()}"
+          (click)="!canNavigateNext() || goToNextDay()">
+          <ion-icon name="chevron-forward"></ion-icon>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="table">
+          <thead class="fixed-header">
+            <tr>
+              <th>Solat</th>
+              <th>Waktu</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let prayer of prayers">
+              <td>
+                <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + '.svg'" alt="{{ prayer.name }} icon"
+                  width="20" height="20" />
+                {{ prayer.name }}
+              </td>
+              <td>{{ convertTimeToDate(prayer.time) | date: 'shortTime' }}</td>
+              <td>
+                <button class="btn btn-warning" (click)="setReminder(prayer.name)">Ingatkan saya</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ion-content>
+</div>
+<div *ngIf="showYearlyPrayerTimes" style="height: 100vh;">
+  <!-- Yearly Prayer Times Table -->
+  <ion-header>
+    <ion-toolbar>
+      <ion-buttons slot="start">
+        <ion-button (click)="backToMainPrayerTimes()">
+          <ion-icon name="arrow-back"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <ion-title style="text-align: center; margin-left: -40px;">Waktu Solat Tahunan</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-content fullscreen>
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+      <ion-refresher-content></ion-refresher-content>
+    </ion-refresher>
+    <div class="header" style="padding-bottom: 0;">
+      <img alt="Mosque silhouette background" src="https://picsum.photos/600/200" />
+      <div style="margin: 0 10px;">
+        <h4>{{ location }}</h4>
+        <p style="font-size: smaller; padding: 10px 0;">Data Terakhir dikemaskini: {{ lastUpdated }} </p>
+      </div>
+    </div>
+
+    <div class="container" *ngIf="yearlyPrayers.length > 0; else noData">
+
+      <div class="table-container" style="overflow-x: auto; white-space: nowrap; height: 70vh;">
+        <table class="tables">
+          <thead class="fixed-header">
+            <tr>
+              <th>{{ currentDate | date: 'yyyy' }}</th>
+              <th>Imsak</th>
+              <th>Subuh</th>
+              <th>Syuruk</th>
+              <th>Dhuha</th>
+              <th>Zuhur</th>
+              <th>Asar</th>
+              <th>Maghrib</th>
+              <th>Isyak</th>
+            </tr>
+          </thead>
+          <tbody #yearlyTable>
+            <tr *ngFor="let prayer of yearlyPrayers"
+              [ngClass]="{'current-day': isToday(prayer.date), 'clicked-row': clickedRow === prayer}"
+              (click)="setClickedRow(prayer)">
+              <td>{{ prayer.date | date: 'MMM d' }}</td>
+              <td>{{ convertTimeToDate(prayer.imsak) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.fajr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.syuruk) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.dhuha) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.dhuhr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.asr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.maghrib) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.isha) | date: 'h:mm a' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <ng-template #noData>
+      <p style="text-align: center; color: #808080; font-size: 16px; margin-top: 20px;">Tiada waktu solat tersedia untuk
+        tahun ini.</p>
+    </ng-template>
+  </ion-content>
+</div>
+

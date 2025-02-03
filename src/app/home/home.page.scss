@@ -1,0 +1,31 @@
+ ion-content {
+    --background: #f5f5f5;
+  }
+  .location, .prayer-header, .prayer-time, .prayer-tracker {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  .prayer-time h1 {
+    font-size: 48px;
+    margin: 0;
+  }
+  .prayer-times ion-col {
+    text-align: center;
+  }
+  .prayer-tracker .tracker-icons ion-col {
+    text-align: center;
+  }
+  .checked ion-icon {
+    color: var(--ion-color-primary);
+    font-size: 24px;
+  }
+  .prayer-tracker-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .prayer-tracker-header ion-icon {
+    margin-right: 10px;
+  }

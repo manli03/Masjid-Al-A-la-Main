@@ -1,0 +1,129 @@
+
+
+<ion-content class="ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <!-- Header -->
+  <div class="d-flex align-items-center justify-content-between"
+    style="position: relative; width: 100%; margin: 0;">
+  
+    <!-- Location and Compass Section -->
+    <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
+  
+      <!-- Location Section -->
+      <div (click)="navigateToPrayerTimes()" class="d-flex align-items-center location" style="padding: 3px; margin: 10px 10px 10px 10px;">
+        <ion-icon name="location-outline"
+          style="font-size: 24px;  color: var(--ion-color-primary);"></ion-icon>
+        <span style="font-weight: 500;">KDH01</span>
+      </div>
+  
+      <!-- Compass Icon -->
+      <a routerLink="/tabs/qiblaCompass" class="d-flex align-items-center">
+        <ion-icon name="compass-outline" style="color: black; font-size: 24px;"></ion-icon>
+      </a>
+    </div>
+  
+    <!-- Notification Icon -->
+    <div class="d-flex justify-content-end" style="position: absolute; right: 0; font-size: 24px;">
+      <ion-icon name="notifications-outline"></ion-icon>
+    </div>
+  </div>
+
+
+
+  <!-- Prayer Header Section -->
+  <div class="prayer-header">
+    <ion-row>
+      <div style="display: flex; justify-content: center; align-items: center;">
+        <img src="../../assets/icon/heart.svg" alt="Heart Icon" style="width: 24px; height: 24px; margin: -3px 10px 0 0;"/>
+      </div>
+      <span>Mulakan hari anda dengan solat</span>
+      <ion-col class="text-end d-flex align-items-center">
+        <div (click)="navigateToPrayerTimes()" style="background-color: #f0f0f0; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; right: 0; margin-right: 10px;">
+          <ion-icon name="chevron-forward-outline" style="font-size: 17px;"></ion-icon>
+        </div>
+      </ion-col>
+    </ion-row>
+  </div>
+
+  <!-- Current Time Section -->
+  <div class="prayer-time">
+    <ion-row>
+      <ion-col>
+        <span>28 Rabi'ul awal, 1445 H</span>
+        <h1 style="white-space: nowrap;">6:21 PTG</h1>
+        <p>Maghrib kurang daripada 05:23</p>
+      </ion-col>
+      <ion-col class="text-end">
+        <img 
+          alt="Drum icon"
+          src="../../assets/icon/homegong.png"
+          width="100" 
+          height="auto"
+        />
+      </ion-col>
+    </ion-row>
+
+    <div style="border-bottom: 1px solid #ccc; margin: 15px 0;"></div>
+
+  <!-- Prayer Times -->
+    <ion-row>
+      <ion-col>
+        <p style="display: block; text-align: center; margin-bottom: 10px;"><b>Subuh</b></p>
+        <img src="../../assets/icon/subuh.svg" alt="Subuh Icon" style="display: block; margin: 0 auto; width: 24px; height: 24px;"/>
+        <p style="display: block; text-align: center; margin-top: 10px;">03:53</p>
+      </ion-col>
+      <ion-col style="color: var(--ion-color-primary);">
+        <p style="display: block; text-align: center; margin-bottom: 10px;"><b>Zuhur</b></p>
+        <img src="../../assets/icon/zuhur-green.svg" alt="Dzuhr Icon" style="display: block; margin: 0 auto; width: 24px; height: 24px; color: var(--ion-color-primary);"/>
+        <p style="display: block; text-align: center; margin-top: 10px;">11:20</p>
+      </ion-col>
+      <ion-col>
+        <p style="display: block; text-align: center; margin-bottom: 10px;"><b>Asar</b></p>
+        <img src="../../assets/icon/asar.svg" alt="Ashar Icon" style="display: block; margin: 0 auto; width: 24px; height: 24px;"/>
+        <p style="display: block; text-align: center; margin-top: 10px;">14:21</p>
+      </ion-col>
+      <ion-col class="current-prayer">
+        <p style="display: block; text-align: center; margin-bottom: 10px;"><b>Maghrib</b></p>
+        <img src="../../assets/icon/maghrib.svg" alt="Maghrib Icon" style="display: block; margin: 0 auto; width: 24px; height: 24px;"/>
+        <p style="display: block; text-align: center; margin-top: 10px;">17:26</p>
+      </ion-col>
+      <ion-col>
+        <p style="display: block; text-align: center; margin-bottom: 10px;"><b>Isyak</b></p>
+        <img src="../../assets/icon/isyak.svg" alt="Isya Icon" style="display: block; margin: 0 auto; width: 24px; height: 24px;"/>
+        <p style="display: block; text-align: center; margin-top: 10px;">18:34</p>
+      </ion-col>
+    </ion-row>
+  </div>
+
+  <!-- Prayer Tracker -->
+  <div class="prayer-tracker">
+    <div class="prayer-tracker-header">
+      <ion-icon name="alarm-outline" style="vertical-align: top; margin-bottom: 10px; font-size: 25px;"></ion-icon>
+      <h5 style="display: inline-block; vertical-align: top;">Peringatan Solat</h5>
+    </div>
+    <ion-row class="tracker-icons" style="display: flex; justify-content: space-around; margin: 15px 0;">
+      <ion-col (click)="toggleChecked(0)" style="text-align: center;">
+        <ion-icon [name]="checked[0] ? 'checkmark-circle' : 'ellipse-outline'" style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary);"></ion-icon>
+        <span style="display: block; text-align: center;">Subuh</span>
+      </ion-col>
+      <ion-col (click)="toggleChecked(1)" style="text-align: center;">
+        <ion-icon [name]="checked[1] ? 'checkmark-circle' : 'ellipse-outline'" style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary);"></ion-icon>
+        <span style="display: block; text-align: center;">Zuhur</span>
+      </ion-col>
+      <ion-col (click)="toggleChecked(2)" style="text-align: center;">
+        <ion-icon [name]="checked[2] ? 'checkmark-circle' : 'ellipse-outline'" style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary);"></ion-icon>
+        <span style="display: block; text-align: center;">Asar</span>
+      </ion-col>
+      <ion-col (click)="toggleChecked(3)" style="text-align: center;">
+        <ion-icon [name]="checked[3] ? 'checkmark-circle' : 'ellipse-outline'" style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary);"></ion-icon>
+        <span style="display: block; text-align: center;">Maghrib</span>
+      </ion-col>
+      <ion-col (click)="toggleChecked(4)" style="text-align: center;">
+        <ion-icon [name]="checked[4] ? 'checkmark-circle' : 'ellipse-outline'" style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary);"></ion-icon>
+        <span style="display: block; text-align: center;">Isyak</span>
+      </ion-col>
+    </ion-row>
+  </div>
+</ion-content>

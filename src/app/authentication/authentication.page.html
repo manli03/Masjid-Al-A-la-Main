@@ -1,0 +1,51 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="text-center">Login & Register</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content style="display: flex; flex-direction: column; justify-content: center; height: 100vh;">
+  <div style="height: 90%; display: flex; flex-direction: column; justify-content: center; margin-left: 20px; margin-right: 20px;">
+    <!-- Segment for switching between Login and Register -->
+    <ion-segment [(ngModel)]="segment" (ionChange)="segmentChanged($event)">
+      <ion-segment-button value="login">
+        Login
+      </ion-segment-button>
+      <ion-segment-button value="register">
+        Signup
+      </ion-segment-button>
+    </ion-segment>
+
+    <!-- Login Form -->
+    <form *ngIf="segment === 'login'" (submit)="login()">
+      <ion-label position="stacked">Email Address</ion-label>
+      <ion-input type="email" [(ngModel)]="email" name="email"></ion-input>
+
+      <ion-label position="stacked">Password</ion-label>
+      <ion-input type="password" [(ngModel)]="password" name="password">
+        <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+      </ion-input>
+
+      <ion-label style="text-align: left;">
+        <a href="/tabs/forgot-password">Lupa kata laluan?</a>
+      </ion-label>
+
+      <ion-button expand="full" type="submit" color="primary">Login</ion-button>
+    </form>
+
+    <!-- Register Form -->
+    <form *ngIf="segment === 'register'" (submit)="register()">
+      <ion-label position="stacked">Email Address</ion-label>
+      <ion-input type="email" [(ngModel)]="email" name="email"></ion-input>
+
+      <ion-label position="stacked">Password</ion-label>
+      <ion-input type="password" [(ngModel)]="password" name="password"></ion-input>
+
+      <ion-label position="stacked">Confirm Password</ion-label>
+      <ion-input type="password" [(ngModel)]="confirmPassword" name="confirm password"></ion-input>
+
+      <ion-button expand="full" type="submit" color="secondary">Signup</ion-button>
+    </form>
+  </div>
+</ion-content>
+

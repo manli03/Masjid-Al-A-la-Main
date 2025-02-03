@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Masjid Al A\'la Assistant</string>
+    <string name="title_activity_main">Masjid Al A\'la Assistant</string>
+    <string name="package_name">com.mjidala.prayer</string>
+    <string name="custom_url_scheme">com.mjidala.prayer</string>
+</resources>

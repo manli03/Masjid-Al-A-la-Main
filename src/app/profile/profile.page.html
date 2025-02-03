@@ -1,0 +1,146 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="text-center">Profil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <div class="container mt-5">
+    <!-- Profile Header -->
+    <div class="text-center">
+      <img alt="Profile picture of a person" src="https://picsum.photos/100/100"
+        class="rounded-circle mb-3 profile-img" />
+      <h5>{{ userProfile.name }}</h5>
+      <p class="member-status mb-4">{{ isAdmin() ? 'Admin' : 'Ahli Berdaftar' }}</p>
+    </div>
+
+    <!-- Account Information Card -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h6 class="card-title">Maklumat Akaun</h6>
+        <div class="row mb-3">
+          <div class="col-6">Nombor Keahlian</div>
+          <div class="col-6 text-end">1234567890</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">Akaun Dicipta</div>
+          <div class="col-6 text-end">10/11/2024</div>
+        </div>
+        <div class="row">
+          <div class="col-6">Peringatan Solat</div>
+          <div class="col-6 text-end">Subuh, Maghrib</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Personal Details Card -->
+    <div class="card shadow-sm">
+      <ion-buttons slot="end" style="position: absolute; top: 0; right: 0; text-align: right; margin: 10px 10px 0 0;">
+        <!-- You can add settings icon here if needed -->
+        <ion-button (click)="openEditProfileModal()">
+          <ion-icon name="create-outline" style="font-size: 24px;"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+      <div class="card-body">
+        <h6 class="card-title">Maklumat Peribadi</h6>
+        <div class="row mb-3">
+          <div class="col-6">Nama Penuh</div>
+          <div class="col-6 text-end">{{ userProfile.name }}</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">Tarikh Lahir</div>
+          <div class="col-6 text-end">{{ userProfile.birthdate }}</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">Nombor Telefon</div>
+          <div class="col-6 text-end">{{ userProfile.phone }}</div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">Alamat</div>
+          <div class="col-6 text-end">{{ userProfile.address }}</div>
+        </div>
+      </div>
+    </div>
+
+    <ion-button (click)="handleLogout()" expand="block" color="danger" class="logout-button">
+      Log Keluar
+    </ion-button>
+  </div>
+</ion-content>
+
+
+<style>
+  .container {
+  max-width: 600px;
+  margin-top: 20px;
+}
+
+.profile-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.profile-header h5 {
+  font-size: 1.5rem;
+  margin-top: 10px;
+}
+.card {
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.card-body .row {
+  margin-bottom: 15px;
+}
+
+.card-body .col-8 {
+  font-weight: normal;
+}
+
+.card-body .col-4 {
+  text-align: right;
+}
+
+.list-group-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+}
+
+.member-status {
+  color: rgb(0, 172, 95);
+}
+
+.fas {
+  font-size: 1.2rem;
+}
+
+.card-body .row:last-child {
+  margin-bottom: 0;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.mb-4 {
+  margin-bottom: 2rem;
+}
+
+</style>

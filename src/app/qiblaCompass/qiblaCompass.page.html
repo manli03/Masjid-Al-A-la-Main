@@ -1,0 +1,36 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-icon name="arrow-back" slot="start" style="cursor: pointer; margin-left: 10px; font-size: 25px;" (click)="goBack()"></ion-icon>
+    <ion-title class="text-center">Arah Kiblat</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <!-- Compass Card -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Kompas</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <div *ngIf="loadPage">
+        <div class="compass-frame" [ngClass]="{'aligned': isQiblaAligned}">
+          <div class="compass-container">
+            <ion-img 
+              src="../../assets/icon/kompasKiblat1.png" 
+              class="compass-image" 
+              alt="Compass"
+              [style.transform]="'rotate(' + (-accumulatedRotation) + 'deg)'">
+            </ion-img>
+          </div>
+        </div>
+        <p>Heading: {{ displayHeading | number: '1.0-0' }}°</p>
+      </div>
+    </ion-card-content>
+    <div class="errorMessage" *ngIf="!loadPage">
+      <p>{{ errorMessageCompass }}</p>
+    </div>
+  </ion-card>
+</ion-content>

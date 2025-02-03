@@ -1,0 +1,111 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="text-center">Pengumuman</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <!-- Navigation Bar (Tabs) -->
+  <ion-segment *ngIf="!selectedArticle" value="all" class="nav-tabs" scrollable>
+    <ion-segment-button value="all">
+      <ion-icon name="list"></ion-icon>
+      <ion-label>Semua</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="gadgets">
+      <ion-icon name="megaphone"></ion-icon>
+      <ion-label>Pengumuman</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- News Articles List -->
+  <ion-list *ngIf="!selectedArticle">
+    <ion-item class="news-item" lines="none" *ngFor="let item of newsItems" (click)="selectArticle(item)">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="8">
+            <div class="news-title">
+              {{ item.title }}
+            </div>
+            <div class="news-author">
+              {{ item.author }}
+            </div>
+            <div class="news-date">
+              {{ item.date }}
+            </div>
+          </ion-col>
+          <ion-col size="4">
+            <img alt="News Image" [src]="item.imageUrl" />
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-item>
+  </ion-list>
+
+  <!-- Article Content (Visible when a news item is clicked) -->
+  <div *ngIf="selectedArticle" class="article-container">
+    <div class="article-header" style="display: flex; justify-content: flex-end;">
+      <ion-icon style="font-size: 24px;" name="share-social"></ion-icon>
+    </div>
+    <div class="article-title">
+      {{ selectedArticle.title }}
+    </div>
+    <div class="article-image">
+      <img [src]="selectedArticle.imageUrl" alt="Article Image" />
+    </div>
+    <div class="article-content">
+      {{ selectedArticle.content }}
+    </div>
+
+    <!-- Author and Stats (moved under article content) -->
+    <div class="article-footer">
+      <div class="author">
+        <p><strong>Oleh {{ selectedArticle.author }} </strong><br /> {{ selectedArticle.date
+          }}</p>
+      </div>
+      <div class="stats" style="font-size: 24px;">
+        <ion-icon name="chatbubble-ellipses-outline"></ion-icon> {{ selectedArticle.commentsCount }}
+        <ion-icon name="heart-outline"></ion-icon> {{ selectedArticle.likes }}
+      </div>
+    </div>
+
+    <!-- Comment Section -->
+    <div class="comments-section">
+      <div class="comment-input-container">
+        <ion-input [(ngModel)]="newComment" placeholder="Tambah komen..." type="text"></ion-input>
+        <ion-button (click)="addComment()" color="primary" class="add-comment-btn">Tambah Komen</ion-button>
+      </div>
+
+      <div *ngFor="let comment of selectedArticle.comments; let i = index" class="comment-card">
+        <div class="comment-user">
+          <img [src]="'https://picsum.photos/50/50?random=' + i" alt="user avatar" class="avatar" />
+          <div class="comment-info">
+            <p class="comment-username">{{ comment.user }}</p>
+            <p class="comment-text">{{ comment.text }}</p>
+          </div>
+        </div>
+
+        <ion-button (click)="showReplyInput(i)" color="light" class="reply-btn">Balas</ion-button>
+
+        <div *ngIf="selectedCommentIndex === i" class="reply-container">
+          <ion-input [(ngModel)]="newReply" placeholder="Balas komen..." type="text"></ion-input>
+          <ion-button (click)="addReply(i)" color="secondary" class="send-reply-btn">Kirim Balasan</ion-button>
+        </div>
+
+        <div *ngFor="let reply of comment.replies" class="reply-card">
+          <div class="comment-user">
+            <img [src]="'https://picsum.photos/50/50?random=' + i+100" alt="user avatar" class="avatar" />
+            <div class="comment-info">
+              <p class="comment-username">{{ reply.user }}</p>
+              <p class="comment-text">{{ reply.text }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ion-button (click)="deselectArticle()">Back to News</ion-button>
+  </div>
+</ion-content>

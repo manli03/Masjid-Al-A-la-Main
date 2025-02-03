@@ -1,0 +1,62 @@
+.container {
+  padding: 10px;
+}
+
+ion-content {
+  padding: 10px;
+  margin: auto;
+}
+
+ion-item {
+  margin-bottom: 10px;
+}
+
+ion-label h2 {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+ion-icon {
+  font-size: 24px;
+}
+
+.hadith-tags {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.content {
+  margin-top: 20px;
+}
+
+.arabic-text {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  direction: rtl;
+  text-align: right;
+}
+
+.english-text {
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-top: 20px;
+}
+
+.narrator {
+  font-size: 0.9rem;
+  color: gray;
+  margin-top: 10px;
+}
+
+.navigation {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.navigation a {
+  color: rgb(0, 172, 95);
+  text-decoration: none;
+  font-weight: bold;
+}
+

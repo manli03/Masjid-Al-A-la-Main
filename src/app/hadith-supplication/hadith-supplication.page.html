@@ -1,0 +1,57 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="text-center">Hadis</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <!-- Display either the list of Hadiths or the selected Hadith details -->
+  <div *ngIf="!selectedHadith" class="container">
+    <!-- Search Bar -->
+    <ion-searchbar show-cancel-button="focus" placeholder="Search hadiths" [(ngModel)]="searchText"></ion-searchbar>
+  
+    <ion-list>
+      <!-- Hadith Items -->
+      <ion-item *ngFor="let hadith of filteredHadiths()" (click)="selectHadith(hadith)">
+        <ion-label>
+          <h2>{{ hadith.number }}. {{ hadith.title }}</h2>
+          <p>{{ hadith.malayText }}</p>
+          <div class="hadith-tags">{{ hadith.tags }}</div>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+  
+  <!-- Detailed Hadith View -->
+  <div *ngIf="selectedHadith" class="container">
+    <!-- Navigation Bar for Detailed View -->
+    <div class="d-flex justify-content-between align-items-center">
+      <ion-icon name="arrow-back" (click)="deselectHadith()"></ion-icon>
+      <div>
+        <ion-icon name="bookmark-outline" class="me-3"></ion-icon>
+        <ion-icon name="share-social-outline"></ion-icon>
+      </div>
+    </div>
+  
+    <!-- Detailed Hadith Content -->
+    <div class="content">
+      <h2>{{ selectedHadith.title }}</h2>
+      <p class="arabic-text">
+        {{ selectedHadith.arabicText }}
+      </p>
+      <p class="english-text">
+        {{ selectedHadith.malayText }}
+      </p>
+      <p class="narrator">{{ selectedHadith.narrator }}</p>
+    </div>
+
+    <!-- Navigation Links for Previous and Next -->
+    <div class="navigation">
+      <ion-icon name="arrow-back" (click)="navigateHadith('previous')">Previous</ion-icon>
+      <ion-icon name="arrow-forward" (click)="navigateHadith('next')">Next</ion-icon>
+    </div>
+  </div>
+</ion-content>

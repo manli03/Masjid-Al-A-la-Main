@@ -1,0 +1,135 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title class="text-center">Pengumuman</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+
+  <!-- Add Announcement Button -->
+  <div class="ion-text-end">
+    <ion-button color="primary" (click)="openModal('addAnnouncementModal')">
+      Tambah Pengumuman
+    </ion-button>
+  </div>
+
+  <!-- News Articles List -->
+  <ion-grid>
+    <ion-row>
+      <ion-col size="12" size-md="4" *ngFor="let news of newsItems">
+        <ion-card>
+          <img [src]="news.imageUrl" />
+          <ion-card-header>
+            <ion-card-title>{{ news.title }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p>Penulis: {{ news.author }}</p>
+            <p>Tarikh: {{ news.date }}</p>
+            <p>{{ news.content | slice: 0:150 }}...</p>
+            <ion-button color="primary" (click)="openModal('editAnnouncementModal', news)">
+              Edit
+            </ion-button>
+            <ion-button color="danger" (click)="deleteAnnouncement(news)">
+              Hapus
+            </ion-button>
+            <ion-item lines="none">
+              <ion-label>Likes: {{ news.likes }}</ion-label>
+              <ion-label>Comments: {{ news.commentsCount }}</ion-label>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+
+<style>
+/* announcements.page.scss */
+
+/* General Page Styles */
+ion-content {
+  --background: #f4f4f4;
+}
+
+ion-card {
+  margin-bottom: 16px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background-color: white;
+}
+
+ion-card-header {
+  background-color: #f8f8f8;
+  padding: 16px;
+  border-radius: 12px 12px 0 0;
+}
+
+ion-card-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #333;
+}
+
+ion-card-content {
+  padding: 16px;
+  font-size: 14px;
+  color: #555;
+}
+
+ion-button {
+  margin: 4px;
+}
+
+/* Modal Styles */
+ion-modal {
+  --background: rgba(0, 0, 0, 0.5);
+}
+
+ion-item {
+  --highlight-background: transparent;
+  --background: transparent;
+}
+
+ion-label {
+  font-size: 14px;
+  color: #333;
+}
+
+ion-input, ion-textarea, ion-datetime {
+  font-size: 14px;
+}
+
+/* Button Styles for Modal */
+.ion-text-end ion-button {
+  margin: 0 8px;
+}
+
+ion-button[color="primary"] {
+  background-color: #3880ff;
+}
+
+ion-button[color="danger"] {
+  background-color: #eb445a;
+}
+
+ion-button[color="light"] {
+  background-color: #f4f4f4;
+}
+
+/* Responsive Design */
+@media screen and (max-width: 768px) {
+  ion-card {
+    margin-bottom: 12px;
+  }
+
+  .ion-text-center {
+    margin-bottom: 16px;
+  }
+  
+  ion-button {
+    margin: 8px 0;
+    width: 100%;
+  }
+}
+
+
+</style>
