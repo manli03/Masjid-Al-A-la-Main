@@ -76,7 +76,7 @@
   color: gray;
 }
 
-button.btn-warning {
+button.btn-reminder {
   background-color: rgb(0, 172, 95);
   border-color: rgb(0, 172, 95);
   color: white;
@@ -98,51 +98,6 @@ thead.fixed-header {
   z-index: 1;
 }
 
-/* Styling specifically for the Yearly Prayer Times section */
-.yearly-prayer-times .header {
-  background-color: #FF9800;  /* Slightly different color for Yearly Prayer section */
-}
-
-.yearly-prayer-times .date-container {
-  margin-top: 20px; /* Adjust for more spacing in the yearly section */
-  padding: 12px 15px; /* Increased padding for better readability */
-}
-
-.yearly-prayer-times .table-container {
-  margin-top: 40px;
-  background-color: #FFF3E0;  /* Light background for Yearly Prayer section */
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);  /* More prominent shadow */
-}
-
-.yearly-prayer-times table {
-  border-collapse: collapse;
-}
-
-.yearly-prayer-times th,
-.yearly-prayer-times td {
-  font-size: 14px;
-}
-
-.yearly-prayer-times th {
-  background-color: #FFEB3B;  /* Different header color for Yearly Prayer section */
-}
-
-.yearly-prayer-times td {
-  background-color: #FFF8E1;  /* Subtle background for table cells */
-}
-
-.yearly-prayer-times button.btn-warning {
-  background-color: #FF5722;
-  border-color: #FF5722;
-}
-
-.yearly-prayer-times .table-container table th,
-.yearly-prayer-times .table-container table td {
-  padding: 15px;
-  text-align: center;
-}
-
-
 /* Styling for highlighting the current day and clicked row */
 .current-day, .clicked-row {
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -154,7 +109,7 @@ thead.fixed-header {
 }
 
 .clicked-row {
-  background-color: grey !important;
+  background-color: grey;
   color: white !important;
 }
 
@@ -180,4 +135,65 @@ ion-spinner {
   align-items: center;
   z-index: 1000; /* Make sure it appears above other content */
   color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  .header {
+    background-color: rgb(0, 100, 55);
+    color: white;
+  }
+
+  .date-container {
+    background-color: #1e1e1e;
+    color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+
+  .date-container h2 {
+    color: lightgray; /* Text color for dark mode */
+  }
+
+  .date-container p {
+    color: gray; /* Text color for dark mode */
+  }
+
+  .table-container {
+    background-color: #1e1e1e;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+  }
+
+  .table-container th {
+    background-color: #1e1e1e;
+    color: lightgray;
+  }
+
+  .table-container .dark {
+    background-color: #1e1e1e;
+    color: white;
+  }
+
+  .current-day {
+    background-color: rgb(0, 100, 55) !important;
+    color: white !important;
+  }
+
+  .clicked-row {
+    background-color: #5a5a5a;
+    color: white !important;
+  }
+
+  button.btn-reminder {
+    background-color: rgb(0, 100, 55);
+    border-color: rgb(0, 100, 55);
+    color: white;
+  }
+
+  ion-spinner {
+    --color: rgb(0, 100, 55);
+  }
+
+  .loading-overlay {
+    background: rgba(255, 255, 255, 0.5);
+    color: black;
+  }
 }

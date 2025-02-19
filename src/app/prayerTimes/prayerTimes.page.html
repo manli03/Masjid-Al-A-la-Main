@@ -3,7 +3,7 @@
   <div *ngIf="isLoading" class="loading-overlay">
     <ion-spinner name="bubbles" style="zoom: 2;"></ion-spinner>
   </div>
-  <ion-header>
+  <ion-header class="ion-no-border">
     <ion-toolbar>
       <ion-title>Waktu Solat</ion-title>
       <ion-buttons slot="end">
@@ -61,14 +61,14 @@
           </thead>
           <tbody>
             <tr *ngFor="let prayer of prayers">
-              <td>
-                <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + '.svg'" alt="{{ prayer.name }} icon"
-                  width="20" height="20" />
+              <td class="dark">
+                <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + (isDarkMode ? '-white' : '') + '.svg'"
+                  alt="{{ prayer.name }} icon" width="20" height="20" />
                 {{ prayer.name }}
               </td>
-              <td>{{ convertTimeToDate(prayer.time) | date: 'shortTime' }}</td>
-              <td>
-                <button class="btn btn-warning" (click)="setReminder(prayer.name)">Ingatkan saya</button>
+              <td class="dark">{{ convertTimeToDate(prayer.time) | date: 'shortTime' }}</td>
+              <td class="dark">
+                <button class="btn btn-reminder" (click)="setReminder(prayer.name)">Ingatkan saya</button>
               </td>
             </tr>
           </tbody>
@@ -79,7 +79,7 @@
 </div>
 <div *ngIf="showYearlyPrayerTimes" style="height: 100vh;">
   <!-- Yearly Prayer Times Table -->
-  <ion-header>
+  <ion-header class="ion-no-border">
     <ion-toolbar>
       <ion-buttons slot="start">
         <ion-button (click)="backToMainPrayerTimes()">

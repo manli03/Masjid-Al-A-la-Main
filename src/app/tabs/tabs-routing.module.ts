@@ -17,10 +17,6 @@ const routes: Routes = [
         loadChildren: () => import('../prayerTimes/prayerTimes.module').then(m => m.prayerTimesPageModule)
       },
       {
-        path: 'qiblaCompass',
-        loadChildren: () => import('../qiblaCompass/qiblaCompass.module').then(m => m.qiblaCompassPageModule)
-      },
-      {
         path: 'announcement',
         loadChildren: () => import('../announcement/announcement.module').then(m => m.announcementPageModule),
         canActivate: [authGuard]  // Use the authGuard function to protect this route

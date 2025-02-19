@@ -1,0 +1,25 @@
+<!-- Compass Section -->
+<div class="compass-div" style="border-radius: 10px; padding: 15px; margin-bottom: 15px;">
+  <ion-row>
+    <ion-col>
+      <h2><ion-icon name="compass-outline" style="font-size: 24px;vertical-align: middle;"></ion-icon> Kompas</h2>
+    </ion-col>
+  </ion-row>
+  <ion-row>
+    <ion-col>
+      <div *ngIf="loadPage">
+        <div class="compass-frame" [ngClass]="{'aligned': isQiblaAligned}">
+          <div class="compass-container">
+            <ion-img src="../../assets/icon/kompasKiblat1.png" class="compass-image" alt="Compass"
+              [style.transform]="'rotate(' + (-accumulatedRotation) + 'deg)'">
+            </ion-img>
+          </div>
+        </div>
+        <p>Heading: {{ displayHeading | number: '1.0-0' }}°</p>
+      </div>
+      <div class="errorMessage" *ngIf="!loadPage">
+        <p>{{ errorMessageCompass }}</p>
+      </div>
+    </ion-col>
+  </ion-row>
+</div>

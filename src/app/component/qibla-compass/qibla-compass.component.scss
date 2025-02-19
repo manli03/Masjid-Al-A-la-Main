@@ -1,0 +1,80 @@
+.compass-div {
+    background-color: #fff;
+  }
+
+.compass-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280px;
+  height: 280px;
+  margin: 0 auto;
+  border: 8px solid #3a3a3a;
+  border-radius: 50%;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  transition: border-color 0.3s ease; /* Add smooth transition for border color */
+}
+
+/* Add new class for aligned state */
+.compass-frame.aligned {
+  border-color: #4caf50; /* Green color when aligned */
+}
+
+.compass-container {
+  position: relative;
+  width: 240px; /* Increased from 100px */
+  height: 240px; /* Increased from 100px */
+  overflow: hidden;
+}
+
+.compass-image {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.1s linear;
+  object-fit: contain; /* Ensures the image maintains its aspect ratio */
+  will-change: transform;
+}
+
+.errorMessage {
+  color: #ff0000;
+  background-color: #ffe6e6;
+  border: 1px solid #ffcccc;
+  padding-top: 10px;
+  border-radius: 5px;
+  margin: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* For smaller screens */
+@media (max-width: 320px) {
+  .compass-frame {
+    width: 220px;
+    height: 220px;
+  }
+
+  .compass-container {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+/* For larger screens */
+@media (min-width: 768px) {
+  .compass-frame {
+    width: 320px;
+    height: 320px;
+  }
+
+  .compass-container {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .compass-div {
+    background-color: #1e1e1e;
+  }
+}

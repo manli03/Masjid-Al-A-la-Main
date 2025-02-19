@@ -18,6 +18,7 @@ interface Prayer {
 })
 export class prayerTimesPage implements OnInit {
   @ViewChild('yearlyTable', { static: false }) yearlyTable!: ElementRef;
+  isDarkMode: boolean = false;
   prayers: Prayer[] = [];
   clickedRow: any = null;
   closestPrayer: string | null = null;
@@ -41,10 +42,19 @@ export class prayerTimesPage implements OnInit {
     private locationService: LocationService,
     private toastController: ToastController,
     private router: Router
-  ) { }
+  ) {}
 
   ngOnInit() {
     this.initializePrayerTimes();
+    this.checkDarkMode();
+  }
+
+  checkDarkMode() {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
+    this.isDarkMode = prefersDark.matches;
+    prefersDark.addEventListener('change', (e) => {
+      this.isDarkMode = e.matches;
+    });
   }
 
   async initializePrayerTimes() {
@@ -67,8 +77,7 @@ export class prayerTimesPage implements OnInit {
 
       // Fetch today's prayer times
       this.fetchTodayPrayerTimes();
-      this.startUpdatingRemainingTime();  // Start updating the remaining time and closest prayer every second
-
+      this.startUpdatingRemainingTime(); // Start updating the remaining time and closest prayer every second
     } else {
       this.refreshData();
     }
@@ -83,7 +92,17 @@ export class prayerTimesPage implements OnInit {
       const positionPromise = this.getCurrentLocation();
       const position = await Promise.race([
         positionPromise,
-        new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Gagal mendapatkan lokasi. Sila buka GPS dan cuba lagi')), 10000)),
+        new Promise<null>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  'Gagal mendapatkan lokasi. Sila buka GPS dan cuba lagi'
+                )
+              ),
+            10000
+          )
+        ),
       ]);
 
       if (!position) {
@@ -100,15 +119,18 @@ export class prayerTimesPage implements OnInit {
           this.sameData = false; // Reset the flag
         } else {
           // Show a success toast message
-          await this.showToast('Data waktu solat harian telah dikemaskini! Sila periksa semula masa solat harian anda.', 'success');
+          await this.showToast(
+            'Data waktu solat harian telah dikemaskini! Sila periksa semula masa solat harian anda.',
+            'success'
+          );
         }
       }, 1000);
     } catch (error) {
       // Show an error toast message
-      setTimeout(() => this.showToast(""+error, 'danger'), 1000);
+      setTimeout(() => this.showToast('' + error, 'danger'), 1000);
     } finally {
       // Set isLoading to false after 1 second
-      setTimeout(() => this.isLoading = false, 1000);
+      setTimeout(() => (this.isLoading = false), 1000);
     }
   }
 
@@ -132,15 +154,16 @@ export class prayerTimesPage implements OnInit {
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      
-      hour12: true
+
+      hour12: true,
     });
   }
 
   // Get current location from LocationService
   async getCurrentLocation(): Promise<string> {
     try {
-      const isLocationSupported = await this.locationService.isLocationSupported();
+      const isLocationSupported =
+        await this.locationService.isLocationSupported();
       if (!isLocationSupported) {
         console.error('Location services are not suppoerted.');
         this.isLoading = false;
@@ -153,7 +176,9 @@ export class prayerTimesPage implements OnInit {
       console.log('Current location:', position);
 
       // Call the new API to fetch the user zone code based on latitude and longitude
-      const zoneResponse = await this.prayerTimesService.getUserZoneCode(position.coords.latitude, position.coords.longitude).toPromise();
+      const zoneResponse = await this.prayerTimesService
+        .getUserZoneCode(position.coords.latitude, position.coords.longitude)
+        .toPromise();
       const zoneCode = zoneResponse.data.attributes.jakim_code; // Extract the 'jakim_code'
 
       // Return the zone code fetched from the API
@@ -185,18 +210,40 @@ export class prayerTimesPage implements OnInit {
   fetchTodayPrayerTimes() {
     const formattedDate = this.formatDate(this.currentDate);
     // Find the prayer times for the selected date in yearlyPrayers
-    const selectedPrayer = this.yearlyPrayers.find(prayer => prayer.date === formattedDate);
+    const selectedPrayer = this.yearlyPrayers.find(
+      (prayer) => prayer.date === formattedDate
+    );
 
     if (selectedPrayer) {
       this.prayers = [
-        { name: 'Imsak', time: selectedPrayer.imsak, date: selectedPrayer.date },
+        {
+          name: 'Imsak',
+          time: selectedPrayer.imsak,
+          date: selectedPrayer.date,
+        },
         { name: 'Subuh', time: selectedPrayer.fajr, date: selectedPrayer.date },
-        { name: 'Syuruk', time: selectedPrayer.syuruk, date: selectedPrayer.date },
-        { name: 'Dhuha', time: selectedPrayer.dhuha, date: selectedPrayer.date },
-        { name: 'Zuhur', time: selectedPrayer.dhuhr, date: selectedPrayer.date },
+        {
+          name: 'Syuruk',
+          time: selectedPrayer.syuruk,
+          date: selectedPrayer.date,
+        },
+        {
+          name: 'Dhuha',
+          time: selectedPrayer.dhuha,
+          date: selectedPrayer.date,
+        },
+        {
+          name: 'Zuhur',
+          time: selectedPrayer.dhuhr,
+          date: selectedPrayer.date,
+        },
         { name: 'Asar', time: selectedPrayer.asr, date: selectedPrayer.date },
-        { name: 'Maghrib', time: selectedPrayer.maghrib, date: selectedPrayer.date },
-        { name: 'Isyak', time: selectedPrayer.isha, date: selectedPrayer.date }
+        {
+          name: 'Maghrib',
+          time: selectedPrayer.maghrib,
+          date: selectedPrayer.date,
+        },
+        { name: 'Isyak', time: selectedPrayer.isha, date: selectedPrayer.date },
       ];
       // Format the Hijri date using Malay language
       this.currentHijriDate = this.formatHijriDate(selectedPrayer.hijri);
@@ -213,44 +260,66 @@ export class prayerTimesPage implements OnInit {
 
     // Malay Hijri month names
     const malayMonths = [
-      "Muharram", "Safar", "Rabiulawal", "Rabiulakhir", "Jamadilawal", "Jamadilakhir",
-      "Rejab", "Syaban", "Ramadan", "Syawal", "Zulkaedah", "Zulhijjah"
+      'Muharram',
+      'Safar',
+      'Rabiulawal',
+      'Rabiulakhir',
+      'Jamadilawal',
+      'Jamadilakhir',
+      'Rejab',
+      'Syaban',
+      'Ramadan',
+      'Syawal',
+      'Zulkaedah',
+      'Zulhijjah',
     ];
 
     // Return Hijri date in Malay (using normal digits for the day and year)
-    const malayDate = `${hijriDay} ${malayMonths[parseInt(hijriMonth) - 1]} ${hijriYear}`;
+    const malayDate = `${hijriDay} ${
+      malayMonths[parseInt(hijriMonth) - 1]
+    } ${hijriYear}`;
     return malayDate;
   }
 
   // Helper function to format Date to 'dd-MMM-yyyy'
   formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: '2-digit' };
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    };
     return date.toLocaleDateString('en-MY', options).replace(/ /g, '-'); // Convert to 'dd-MMM-yyyy' format
   }
-
 
   // Fetch yearly prayer times and save them to localStorage
   fetchYearlyPrayerTimes() {
     this.prayerTimesService.getPrayerTimes(this.zone, 'year').subscribe(
-      data => {
+      (data) => {
         const savedData = this.prayerTimesService.getSavedYearlyPrayerTimes();
         if (data.status === 'OK!') {
-
-          if (savedData && savedData.prayers && JSON.stringify(data.prayerTime) === JSON.stringify(savedData.prayers)) {
+          if (
+            savedData &&
+            savedData.prayers &&
+            JSON.stringify(data.prayerTime) ===
+              JSON.stringify(savedData.prayers)
+          ) {
             // If the data is the same, don't update
             this.sameData = true;
             return;
           }
           const yearlyPrayerTimes = data.prayerTime || [];
           this.yearlyPrayers = yearlyPrayerTimes;
-          this.prayerTimesService.saveYearlyPrayerTimes(this.zone, yearlyPrayerTimes); // Save to localStorage
+          this.prayerTimesService.saveYearlyPrayerTimes(
+            this.zone,
+            yearlyPrayerTimes
+          ); // Save to localStorage
           this.initializePrayerTimes();
         } else {
           this.showError('Gagal untuk mendapatkan waktu solat tahunan');
           this.currentHijriDate = '';
         }
       },
-      error => {
+      (error) => {
         this.showError('Terjadi ralat sewaktu mendapatkan waktu solat tahunan');
       }
     );
@@ -261,71 +330,84 @@ export class prayerTimesPage implements OnInit {
     const alert = await this.alertController.create({
       header: 'Error',
       message,
-      buttons: ['OK']
+      buttons: ['OK'],
     });
     await alert.present();
   }
 
   // Zone names mapping
   zoneNames: { [key: string]: string } = {
-    'jhr01': 'JHR01 - Pulau Aur dan Pulau Pemanggil',
-    'jhr02': 'JHR02 - Johor Bharu, Kota Tinggi, Mersing',
-    'jhr03': 'JHR03 - Kluang, Pontian',
-    'jhr04': 'JHR04 - Batu Pahat, Muar, Segamat, Gemas Johor',
-    'kdh01': 'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)',
-    'kdh02': 'KDH02 - Kuala Muda, Yan, Pendang',
-    'kdh03': 'KDH03 - Padang Terap, Sik',
-    'kdh04': 'KDH04 - Baling',
-    'kdh05': 'KDH05 - Bandar Baharu, Kulim',
-    'kdh06': 'KDH06 - Langkawi',
-    'kdh07': 'KDH07 - Gunung Jerai',
-    'ktn01': 'KTN01 - Bachok, Kota Bharu, Machang, Pasir Mas, Pasir Puteh, Tanah Merah, Tumpat, Kuala Krai, Mukim Chiku',
-    'ktn03': 'KTN03 - Gua Musang (Daerah Galas Dan Bertam), Jeli',
-    'mlk01': 'MLK01 - SELURUH NEGERI MELAKA',
-    'ngs01': 'NGS01 - Tampin, Jempol',
-    'ngs02': 'NGS02 - Jelebu, Kuala Pilah, Port Dickson, Rembau, Seremban',
-    'phg01': 'PHG01 - Pulau Tioman',
-    'phg02': 'PHG02 - Kuantan, Pekan, Rompin, Muadzam Shah',
-    'phg03': 'PHG03 - Jerantut, Temerloh, Maran, Bera, Chenor, Jengka',
-    'phg04': 'PHG04 - Bentong, Lipis, Raub',
-    'phg05': 'PHG05 - Genting Sempah, Janda Baik, Bukit Tinggi',
-    'phg06': 'PHG06 - Cameron Highlands, Genting Higlands, Bukit Fraser',
-    'pls01': 'PLS01 - Kangar, Padang Besar, Arau',
-    'png01': 'PNG01 - Seluruh Negeri Pulau Pinang',
-    'prk01': 'PRK01 - Tapah, Slim River, Tanjung Malim',
-    'prk02': 'PRK02 - Kuala Kangsar, Sg. Siput (Daerah Kecil), Ipoh, Batu Gajah, Kampar',
-    'prk03': 'PRK03 - Lenggong, Pengkalan Hulu, Grik',
-    'prk04': 'PRK04 - Temengor, Belum',
-    'prk05': 'PRK05 - Kg Gajah, Teluk Intan, Bagan Datuk, Seri Iskandar, Beruas, Parit, Lumut, Sitiawan, Pulau Pangkor',
-    'prk06': 'PRK06 - Selama, Taiping, Bagan Serai, Parit Buntar',
-    'prk07': 'PRK07 - Bukit Larut',
-    'sbh01': 'SBH01 - Bahagian Sandakan (Timur), Bukit Garam, Semawang, Temanggong, Tambisan, Bandar Sandakan',
-    'sbh02': 'SBH02 - Beluran, Telupid, Pinangah, Terusan, Kuamut, Bahagian Sandakan (Barat)',
-    'sbh03': 'SBH03 - Lahad Datu, Silabukan, Kunak, Sahabat, Semporna, Tungku, Bahagian Tawau (Timur)',
-    'sbh04': 'SBH04 - Bandar Tawau, Balong, Merotai, Kalabakan, Bahagian Tawau (Barat)',
-    'sbh05': 'SBH05 - Kudat, Kota Marudu, Pitas, Pulau Banggi, Bahagian Kudat',
-    'sbh06': 'SBH06 - Gunung Kinabalu',
-    'sbh07': 'SBH07 - Kota Kinabalu, Ranau, Kota Belud, Tuaran, Penampang, Papar, Putatan, Bahagian Pantai Barat',
-    'sbh08': 'SBH08 - Pensiangan, Keningau, Tambunan, Nabawan, Bahagian Pendalaman (Atas)',
-    'sbh09': 'SBH09 - Beaufort, Kuala Penyu, Sipitang, Tenom, Long Pa Sia, Membakut, Weston, Bahagian Pendalaman (Bawah)',
-    'sgr01': 'SGR01 - Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Rawang, S.Alam',
-    'sgr02': 'SGR02 - Kuala Selangor, Sabak Bernam',
-    'sgr03': 'SGR03 - Klang, Kuala Langat',
-    'swk01': 'SWK01 - Limbang, Lawas, Sundar, Trusan',
-    'swk02': 'SWK02 - Miri, Niah, Bekenu, Sibuti, Marudi',
-    'swk03': 'SWK03 - Pandan, Belaga, Suai, Tatau, Sebauh, Bintulu',
-    'swk04': 'SWK04 - Sibu, Mukah, Dalat, Song, Igan, Oya, Balingian, Kanowit, Kapit',
-    'swk05': 'SWK05 - Sarikei, Matu, Julau, Rajang, Daro, Bintangor, Belawai',
-    'swk06': 'SWK06 - Lubok Antu, Sri Aman, Roban, Debak, Kabong, Lingga, Engkelili, Betong, Spaoh, Pusa, Saratok',
-    'swk07': 'SWK07 - Serian, Simunjan, Samarahan, Sebuyau, Meludam',
-    'swk08': 'SWK08 - Kuching, Bau, Lundu, Sematan',
-    'swk09': 'SWK09 - Zon Khas (Kampung Patarikan)',
-    'trg01': 'TRG01 - Kuala Terengganu, Marang, Kuala Nerus',
-    'trg02': 'TRG02 - Besut, Setiu',
-    'trg03': 'TRG03 - Hulu Terengganu',
-    'trg04': 'TRG04 - Dungun, Kemaman',
-    'wly01': 'WLY01 - Kuala Lumpur, Putrajaya',
-    'wly02': 'WLY02 - Labuan'
+    jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
+    jhr02: 'JHR02 - Johor Bharu, Kota Tinggi, Mersing',
+    jhr03: 'JHR03 - Kluang, Pontian',
+    jhr04: 'JHR04 - Batu Pahat, Muar, Segamat, Gemas Johor',
+    kdh01: 'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)',
+    kdh02: 'KDH02 - Kuala Muda, Yan, Pendang',
+    kdh03: 'KDH03 - Padang Terap, Sik',
+    kdh04: 'KDH04 - Baling',
+    kdh05: 'KDH05 - Bandar Baharu, Kulim',
+    kdh06: 'KDH06 - Langkawi',
+    kdh07: 'KDH07 - Gunung Jerai',
+    ktn01:
+      'KTN01 - Bachok, Kota Bharu, Machang, Pasir Mas, Pasir Puteh, Tanah Merah, Tumpat, Kuala Krai, Mukim Chiku',
+    ktn03: 'KTN03 - Gua Musang (Daerah Galas Dan Bertam), Jeli',
+    mlk01: 'MLK01 - SELURUH NEGERI MELAKA',
+    ngs01: 'NGS01 - Tampin, Jempol',
+    ngs02: 'NGS02 - Jelebu, Kuala Pilah, Port Dickson, Rembau, Seremban',
+    phg01: 'PHG01 - Pulau Tioman',
+    phg02: 'PHG02 - Kuantan, Pekan, Rompin, Muadzam Shah',
+    phg03: 'PHG03 - Jerantut, Temerloh, Maran, Bera, Chenor, Jengka',
+    phg04: 'PHG04 - Bentong, Lipis, Raub',
+    phg05: 'PHG05 - Genting Sempah, Janda Baik, Bukit Tinggi',
+    phg06: 'PHG06 - Cameron Highlands, Genting Higlands, Bukit Fraser',
+    pls01: 'PLS01 - Kangar, Padang Besar, Arau',
+    png01: 'PNG01 - Seluruh Negeri Pulau Pinang',
+    prk01: 'PRK01 - Tapah, Slim River, Tanjung Malim',
+    prk02:
+      'PRK02 - Kuala Kangsar, Sg. Siput (Daerah Kecil), Ipoh, Batu Gajah, Kampar',
+    prk03: 'PRK03 - Lenggong, Pengkalan Hulu, Grik',
+    prk04: 'PRK04 - Temengor, Belum',
+    prk05:
+      'PRK05 - Kg Gajah, Teluk Intan, Bagan Datuk, Seri Iskandar, Beruas, Parit, Lumut, Sitiawan, Pulau Pangkor',
+    prk06: 'PRK06 - Selama, Taiping, Bagan Serai, Parit Buntar',
+    prk07: 'PRK07 - Bukit Larut',
+    sbh01:
+      'SBH01 - Bahagian Sandakan (Timur), Bukit Garam, Semawang, Temanggong, Tambisan, Bandar Sandakan',
+    sbh02:
+      'SBH02 - Beluran, Telupid, Pinangah, Terusan, Kuamut, Bahagian Sandakan (Barat)',
+    sbh03:
+      'SBH03 - Lahad Datu, Silabukan, Kunak, Sahabat, Semporna, Tungku, Bahagian Tawau (Timur)',
+    sbh04:
+      'SBH04 - Bandar Tawau, Balong, Merotai, Kalabakan, Bahagian Tawau (Barat)',
+    sbh05: 'SBH05 - Kudat, Kota Marudu, Pitas, Pulau Banggi, Bahagian Kudat',
+    sbh06: 'SBH06 - Gunung Kinabalu',
+    sbh07:
+      'SBH07 - Kota Kinabalu, Ranau, Kota Belud, Tuaran, Penampang, Papar, Putatan, Bahagian Pantai Barat',
+    sbh08:
+      'SBH08 - Pensiangan, Keningau, Tambunan, Nabawan, Bahagian Pendalaman (Atas)',
+    sbh09:
+      'SBH09 - Beaufort, Kuala Penyu, Sipitang, Tenom, Long Pa Sia, Membakut, Weston, Bahagian Pendalaman (Bawah)',
+    sgr01:
+      'SGR01 - Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Rawang, S.Alam',
+    sgr02: 'SGR02 - Kuala Selangor, Sabak Bernam',
+    sgr03: 'SGR03 - Klang, Kuala Langat',
+    swk01: 'SWK01 - Limbang, Lawas, Sundar, Trusan',
+    swk02: 'SWK02 - Miri, Niah, Bekenu, Sibuti, Marudi',
+    swk03: 'SWK03 - Pandan, Belaga, Suai, Tatau, Sebauh, Bintulu',
+    swk04:
+      'SWK04 - Sibu, Mukah, Dalat, Song, Igan, Oya, Balingian, Kanowit, Kapit',
+    swk05: 'SWK05 - Sarikei, Matu, Julau, Rajang, Daro, Bintangor, Belawai',
+    swk06:
+      'SWK06 - Lubok Antu, Sri Aman, Roban, Debak, Kabong, Lingga, Engkelili, Betong, Spaoh, Pusa, Saratok',
+    swk07: 'SWK07 - Serian, Simunjan, Samarahan, Sebuyau, Meludam',
+    swk08: 'SWK08 - Kuching, Bau, Lundu, Sematan',
+    swk09: 'SWK09 - Zon Khas (Kampung Patarikan)',
+    trg01: 'TRG01 - Kuala Terengganu, Marang, Kuala Nerus',
+    trg02: 'TRG02 - Besut, Setiu',
+    trg03: 'TRG03 - Hulu Terengganu',
+    trg04: 'TRG04 - Dungun, Kemaman',
+    wly01: 'WLY01 - Kuala Lumpur, Putrajaya',
+    wly02: 'WLY02 - Labuan',
   };
 
   // Calculate remaining time for the closest prayer
@@ -336,8 +418,10 @@ export class prayerTimesPage implements OnInit {
     let prayerDate = '';
 
     // Iterate through the list of prayers and find the closest one by both date and time
-    this.prayers.forEach(prayer => {
-      const [hours, minutes] = prayer.time.split(':').map(num => parseInt(num, 10));
+    this.prayers.forEach((prayer) => {
+      const [hours, minutes] = prayer.time
+        .split(':')
+        .map((num) => parseInt(num, 10));
       const prayerTime = new Date();
       prayerTime.setHours(hours);
       prayerTime.setMinutes(minutes);
@@ -364,20 +448,30 @@ export class prayerTimesPage implements OnInit {
 
       // Fetch next day's prayer times
       this.fetchTodayPrayerTimes();
-      return;  // Exit the function as we're moving to the next day's prayer times
+      return; // Exit the function as we're moving to the next day's prayer times
     }
 
     // If a closest prayer time is found for today, calculate the remaining time
     if (closestPrayerTime) {
       this.closestPrayer = (closestPrayerTime as Prayer).name;
-      this.closestPrayerTime = this.convertTimeToDate((closestPrayerTime as Prayer).time).toLocaleTimeString('ms-MY', { hour: 'numeric', minute: 'numeric', hour12: true });
-      const adjustedMinTimeDiff = minTimeDiff + (1000 * 60); // Adjust by adding one minute
+      this.closestPrayerTime = this.convertTimeToDate(
+        (closestPrayerTime as Prayer).time
+      ).toLocaleTimeString('ms-MY', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true,
+      });
+      const adjustedMinTimeDiff = minTimeDiff + 1000 * 60; // Adjust by adding one minute
       const hoursRemaining = Math.floor(adjustedMinTimeDiff / (1000 * 3600));
-      const minutesRemaining = Math.floor((adjustedMinTimeDiff % (1000 * 3600)) / (1000 * 60));
+      const minutesRemaining = Math.floor(
+        (adjustedMinTimeDiff % (1000 * 3600)) / (1000 * 60)
+      );
       if (minTimeDiff === 0) {
         this.remainingTime = 'sekarang';
       } else if (hoursRemaining > 0 || minutesRemaining > 0) {
-        this.remainingTime = `${this.closestPrayer} kurang dari ${hoursRemaining > 0 ? hoursRemaining + ' jam ' : ''}${minutesRemaining} minit`;
+        this.remainingTime = `${this.closestPrayer} kurang dari ${
+          hoursRemaining > 0 ? hoursRemaining + ' jam ' : ''
+        }${minutesRemaining} minit`;
       } else {
         this.remainingTime = 'sekarang';
       }
@@ -386,14 +480,14 @@ export class prayerTimesPage implements OnInit {
     }
   }
 
-
   // Toggle the visibility of the yearly prayer times table
   viewYearlyPrayerTimes() {
     this.showYearlyPrayerTimes = true;
     setTimeout(() => {
       if (this.yearlyTable) {
         // Scroll to the current day row when the view is shown
-        const currentDayRow = this.yearlyTable.nativeElement.querySelector('.current-day');
+        const currentDayRow =
+          this.yearlyTable.nativeElement.querySelector('.current-day');
         if (currentDayRow) {
           currentDayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -417,17 +511,17 @@ export class prayerTimesPage implements OnInit {
     // console.log('Clicked row:', this.clickedRow);
   }
 
-
   // Convert a time string (HH:mm:ss) into a Date object
   convertTimeToDate(time: string): Date {
     const date = new Date();
-    const [hours, minutes, seconds] = time.split(':').map(num => parseInt(num, 10));
+    const [hours, minutes, seconds] = time
+      .split(':')
+      .map((num) => parseInt(num, 10));
     date.setHours(hours);
     date.setMinutes(minutes);
     date.setSeconds(seconds);
     return date;
   }
-
 
   // Navigate back to the main prayer times
   backToMainPrayerTimes() {
@@ -473,7 +567,7 @@ export class prayerTimesPage implements OnInit {
   // Helper function to check if data exists for a specific date
   isDataAvailableForDate(date: Date): boolean {
     const formattedDate = this.formatDate(date);
-    return this.yearlyPrayers.some(prayer => prayer.date === formattedDate);
+    return this.yearlyPrayers.some((prayer) => prayer.date === formattedDate);
   }
 
   setReminder(prayerName: string) {
@@ -484,7 +578,7 @@ export class prayerTimesPage implements OnInit {
     // Set up a periodic update to check for the remaining time every second
     this.intervalId = setInterval(() => {
       this.calculateRemainingTime();
-    }, 1000);  // Update every second
+    }, 1000); // Update every second
   }
 
   handleRefresh(event: CustomEvent) {
