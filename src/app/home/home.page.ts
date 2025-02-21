@@ -9,16 +9,23 @@ import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service'
   styleUrls: ['./home.page.scss'],
 })
 export class HomePage implements OnDestroy {
+  public loaded: boolean = false;
   prayerNames = ['Subuh', 'Zuhur', 'Asar', 'Maghrib', 'Isyak'];
   currentLocation: string = 'Memuatkan lokasi...';
   currentHijriDate: string = '';
   currentTime: string = '';
   remainingTime: string = '';
-  prayerTimes: { [key: string]: string } = {};
+  prayerTimes: { [key: string]: string } = {}; // For display (12‑hour formatted)
+  rawPrayerTimes: { [key: string]: string } = {}; // For calculations (24‑hour strings)
   zoneNames: { [key: string]: string };
   private intervalId: any;
-  isDarkMode = false;
-  currentPrayerName: string = '';
+  isDarkMode: boolean = false;
+
+  // NEW properties for tracking calculated state
+  currentPrayer: { name: string; time: string; date: Date } | null = null;
+  upcomingPrayer: { name: string; time: string; date: Date } | null = null;
+  currentPrayerRatio: number = 1; // fraction (remaining/total)
+  currentDate: Date = new Date();
 
   constructor(
     private router: Router,
@@ -103,7 +110,6 @@ export class HomePage implements OnDestroy {
     await SplashScreen.hide();
     this.checkDarkMode();
     this.loadPrayerData();
-    this.startUpdatingTime();
   }
 
   ngOnDestroy() {
@@ -121,6 +127,15 @@ export class HomePage implements OnDestroy {
         (p: any) => p.date === formattedDate
       );
       if (prayerData) {
+        // Store the raw 24-hour times for calculation
+        this.rawPrayerTimes = {
+          subuh: prayerData.fajr,
+          zuhur: prayerData.dhuhr,
+          asar: prayerData.asr,
+          maghrib: prayerData.maghrib,
+          isyak: prayerData.isha,
+        };
+        // Store the formatted prayer times (12-hour with no AM/PM) for display
         this.prayerTimes = {
           subuh: this.formatPrayerTime(prayerData.fajr),
           zuhur: this.formatPrayerTime(prayerData.dhuhr),
@@ -130,6 +145,12 @@ export class HomePage implements OnDestroy {
         };
         this.currentHijriDate = this.formatHijriDate(prayerData.hijri);
       }
+      this.startUpdatingTime();
+    } else {
+      this.prayerTimesService.getDefaultPrayerTimes();
+      setTimeout(() => {
+        this.loadPrayerData();
+      }, 5000);
     }
   }
 
@@ -177,86 +198,108 @@ export class HomePage implements OnDestroy {
   private startUpdatingTime() {
     this.intervalId = setInterval(() => {
       const now = new Date();
+      this.currentDate = now; // store current time for later use
       this.currentTime = now.toLocaleTimeString('ms-MY', {
         hour: 'numeric',
         minute: 'numeric',
         hour12: true,
       });
       this.calculateRemainingTime(now);
+      if (!this.loaded) {
+        this.loadPrayerData();
+      }
     }, 1000);
   }
 
-  // Update calculateRemainingTime to track current prayer
+  // CalculateRemainingTime to track current prayer
   private calculateRemainingTime(now: Date) {
-  let closestPrayer: { name: string; time: string; date: Date } | null = null;
-  let currentPrayer: { name: string; time: string; date: Date } | null = null;
-  let minDiff = Infinity;
-  let previousPrayerDate: Date | null = null;
+    // Build an array of today's prayer times using the raw 24-hour times.
+    const prayersArray = this.prayerNames.map((name) => {
+      const key = name.toLowerCase();
+      const rawTime = this.rawPrayerTimes[key];
+      const [hours, minutes] = rawTime.split(':').map(Number);
+      let prayerDate = new Date(now);
+      prayerDate.setHours(hours, minutes, 0, 0);
+      return { name, time: rawTime, date: prayerDate };
+    });
 
-  this.prayerNames.forEach((prayerName) => {
-    const time = this.prayerTimes[prayerName.toLowerCase()];
-    const [hours, minutes] = time.split(':').map(Number);
-    
-    // Create initial prayer time with current date
-    let prayerDate = new Date(now);
-    prayerDate.setHours(hours, minutes, 0, 0);
-
-    // Adjust date if prayer time is earlier than previous prayer
-    if (previousPrayerDate && prayerDate < previousPrayerDate) {
-      prayerDate.setDate(prayerDate.getDate() + 1);
+    // Determine upcoming and current prayer.
+    if (now < prayersArray[0].date) {
+      // Before Subuh – no passed prayer for the new day.
+      this.currentPrayer = prayersArray[4];
+      this.upcomingPrayer = prayersArray[0];
+    } else {
+      const upcomingIndex = prayersArray.findIndex((p) => now < p.date);
+      if (upcomingIndex === -1) {
+        // All prayers passed; current = last prayer, upcoming = first prayer of tomorrow.
+        this.currentPrayer = prayersArray[prayersArray.length - 1];
+        const firstPrayer = prayersArray[0];
+        let tomorrow = new Date(firstPrayer.date);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        this.upcomingPrayer = {
+          name: firstPrayer.name,
+          time: firstPrayer.time,
+          date: tomorrow,
+        };
+      } else {
+        // The prayer immediately before upcoming is the current (active) prayer.
+        this.currentPrayer =
+          upcomingIndex > 0 ? prayersArray[upcomingIndex - 1] : null;
+        this.upcomingPrayer = prayersArray[upcomingIndex];
+      }
     }
 
-    // Update previous prayer reference
-    previousPrayerDate = prayerDate;
-
-    // Check if current time is within this prayer period
-    if (now >= prayerDate) {
-      currentPrayer = { name: prayerName, time, date: prayerDate };
+    // Compute the ratio for the active prayer (if any)
+    if (this.currentPrayer) {
+      if (this.currentPrayer.name.toLowerCase() === 'isyak') {
+        // Adjust upcoming prayer time by adding 24 hours so that the times are on the same timeline.
+        const adjustedUpcomingTime =
+          this.upcomingPrayer.date.getTime() + 24 * 3600 * 1000;
+        const totalDuration =
+          adjustedUpcomingTime - this.currentPrayer.date.getTime();
+        const remainingDuration = adjustedUpcomingTime - now.getTime();
+        this.currentPrayerRatio = remainingDuration / totalDuration;
+      } else {
+        const totalDuration =
+          this.upcomingPrayer.date.getTime() -
+          this.currentPrayer.date.getTime();
+        const remainingDuration =
+          this.upcomingPrayer.date.getTime() - now.getTime();
+        this.currentPrayerRatio = remainingDuration / totalDuration;
+      }
+    } else {
+      this.currentPrayerRatio = 1;
     }
 
-    // Calculate time difference for closest prayer
-    const diff = prayerDate.getTime() - now.getTime();
-    if (diff > 0 && diff < minDiff) {
-      minDiff = diff;
-      closestPrayer = { name: prayerName, time, date: prayerDate };
-    }
-  });
-
-  // Handle midnight crossover for current prayer
-  if (!currentPrayer) {
-    // Check if we're between last prayer of yesterday and first prayer of today
-    const lastPrayerName = this.prayerNames[this.prayerNames.length - 1];
-    const lastPrayerTime = this.prayerTimes[lastPrayerName.toLowerCase()];
-    const [lastHours, lastMinutes] = lastPrayerTime.split(':').map(Number);
-    const lastPrayerDate = new Date(now);
-    lastPrayerDate.setHours(lastHours, lastMinutes, 0, 0);
-    
-    if (now >= lastPrayerDate) {
-      currentPrayer = { 
-        name: lastPrayerName, 
-        time: lastPrayerTime, 
-        date: lastPrayerDate 
-      };
-    }
+    // Update the remaining time display (for the upcoming prayer)
+    const diff = this.upcomingPrayer.date.getTime() - now.getTime();
+    this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
   }
-
-  this.currentPrayerName = currentPrayer?.name || '';
-  this.updateRemainingTimeDisplay(minDiff, closestPrayer || undefined);
-}
 
   private updateRemainingTimeDisplay(
     diff: number,
-    closestPrayer?: { name: string; time: string }
+    closestPrayer: { name: string; time: string }
   ) {
-    if (closestPrayer && diff !== Infinity) {
-      const hours = Math.floor(diff / (1000 * 3600));
-      const minutes = Math.floor((diff % (1000 * 3600)) / (1000 * 60));
-      this.remainingTime = `${closestPrayer.name} kurang daripada ${
-        hours ? `${hours} jam ` : ''
-      }${minutes} minit`;
+    if (closestPrayer && diff >= 0) {
+      // Adjust by adding one minute (as in prayerTimes.page)
+      const adjustedDiff = diff + 1000 * 60;
+      const hoursRemaining = Math.floor(adjustedDiff / (1000 * 3600));
+      const minutesRemaining = Math.floor(
+        (adjustedDiff % (1000 * 3600)) / (1000 * 60)
+      );
+      if (diff === 0) {
+        this.remainingTime = 'sekarang';
+      } else if (hoursRemaining > 0 || minutesRemaining > 0) {
+        this.remainingTime = `${closestPrayer.name} kurang dari ${
+          hoursRemaining ? hoursRemaining + ' jam ' : ''
+        }${minutesRemaining} minit`;
+      } else {
+        this.remainingTime = 'sekarang';
+      }
     } else {
       this.remainingTime = 'Tiada solat seterusnya hari ini';
     }
+    this.loaded = true;
   }
 
   // Dark mode detection
@@ -268,24 +311,59 @@ export class HomePage implements OnDestroy {
     });
   }
 
-  // Icon path resolver
+  // --- HELPER: returns today's Subuh Date based on rawPrayerTimes ---
+  private getSubuhDate(): Date {
+    const subuhRaw = this.rawPrayerTimes['subuh'];
+    const [hours, minutes] = subuhRaw.split(':').map(Number);
+    let subuhDate = new Date(this.currentDate);
+    subuhDate.setHours(hours, minutes, 0, 0);
+    return subuhDate;
+  }
+
   getPrayerIconSrc(prayerName: string): string {
     const basePath = '../../assets/icon/';
     const normalizedName = prayerName.toLowerCase();
+    const now = this.currentDate;
+    const subuhDate = this.getSubuhDate();
+    const currentIndex = this.currentPrayer
+      ? this.prayerNames.indexOf(this.currentPrayer.name)
+      : -1;
+    const prayerIndex = this.prayerNames.indexOf(prayerName);
 
-    if (prayerName === this.currentPrayerName) {
-      return `${basePath}${normalizedName}-green.svg`;
+    // For the active (current) prayer, choose green or yellow based on remaining ratio.
+    if (this.currentPrayer && prayerName === this.currentPrayer.name) {
+      if (this.currentPrayerRatio > 0.3) {
+        return `${basePath}${normalizedName}-green.svg`;
+      } else {
+        return `${basePath}${normalizedName}-yellow.svg`;
+      }
     }
-
+    // For passed prayers (only if now is after Subuh – new day check)
+    if (this.currentPrayer && prayerIndex < currentIndex && now >= subuhDate) {
+      return `${basePath}${normalizedName}-red.svg`;
+    }
+    // Otherwise (upcoming prayer or before Subuh), use default icon per dark mode.
     return this.isDarkMode
       ? `${basePath}${normalizedName}-white.svg`
       : `${basePath}${normalizedName}.svg`;
   }
 
+  // --- UPDATED getPrayerStyle() ---
   getPrayerStyle(prayerName: string): { color: string } {
-    const isCurrent =
-      prayerName.toLowerCase() === this.currentPrayerName.toLowerCase();
-    return { color: isCurrent ? '#14AE5C' : 'inherit' };
+    const now = this.currentDate;
+    const subuhDate = this.getSubuhDate();
+    const currentIndex = this.currentPrayer
+      ? this.prayerNames.indexOf(this.currentPrayer.name)
+      : -1;
+    const prayerIndex = this.prayerNames.indexOf(prayerName);
+
+    if (this.currentPrayer && prayerName === this.currentPrayer.name) {
+      return { color: this.currentPrayerRatio > 0.3 ? '#14AE5C' : 'yellow' };
+    }
+    if (this.currentPrayer && prayerIndex < currentIndex && now >= subuhDate) {
+      return { color: 'red' };
+    }
+    return { color: 'inherit' };
   }
 
   prayerTracker: { [key: string]: boolean } = {
