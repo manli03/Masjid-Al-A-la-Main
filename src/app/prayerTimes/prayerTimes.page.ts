@@ -18,15 +18,16 @@ interface Prayer {
 })
 export class prayerTimesPage implements OnInit {
   @ViewChild('yearlyTable', { static: false }) yearlyTable!: ElementRef;
+  loaded: boolean = false;
   isDarkMode: boolean = false;
   prayers: Prayer[] = [];
   clickedRow: any = null;
   closestPrayer: string | null = null;
   remainingTime: string = '';
-  location: string = 'Memuatkan lokasi...';
+  location: string = 'Zon tidak dikenali';
   currentDate: Date = new Date();
   currentHijriDate: string = '';
-  zone: string = '';
+  zone: string = 'KDH01'; // Default zone code for Kubang Pasu
   showYearlyPrayerTimes: boolean = false;
   yearlyPrayers: any[] = [];
   userLocation: string = '';
@@ -79,31 +80,23 @@ export class prayerTimesPage implements OnInit {
       this.fetchTodayPrayerTimes();
       this.startUpdatingRemainingTime(); // Start updating the remaining time and closest prayer every second
     } else {
-      this.refreshData();
+      this.fetchNewData();
     }
   }
 
-  // Function to refresh data from API
-  async refreshData(): Promise<void> {
+  // Fetch new data from API
+  refreshData() {
     this.isLoading = true;
+    this.fetchNewData();
+  }
+
+  // Function to refresh data from API
+  async fetchNewData(): Promise<void> {
     this.sameData = false;
     try {
       // Get the user's current location
       const positionPromise = this.getCurrentLocation();
-      const position = await Promise.race([
-        positionPromise,
-        new Promise<null>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  'Gagal mendapatkan lokasi. Sila buka GPS dan cuba lagi'
-                )
-              ),
-            10000
-          )
-        ),
-      ]);
+      const position = await positionPromise;
 
       if (!position) {
         return;
@@ -131,6 +124,7 @@ export class prayerTimesPage implements OnInit {
     } finally {
       // Set isLoading to false after 1 second
       setTimeout(() => (this.isLoading = false), 1000);
+      this.loaded = true;
     }
   }
 
@@ -187,7 +181,7 @@ export class prayerTimesPage implements OnInit {
       console.error('Error getting location:', error);
       this.isLoading = false;
       this.location = 'Zon Tidak Dikenali'; // set to default value
-      await this.showToast('Error: ' + error, 'danger');
+      await this.showToast('' + error, 'danger');
       return '';
     }
   }
@@ -328,7 +322,7 @@ export class prayerTimesPage implements OnInit {
   // Handle errors
   async showError(message: string) {
     const alert = await this.alertController.create({
-      header: 'Error',
+      header: '',
       message,
       buttons: ['OK'],
     });
@@ -478,6 +472,7 @@ export class prayerTimesPage implements OnInit {
     } else {
       this.remainingTime = 'Tiada solat terdekat pada masa ini';
     }
+    this.loaded = true;
   }
 
   // Toggle the visibility of the yearly prayer times table

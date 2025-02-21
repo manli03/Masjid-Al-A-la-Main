@@ -1,7 +1,7 @@
-<div *ngIf="!showYearlyPrayerTimes"  style="height: 100vh;">
+<div *ngIf="!showYearlyPrayerTimes" style="height: 100vh;">
   <!-- Loading Overlay -->
   <div *ngIf="isLoading" class="loading-overlay">
-    <ion-spinner name="bubbles" style="zoom: 2;"></ion-spinner>
+    <ion-spinner style="zoom: 2;"></ion-spinner>
   </div>
   <ion-header class="ion-no-border">
     <ion-toolbar>
@@ -23,13 +23,22 @@
     </ion-refresher>
     <!-- Current Prayer Times -->
     <div class="header">
-      <img alt="Mosque silhouette background" src="https://picsum.photos/600/200" />
-      <h5>{{ location }}</h5>
+      <img src="https://picsum.photos/600/200"
+        [attr.alt]="loaded ? 'Mosque silhouette background' : ''" />
+      <h5 *ngIf="loaded; else skeletonLocation">{{ location }}</h5>
+      <ng-template #skeletonLocation>
+        <ion-skeleton-text [animated]="true" style="width: 150px; display: inline-block;"></ion-skeleton-text>
+      </ng-template>
       <h1>
-        <ion-spinner *ngIf="!remainingTime && currentHijriDate" name="bubbles"></ion-spinner>
-        {{ closestPrayerTime }}
+        <span *ngIf="loaded; else skeletonClosestPrayerTime">{{ closestPrayerTime }}</span>
+        <ng-template #skeletonClosestPrayerTime>
+          <ion-skeleton-text [animated]="true" style="width: 100px; display: inline-block;"></ion-skeleton-text>
+        </ng-template>
       </h1>
-      <p>{{ remainingTime }}</p>
+      <p *ngIf="loaded; else skeletonRemainingTime">{{ remainingTime }}</p>
+      <ng-template #skeletonRemainingTime>
+        <ion-skeleton-text [animated]="true" style="width: 80px; display: inline-block;"></ion-skeleton-text>
+      </ng-template>
     </div>
 
     <div class="container">
@@ -40,8 +49,14 @@
         </div>
 
         <div class="date-text text-center mx-3">
-          <h2 class="mb-0">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
-          <p class="mb-0">{{ currentHijriDate }}</p>
+          <h2 class="mb-0" *ngIf="loaded; else skeletonCurrentDate">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
+          <ng-template #skeletonCurrentDate>
+            <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+          </ng-template>
+          <p class="mb-0" *ngIf="loaded; else skeletonHijriDate">{{ currentHijriDate }}</p>
+          <ng-template #skeletonHijriDate>
+            <ion-skeleton-text [animated]="true" style="width: 100px;"></ion-skeleton-text>
+          </ng-template>
         </div>
 
         <div class="arrow" style="cursor: pointer; margin-right: 10px;" [ngClass]="{'disabled': !canNavigateNext()}"
@@ -64,12 +79,23 @@
               <td class="dark">
                 <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + (isDarkMode ? '-white' : '') + '.svg'"
                   alt="{{ prayer.name }} icon" width="20" height="20" />
-                {{ prayer.name }}
+                <span *ngIf="loaded; else skeletonPrayerName">  {{ prayer.name }}</span>
+                <ng-template #skeletonPrayerName>
+                  <ion-skeleton-text [animated]="true" style="width: 50px; display: inline-block;"></ion-skeleton-text>
+                </ng-template>
               </td>
-              <td class="dark">{{ convertTimeToDate(prayer.time) | date: 'shortTime' }}</td>
               <td class="dark">
-                <button class="btn btn-reminder" (click)="setReminder(prayer.name)">Ingatkan saya</button>
+                <span *ngIf="loaded; else skeletonPrayerTime">{{ convertTimeToDate(prayer.time) | date: 'shortTime' }}</span>
+                <ng-template #skeletonPrayerTime>
+                  <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+                </ng-template>
               </td>
+                <td class="dark">
+                <button class="btn btn-reminder" *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">Ingatkan saya</button>
+                <ng-template #skeletonReminderButton>
+                  <ion-skeleton-text [animated]="true" style="width: 100px; height: 20px;"></ion-skeleton-text>
+                </ng-template>
+                </td>
             </tr>
           </tbody>
         </table>
@@ -95,10 +121,17 @@
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
     <div class="header" style="padding-bottom: 0;">
-      <img alt="Mosque silhouette background" src="https://picsum.photos/600/200" />
+      <img src="https://picsum.photos/600/200" [attr.alt]="loaded ? 'Mosque silhouette background' : ''" />
       <div style="margin: 0 10px;">
-        <h4>{{ location }}</h4>
-        <p style="font-size: smaller; padding: 10px 0;">Data Terakhir dikemaskini: {{ lastUpdated }} </p>
+        <h4 *ngIf="loaded; else skeletonYearlyLocation">{{ location }}</h4>
+        <ng-template #skeletonYearlyLocation>
+          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+        </ng-template>
+        <p style="font-size: smaller; padding: 10px 0;" *ngIf="loaded; else skeletonLastUpdated">Data Terakhir dikemaskini: {{
+          lastUpdated }}</p>
+        <ng-template #skeletonLastUpdated>
+          <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
+        </ng-template>
       </div>
     </div>
 

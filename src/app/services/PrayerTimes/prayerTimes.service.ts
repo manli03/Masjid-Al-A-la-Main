@@ -39,7 +39,27 @@ export class PrayerTimesService {
     if (savedData) {
       return JSON.parse(savedData);
     }
+    console.log('No saved data found!');
     return null;
+  }
+
+  // Fetch and save default prayer times for the whole year
+  getDefaultPrayerTimes() {
+      let zone = 'KDH01';  // Default zone code for this app = Kubang Pasu
+      let period = 'year';
+      this.getPrayerTimes(zone, period).subscribe(data => {
+        if (data.status === 'OK!') {
+          const yearlyPrayerTimes: any = data.prayerTime || [];
+          const defaultData = {
+            zone: zone,
+            prayers: yearlyPrayerTimes,
+            timestamp: new Date().toISOString(),
+          };
+          localStorage.setItem('yearlyPrayerTimes', JSON.stringify(defaultData)); // Save to localStorage
+        } else {
+          console.log('Failed to fetch default prayer times!');
+        }
+      });
   }
 
   // Check if the stored location is the same as the current one

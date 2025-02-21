@@ -4,19 +4,20 @@
   </ion-refresher>
   <!-- Header -->
   <div class="d-flex align-items-center justify-content-between" style="position: relative; width: 100%; margin: 0;">
-
-    
     <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
-
       <!-- Location Section -->
       <div (click)="navigateToPrayerTimes()" class="d-flex align-items-center location"
-        style="padding: 10px; margin: 10px 0;">
+        style="padding: 10px; margin: 15px 0;">
         <ion-icon name="location-outline"
-          style="font-size: 24px;  color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
-        <span style="font-weight: 500;">{{ currentLocation }}</span>
+          style="font-size: 24px; margin: 0 10px 0 5px;  color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
+        <span *ngIf="loaded; else skeletonLocation" style="font-weight: 500;">
+          {{ currentLocation.length > 30 ? (currentLocation | slice:0:30) + '...' : currentLocation }}
+        </span>
+        <ng-template #skeletonLocation>
+          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+        </ng-template>
       </div>
     </div>
-
     <!-- Notification Icon -->
     <div class="d-flex justify-content-end" style="position: absolute; right: 0; font-size: 24px;">
       <ion-icon name="notifications-outline" style="vertical-align: middle;"></ion-icon>
@@ -30,7 +31,10 @@
         <img src="../../assets/icon/heart.svg" alt="Heart Icon"
           style="width: 24px; height: 24px; margin: -3px 10px 0 0;" />
       </div>
-      <span>Mulakan hari anda dengan solat</span>
+      <span *ngIf="loaded; else skeletonPrayerHeader">Mulakan hari anda dengan solat</span>
+      <ng-template #skeletonPrayerHeader>
+        <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
+      </ng-template>
       <ion-col class="text-end d-flex align-items-center">
         <div (click)="navigateToPrayerTimes()"
           style="width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; right: 0; margin-right: 10px;">
@@ -44,12 +48,24 @@
   <div class="prayer-time">
     <ion-row>
       <ion-col>
-        <span>{{ currentHijriDate }}</span>
-        <h1 style="white-space: nowrap;">{{ currentTime }}</h1>
-        <p>{{ remainingTime }}</p>
+        <span *ngIf="loaded; else skeletonDate">{{ currentHijriDate }}</span>
+        <ng-template #skeletonDate>
+          <ion-skeleton-text [animated]="true" style="width: 100px;"></ion-skeleton-text>
+        </ng-template>
+        <h1 *ngIf="loaded; else skeletonTime" style="white-space: nowrap;">{{ currentTime }}</h1>
+        <ng-template #skeletonTime>
+          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+        </ng-template>
+        <p *ngIf="loaded; else skeletonRemaining">{{ remainingTime }}</p>
+        <ng-template #skeletonRemaining>
+          <ion-skeleton-text [animated]="true" style="width: 80px;"></ion-skeleton-text>
+        </ng-template>
       </ion-col>
       <ion-col class="text-end">
-        <img alt="Drum icon" src="../../assets/icon/homegong.png" width="100" height="auto" />
+        <img *ngIf="loaded; else skeletonIcon" alt="Drum icon" src="../../assets/icon/homegong.png" width="100" height="auto" />
+        <ng-template #skeletonIcon>
+          <ion-skeleton-text [animated]="true" style="width: 100px; height: 100px;"></ion-skeleton-text>
+        </ng-template>
       </ion-col>
     </ion-row>
 
@@ -59,13 +75,23 @@
     <ion-row>
       <ion-col *ngFor="let prayer of prayerNames">
         <p style="display: block; text-align: center; margin-bottom: 10px;">
-          <b [ngStyle]="getPrayerStyle(prayer)">{{ prayer }}</b>
+          <b *ngIf="loaded; else skeletonPrayer" [ngStyle]="getPrayerStyle(prayer)">{{ prayer }}</b>
+          <ng-template #skeletonPrayer>
+            <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+          </ng-template>
         </p>
-        <img [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' Icon'"
+        <img *ngIf="loaded; else skeletonPrayerIcon" [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' Icon'"
           style="display: block; margin: 0 auto; width: 24px; height: 24px;" />
-        <p [ngStyle]="getPrayerStyle(prayer)" style="display: block; text-align: center; margin-top: 10px;">
+        <ng-template #skeletonPrayerIcon>
+          <ion-skeleton-text [animated]="true" style="width: 24px; height: 24px;"></ion-skeleton-text>
+        </ng-template>
+        <p *ngIf="loaded; else skeletonPrayerTime" [ngStyle]="getPrayerStyle(prayer)"
+          style="display: block; text-align: center; margin-top: 10px;">
           {{ prayerTimes[prayer.toLowerCase()] }}
         </p>
+        <ng-template #skeletonPrayerTime>
+          <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+        </ng-template>
       </ion-col>
     </ion-row>
   </div>
