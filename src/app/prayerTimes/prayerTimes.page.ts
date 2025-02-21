@@ -68,7 +68,9 @@ export class prayerTimesPage implements OnInit {
       this.zone = savedData.zone;
 
       // Fetch the full zone name from the mapping object
-      const fullZoneName = this.zoneNames[this.zone] || 'Zon Tidak Dikenali';
+      const fullZoneName =
+        this.zoneNames[this.zone] ||
+        'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)'; // Default to Kubang Pasu
 
       // Update the location to display the full zone name
       this.location = fullZoneName;

@@ -120,7 +120,9 @@ export class HomePage implements OnDestroy {
     const savedData = this.prayerTimesService.getSavedYearlyPrayerTimes();
     if (savedData) {
       const zone = savedData.zone;
-      this.currentLocation = this.zoneNames[zone] || 'Zon Tidak Dikenali';
+      this.currentLocation =
+        this.zoneNames[zone] ||
+        'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)'; // Default to KDH01
       const today = new Date();
       const formattedDate = this.formatDate(today);
       const prayerData = savedData.prayers.find(
@@ -252,12 +254,17 @@ export class HomePage implements OnDestroy {
     // Compute the ratio for the active prayer (if any)
     if (this.currentPrayer) {
       if (this.currentPrayer.name.toLowerCase() === 'isyak') {
-        // Adjust upcoming prayer time by adding 24 hours so that the times are on the same timeline.
-        const adjustedUpcomingTime =
-          this.upcomingPrayer.date.getTime() + 24 * 3600 * 1000;
+        // For Isyak, the prayer time might belong to the previous day if now is after 12 AM.
+        let currentPrayerTime = this.currentPrayer.date.getTime();
+        // If current prayer’s time is later than the upcoming prayer’s time,
+        // then currentPrayer was computed with today's date but should reflect yesterday.
+        if (currentPrayerTime > this.upcomingPrayer.date.getTime()) {
+          currentPrayerTime -= 24 * 3600 * 1000;
+        }
         const totalDuration =
-          adjustedUpcomingTime - this.currentPrayer.date.getTime();
-        const remainingDuration = adjustedUpcomingTime - now.getTime();
+          this.upcomingPrayer.date.getTime() - currentPrayerTime;
+        const remainingDuration =
+          this.upcomingPrayer.date.getTime() - now.getTime();
         this.currentPrayerRatio = remainingDuration / totalDuration;
       } else {
         const totalDuration =
@@ -267,6 +274,7 @@ export class HomePage implements OnDestroy {
           this.upcomingPrayer.date.getTime() - now.getTime();
         this.currentPrayerRatio = remainingDuration / totalDuration;
       }
+      // console.log(this.currentPrayerRatio);
     } else {
       this.currentPrayerRatio = 1;
     }
