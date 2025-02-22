@@ -10,7 +10,7 @@ import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service'
 })
 export class HomePage implements OnDestroy {
   public loaded: boolean = false;
-  prayerNames = ['Subuh', 'Zuhur', 'Asar', 'Maghrib', 'Isyak'];
+  prayerNames = ['Subuh', 'Syuruk', 'Zuhur', 'Asar', 'Maghrib', 'Isyak'];
   currentLocation: string = 'Memuatkan lokasi...';
   currentHijriDate: string = '';
   currentTime: string = '';
@@ -132,6 +132,7 @@ export class HomePage implements OnDestroy {
         // Store the raw 24-hour times for calculation
         this.rawPrayerTimes = {
           subuh: prayerData.fajr,
+          syuruk: prayerData.syuruk,
           zuhur: prayerData.dhuhr,
           asar: prayerData.asr,
           maghrib: prayerData.maghrib,
@@ -140,6 +141,7 @@ export class HomePage implements OnDestroy {
         // Store the formatted prayer times (12-hour with no AM/PM) for display
         this.prayerTimes = {
           subuh: this.formatPrayerTime(prayerData.fajr),
+          syuruk: this.formatPrayerTime(prayerData.syuruk),
           zuhur: this.formatPrayerTime(prayerData.dhuhr),
           asar: this.formatPrayerTime(prayerData.asr),
           maghrib: this.formatPrayerTime(prayerData.maghrib),
@@ -222,13 +224,16 @@ export class HomePage implements OnDestroy {
       const [hours, minutes] = rawTime.split(':').map(Number);
       let prayerDate = new Date(now);
       prayerDate.setHours(hours, minutes, 0, 0);
+      if (key === 'syuruk') {
+        prayerDate = new Date(prayerDate.getTime() - 28 * 60 * 1000);
+      }
       return { name, time: rawTime, date: prayerDate };
     });
 
     // Determine upcoming and current prayer.
     if (now < prayersArray[0].date) {
       // Before Subuh – no passed prayer for the new day.
-      this.currentPrayer = prayersArray[4];
+      this.currentPrayer = prayersArray[5];
       this.upcomingPrayer = prayersArray[0];
     } else {
       const upcomingIndex = prayersArray.findIndex((p) => now < p.date);
@@ -274,7 +279,7 @@ export class HomePage implements OnDestroy {
           this.upcomingPrayer.date.getTime() - now.getTime();
         this.currentPrayerRatio = remainingDuration / totalDuration;
       }
-      // console.log(this.currentPrayerRatio);
+      // console.log('ratio', this.currentPrayerRatio);
     } else {
       this.currentPrayerRatio = 1;
     }
@@ -290,7 +295,7 @@ export class HomePage implements OnDestroy {
   ) {
     if (closestPrayer && diff >= 0) {
       // Adjust by adding one minute (as in prayerTimes.page)
-      const adjustedDiff = diff + 1000 * 60;
+      let adjustedDiff = diff + 1000 * 60;
       const hoursRemaining = Math.floor(adjustedDiff / (1000 * 3600));
       const minutesRemaining = Math.floor(
         (adjustedDiff % (1000 * 3600)) / (1000 * 60)
@@ -298,9 +303,16 @@ export class HomePage implements OnDestroy {
       if (diff === 0) {
         this.remainingTime = 'sekarang';
       } else if (hoursRemaining > 0 || minutesRemaining > 0) {
-        this.remainingTime = `${closestPrayer.name} kurang dari ${
-          hoursRemaining ? hoursRemaining + ' jam ' : ''
-        }${minutesRemaining} minit`;
+        let currentPrayer = this.currentPrayer?.name;
+        if (closestPrayer.name.toLowerCase() === 'zuhur') {
+          currentPrayer = 'Zuhur';
+          this.remainingTime = `${currentPrayer} akan bermula dalam ${
+            hoursRemaining ? hoursRemaining + ' jam ' : ''
+          }${minutesRemaining} minit`;
+        } else {
+          this.remainingTime = `${this.currentPrayer?.name} akan tamat dalam ${hoursRemaining ? hoursRemaining + ' jam ' : ''
+            }${minutesRemaining} minit`;
+        }
       } else {
         this.remainingTime = 'sekarang';
       }

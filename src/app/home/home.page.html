@@ -73,26 +73,28 @@
 
     <!-- Prayer Times -->
     <ion-row>
-      <ion-col *ngFor="let prayer of prayerNames">
-        <p style="display: block; text-align: center; margin-bottom: 10px;">
-          <b *ngIf="loaded; else skeletonPrayer" [ngStyle]="getPrayerStyle(prayer)">{{ prayer }}</b>
-          <ng-template #skeletonPrayer>
+      <ng-container *ngFor="let prayer of prayerNames">
+        <ion-col *ngIf="prayer.toLowerCase() !== 'syuruk'">
+          <p style="display: block; text-align: center; margin-bottom: 10px;">
+            <b *ngIf="loaded; else skeletonPrayer" [ngStyle]="getPrayerStyle(prayer)">{{ prayer }}</b>
+            <ng-template #skeletonPrayer>
+              <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+            </ng-template>
+          </p>
+          <img *ngIf="loaded; else skeletonPrayerIcon" [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' Icon'"
+            style="display: block; margin: 0 auto; width: 24px; height: 24px;" />
+          <ng-template #skeletonPrayerIcon>
+            <ion-skeleton-text [animated]="true" style="width: 24px; height: 24px;"></ion-skeleton-text>
+          </ng-template>
+          <p *ngIf="loaded; else skeletonPrayerTime" [ngStyle]="getPrayerStyle(prayer)"
+            style="display: block; text-align: center; margin-top: 10px;">
+            {{ prayerTimes[prayer.toLowerCase()] }}
+          </p>
+          <ng-template #skeletonPrayerTime>
             <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
           </ng-template>
-        </p>
-        <img *ngIf="loaded; else skeletonPrayerIcon" [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' Icon'"
-          style="display: block; margin: 0 auto; width: 24px; height: 24px;" />
-        <ng-template #skeletonPrayerIcon>
-          <ion-skeleton-text [animated]="true" style="width: 24px; height: 24px;"></ion-skeleton-text>
-        </ng-template>
-        <p *ngIf="loaded; else skeletonPrayerTime" [ngStyle]="getPrayerStyle(prayer)"
-          style="display: block; text-align: center; margin-top: 10px;">
-          {{ prayerTimes[prayer.toLowerCase()] }}
-        </p>
-        <ng-template #skeletonPrayerTime>
-          <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
-        </ng-template>
-      </ion-col>
+        </ion-col>
+      </ng-container>
     </ion-row>
   </div>
 

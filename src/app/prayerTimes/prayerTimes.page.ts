@@ -465,7 +465,7 @@ export class prayerTimesPage implements OnInit {
       if (minTimeDiff === 0) {
         this.remainingTime = 'sekarang';
       } else if (hoursRemaining > 0 || minutesRemaining > 0) {
-        this.remainingTime = `${this.closestPrayer} kurang dari ${
+        this.remainingTime = `${this.closestPrayer} akan bermula dalam ${
           hoursRemaining > 0 ? hoursRemaining + ' jam ' : ''
         }${minutesRemaining} minit`;
       } else {
