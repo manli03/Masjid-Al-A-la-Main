@@ -1,33 +1,33 @@
 import { Component, OnInit } from '@angular/core';
-import { Platform } from '@ionic/angular';
-import { Location } from '@angular/common';
+import { Platform, NavController } from '@ionic/angular';
 
 @Component({
   selector: 'app-tabs',
   templateUrl: 'tabs.page.html',
-  styleUrls: ['tabs.page.scss']
+  styleUrls: ['tabs.page.scss'],
 })
 export class TabsPage implements OnInit {
+  private backButtonSubscription: any;
 
-  constructor(private platform: Platform, private location: Location) {}
+  constructor(private platform: Platform, private navCtrl: NavController) {}
 
   ngOnInit() {
-    this.platform.backButton.subscribeWithPriority(10, () => {
-      // Custom back button behavior
-      if (window.location.pathname === '/tabs') {
-        // Exit the app if back is pressed on the root tab page
-        (navigator as any)['app'].exitApp();
-      } else {
-        // Otherwise, navigate back in the stack
-        this.location.back();
-      }
-    });
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, async () => {
+        if (window.location.pathname !== '/tabs/home') {
+          // If not on home page, navigate back to home page using NavController
+          this.navCtrl.navigateRoot('/tabs/home');
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 
   isAdmin() {
-    if (localStorage.getItem('userToken') === 'adminadmin') {
-      return true;
-    }
-    return false;
+    return localStorage.getItem('userToken') === 'adminadmin';
   }
 }

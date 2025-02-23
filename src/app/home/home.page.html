@@ -31,7 +31,7 @@
         <img src="../../assets/icon/heart.svg" alt="Heart Icon"
           style="width: 24px; height: 24px; margin: -3px 10px 0 0;" />
       </div>
-      <span *ngIf="loaded; else skeletonPrayerHeader">Mulakan hari anda dengan solat</span>
+      <span *ngIf="loaded; else skeletonPrayerHeader">{{ getPrayerHeaderText() }}</span>
       <ng-template #skeletonPrayerHeader>
         <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
       </ng-template>

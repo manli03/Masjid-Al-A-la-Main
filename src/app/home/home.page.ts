@@ -1,5 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { Platform, ToastController } from '@ionic/angular';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service';
 
@@ -21,15 +22,22 @@ export class HomePage implements OnDestroy {
   private intervalId: any;
   isDarkMode: boolean = false;
 
-  // NEW properties for tracking calculated state
+  // Properties for tracking calculated state
   currentPrayer: { name: string; time: string; date: Date } | null = null;
   upcomingPrayer: { name: string; time: string; date: Date } | null = null;
   currentPrayerRatio: number = 1; // fraction (remaining/total)
   currentDate: Date = new Date();
 
+  // Properties for back button exit logic
+  private exitDelay = 2000; // 2 seconds
+  private backButtonSubscription: any;
+  private currentToast: HTMLIonToastElement | null = null;
+
   constructor(
     private router: Router,
-    private prayerTimesService: PrayerTimesService
+    private prayerTimesService: PrayerTimesService,
+    private platform: Platform,
+    private toastController: ToastController
   ) {
     this.zoneNames = {
       jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
@@ -110,10 +118,41 @@ export class HomePage implements OnDestroy {
     await SplashScreen.hide();
     this.checkDarkMode();
     this.loadPrayerData();
+
+    // Subscribe to the hardware back button on the Home page
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, async () => {
+        if (!this.currentToast) {
+          this.currentToast = await this.toastController.create({
+            message: 'Tekan kembali lagi untuk keluar',
+            duration: this.exitDelay,
+            position: 'bottom',
+          });
+          // When the toast is dismissed, reset the reference.
+          this.currentToast.onDidDismiss().then(() => {
+            this.currentToast = null;
+          });
+          await this.currentToast.present();
+        } else {
+          // If the toast is already visible and back is pressed again, exit the app.
+          (navigator as any)['app'].exitApp();
+        }
+      });
+  }
+
+  ionViewWillLeave() {
+    // Unsubscribe to avoid multiple subscriptions when leaving the Home page
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
   }
 
   ngOnDestroy() {
     if (this.intervalId) clearInterval(this.intervalId);
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 
   private loadPrayerData() {
@@ -310,8 +349,9 @@ export class HomePage implements OnDestroy {
             hoursRemaining ? hoursRemaining + ' jam ' : ''
           }${minutesRemaining} minit`;
         } else {
-          this.remainingTime = `${this.currentPrayer?.name} akan tamat dalam ${hoursRemaining ? hoursRemaining + ' jam ' : ''
-            }${minutesRemaining} minit`;
+          this.remainingTime = `${this.currentPrayer?.name} akan tamat dalam ${
+            hoursRemaining ? hoursRemaining + ' jam ' : ''
+          }${minutesRemaining} minit`;
         }
       } else {
         this.remainingTime = 'sekarang';
@@ -320,6 +360,27 @@ export class HomePage implements OnDestroy {
       this.remainingTime = 'Tiada solat seterusnya hari ini';
     }
     this.loaded = true;
+  }
+
+  // Return a header text based on the current prayer.
+  getPrayerHeaderText(): string {
+    if (!this.loaded || !this.currentPrayer) {
+      return 'Mulakan hari anda dengan solat';
+    }
+    switch (this.currentPrayer.name.toLowerCase()) {
+      case 'subuh':
+        return 'Mulakan hari dengan keberkatan';
+      case 'zuhur':
+        return 'Rehat dan tenangkan jiwa';
+      case 'asar':
+        return 'Hargai waktu sebelum senja';
+      case 'maghrib':
+        return 'Syukuri nikmat di penghujung hari';
+      case 'isyak':
+        return 'Lepaskan lelah dengan ketenangan';
+      default:
+        return 'Mulakan hari dengan keberkatan';
+    }
   }
 
   // Dark mode detection
