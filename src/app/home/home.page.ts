@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Platform, ToastController } from '@ionic/angular';
+import { Platform, ToastController, ActionSheetController } from '@ionic/angular';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service';
 
@@ -37,7 +37,8 @@ export class HomePage implements OnDestroy {
     private router: Router,
     private prayerTimesService: PrayerTimesService,
     private platform: Platform,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private actionSheetController: ActionSheetController
   ) {
     this.zoneNames = {
       jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
@@ -187,13 +188,14 @@ export class HomePage implements OnDestroy {
           isyak: this.formatPrayerTime(prayerData.isha),
         };
         this.currentHijriDate = this.formatHijriDate(prayerData.hijri);
+        this.loaded = true;
       }
       this.startUpdatingTime();
     } else {
       this.prayerTimesService.getDefaultPrayerTimes();
       setTimeout(() => {
         this.loadPrayerData();
-      }, 5000);
+      }, 2000);
     }
   }
 
@@ -203,7 +205,7 @@ export class HomePage implements OnDestroy {
       month: 'short',
       day: '2-digit',
     };
-    return date.toLocaleDateString('ms-MY', options).replace(/ /g, '-');
+    return date.toLocaleDateString('en-MY', options).replace(/ /g, '-'); // Use english format since api use english format
   }
 
   private formatPrayerTime(time: string): string {
@@ -248,9 +250,6 @@ export class HomePage implements OnDestroy {
         hour12: true,
       });
       this.calculateRemainingTime(now);
-      if (!this.loaded) {
-        this.loadPrayerData();
-      }
     }, 1000);
   }
 
@@ -263,9 +262,9 @@ export class HomePage implements OnDestroy {
       const [hours, minutes] = rawTime.split(':').map(Number);
       let prayerDate = new Date(now);
       prayerDate.setHours(hours, minutes, 0, 0);
-      if (key === 'syuruk') {
-        prayerDate = new Date(prayerDate.getTime() - 28 * 60 * 1000);
-      }
+      // if (key === 'syuruk') {
+      //   prayerDate = new Date(prayerDate.getTime() - 28 * 60 * 1000);
+      // }
       return { name, time: rawTime, date: prayerDate };
     });
 
@@ -359,7 +358,6 @@ export class HomePage implements OnDestroy {
     } else {
       this.remainingTime = 'Tiada solat seterusnya hari ini';
     }
-    this.loaded = true;
   }
 
   // Return a header text based on the current prayer.
@@ -369,7 +367,9 @@ export class HomePage implements OnDestroy {
     }
     switch (this.currentPrayer.name.toLowerCase()) {
       case 'subuh':
-        return 'Mulakan hari dengan keberkatan';
+        return 'Mulakan hari dengan solat Subuh';
+      case 'syuruk':
+        return 'Nikmati matahari terbit';
       case 'zuhur':
         return 'Rehat dan tenangkan jiwa';
       case 'asar':
@@ -447,6 +447,72 @@ export class HomePage implements OnDestroy {
     return { color: 'inherit' };
   }
 
+  async selectLocation() {
+    const buttons = Object.keys(this.zoneNames).map((key) => ({
+      text: this.zoneNames[key],
+      handler: () => {
+        // Update currentLocation display
+        this.currentLocation = this.zoneNames[key];
+        // Fetch new yearly prayer times for the selected zone
+        this.getManualPrayerTimes(key);
+      },
+    }));
+
+    // Add a Cancel button at the end
+    buttons.push({
+      text: 'Cancel',
+      handler: () => {
+        console.log('Cancelled');
+      },
+    });
+
+    const actionSheet = await this.actionSheetController.create({
+      header: 'Select Location',
+      buttons: buttons,
+    });
+    await actionSheet.present();
+  }
+
+  // New function to fetch manual prayer times based on the selected zone.
+  getManualPrayerTimes(selectedZone: string) {
+    this.prayerTimesService.getPrayerTimes(selectedZone, 'year').subscribe(
+      (data) => {
+        if (data.status === 'OK!') {
+          const yearlyPrayerTimes: any = data.prayerTime || [];
+          // Save the fetched times into localStorage via the service
+          this.prayerTimesService.saveYearlyPrayerTimes(
+            selectedZone,
+            yearlyPrayerTimes
+          );
+          // Optionally, re-initialize data on the page (for example, reload prayer times display)
+          this.loadPrayerData();
+          this.presentToast(
+            'Waktu solat dikemaskini untuk zon baru.',
+            'success'
+          );
+        } else {
+          console.log('Failed to fetch manual prayer times.');
+          this.presentToast('Gagal untuk mendapatkan waktu solat.', 'danger');
+        }
+      },
+      (error) => {
+        console.error(error);
+        this.presentToast('Ralat sewaktu mendapatkan data.', 'danger');
+      }
+    );
+  }
+
+  // Helper method to show toast messages
+  async presentToast(message: string, color: string) {
+    const toast = await this.toastController.create({
+      message: message,
+      duration: 3000,
+      color: color,
+      position: 'bottom',
+    });
+    toast.present();
+  }
+
   prayerTracker: { [key: string]: boolean } = {
     subuh: true,
     dzuhur: true,
@@ -467,8 +533,9 @@ export class HomePage implements OnDestroy {
 
   handleRefresh(event: CustomEvent) {
     setTimeout(() => {
-      location.reload();
+      this.loaded = false;
       (event.target as HTMLIonRefresherElement).complete();
-    }, 2000);
+      this.loadPrayerData();
+    }, 1000);
   }
 }

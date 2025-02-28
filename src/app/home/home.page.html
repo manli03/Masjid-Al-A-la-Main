@@ -5,16 +5,16 @@
   <!-- Header -->
   <div class="d-flex align-items-center justify-content-between" style="position: relative; width: 100%; margin: 0;">
     <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
-      <!-- Location Section -->
-      <div (click)="navigateToPrayerTimes()" class="d-flex align-items-center location"
-        style="padding: 10px; margin: 15px 0;">
+      <!-- Location Name -->
+      <div (click)="selectLocation()" class="d-flex align-items-center location" style="padding: 10px; margin: 15px 0;">
         <ion-icon name="location-outline"
-          style="font-size: 24px; margin: 0 10px 0 5px;  color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
-        <span *ngIf="loaded; else skeletonLocation" style="font-weight: 500;">
-          {{ currentLocation.length > 30 ? (currentLocation | slice:0:30) + '...' : currentLocation }}
+          style="font-size: 24px; margin: 0 10px 0 5px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
+        <span *ngIf="loaded; else skeletonLocation"
+          style="font-weight: 500; max-width: 65vw; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          {{ currentLocation }}
         </span>
         <ng-template #skeletonLocation>
-          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 65vw;"></ion-skeleton-text>
         </ng-template>
       </div>
     </div>
@@ -25,7 +25,7 @@
   </div>
 
   <!-- Prayer Header Section -->
-  <div class="prayer-header">
+  <div class="prayer-header" (click)="navigateToPrayerTimes()">
     <ion-row>
       <div style="display: flex; justify-content: center; align-items: center;">
         <img src="../../assets/icon/heart.svg" alt="Heart Icon"
@@ -36,7 +36,7 @@
         <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
       </ng-template>
       <ion-col class="text-end d-flex align-items-center">
-        <div (click)="navigateToPrayerTimes()"
+        <div
           style="width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; right: 0; margin-right: 10px;">
           <ion-icon name="chevron-forward-outline" style="font-size: 17px; vertical-align: middle;"></ion-icon>
         </div>

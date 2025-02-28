@@ -126,7 +126,6 @@ export class prayerTimesPage implements OnInit {
     } finally {
       // Set isLoading to false after 1 second
       setTimeout(() => (this.isLoading = false), 1000);
-      this.loaded = true;
     }
   }
 
@@ -244,6 +243,7 @@ export class prayerTimesPage implements OnInit {
       // Format the Hijri date using Malay language
       this.currentHijriDate = this.formatHijriDate(selectedPrayer.hijri);
       this.currentDate = new Date(selectedPrayer.date); // Update displayed date
+      this.loaded = true;
     } else {
       this.showError('Tiada waktu solat untuk hari ini.');
     }
@@ -474,7 +474,6 @@ export class prayerTimesPage implements OnInit {
     } else {
       this.remainingTime = 'Tiada solat terdekat pada masa ini';
     }
-    this.loaded = true;
   }
 
   // Toggle the visibility of the yearly prayer times table
@@ -580,10 +579,16 @@ export class prayerTimesPage implements OnInit {
 
   handleRefresh(event: CustomEvent) {
     setTimeout(() => {
-      // Reload Page
-      location.reload();
+      this.loaded = false;
       (event.target as HTMLIonRefresherElement).complete();
-    }, 2000);
+      this.initializePrayerTimes();
+    }, 1000);
+  }
+  
+  // Handle page resume
+  ionViewWillEnter() {
+    this.loaded = false;
+    this.initializePrayerTimes();
   }
 
   ngOnDestroy() {

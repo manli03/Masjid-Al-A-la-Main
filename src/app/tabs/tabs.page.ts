@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { Platform, NavController } from '@ionic/angular';
+import { Platform } from '@ionic/angular';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-tabs',
@@ -9,14 +10,14 @@ import { Platform, NavController } from '@ionic/angular';
 export class TabsPage implements OnInit {
   private backButtonSubscription: any;
 
-  constructor(private platform: Platform, private navCtrl: NavController) {}
+  constructor(private platform: Platform, public router: Router) {}
 
   ngOnInit() {
     this.backButtonSubscription =
       this.platform.backButton.subscribeWithPriority(10, async () => {
         if (window.location.pathname !== '/tabs/home') {
           // If not on home page, navigate back to home page using NavController
-          this.navCtrl.navigateRoot('/tabs/home');
+          this.router.navigate(['/tabs/home']);
         }
       });
   }
