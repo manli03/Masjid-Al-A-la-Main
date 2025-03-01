@@ -1,47 +1,55 @@
 import { Injectable } from '@angular/core';
-import { Capacitor, registerPlugin } from '@capacitor/core';
-import { ToastController } from '@ionic/angular';
+import { registerPlugin } from '@capacitor/core';
 
 // Register the custom plugin
 const GpsEnabler = registerPlugin<GpsEnablerPlugin>('GpsEnabler');
 
 interface GpsEnablerPlugin {
   showGpsDialog: () => Promise<void>;
+  isGpsEnabled: () => Promise<void>;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class LocationService {
-  constructor(private toastController: ToastController) {}
+  constructor() {
+  }
 
-  async enableGps() {
+  enableGps() {
     // console.log('Plugins:', Capacitor.Plugins);
     try {
       // Show native GPS dialog
-      await GpsEnabler.showGpsDialog();
+      GpsEnabler.showGpsDialog();
       console.log('GPS dialog shown');
-
-      // Listen for events
-      window.addEventListener('onGpsEnabled', () => this.handleGpsEnabled());
-      window.addEventListener('onGpsDisabled', () => this.handleGpsDisabled());
     } catch (error) {
       console.error('GPS Error:', error);
     }
   }
 
-  handleGpsEnabled() {
-    console.log('GPS enabled');
-    // Use location services
-  }
+  async checkGpsStatus(): Promise<boolean> {
 
-  handleGpsDisabled() {
-    console.log('GPS disabled');
-    // Show error message
-    this.showToast(
-      'GPS is disabled. Please enable it to use location services.',
-      'danger'
-    );
+    return new Promise((resolve) => {
+      const gpsEnabledListener = () => {
+        window.removeEventListener('onGpsEnabled', gpsEnabledListener);
+        window.removeEventListener('onGpsDisabled', gpsDisabledListener);
+        console.log('GPS enabled');
+        resolve(true);
+      };
+
+      const gpsDisabledListener = () => {
+        window.removeEventListener('onGpsEnabled', gpsEnabledListener);
+        window.removeEventListener('onGpsDisabled', gpsDisabledListener);
+        console.log('GPS disabled');
+        this.enableGps();
+        resolve(false);
+      };
+
+      window.addEventListener('onGpsEnabled', gpsEnabledListener);
+      window.addEventListener('onGpsDisabled', gpsDisabledListener);
+
+      GpsEnabler.isGpsEnabled();
+    });
   }
 
   isLocationSupported(): boolean {
@@ -49,9 +57,6 @@ export class LocationService {
   }
 
   async getCurrentLocation(): Promise<GeolocationPosition> {
-    if (Capacitor.getPlatform() === 'android') {
-      await this.enableGps();
-    }
     return new Promise((resolve, reject) => {
       if (this.isLocationSupported()) {
         navigator.geolocation.getCurrentPosition(resolve, (error) => {
@@ -68,23 +73,11 @@ export class LocationService {
               break;
           }
           console.error('Ralat semasa mendapatkan lokasi anda:', error);
-          this.showToast('Ralat: ' + errorMessage, 'danger');
           reject(errorMessage);
         });
       } else {
         reject('Geolocation tidak disokong oleh pelayar ini');
       }
     });
-  }
-
-  // Implementing the showToast method
-  async showToast(message: string, color: string) {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      color: color,
-      position: 'bottom',
-    });
-    toast.present();
   }
 }

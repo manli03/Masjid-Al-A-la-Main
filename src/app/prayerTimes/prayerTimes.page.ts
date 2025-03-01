@@ -3,6 +3,7 @@ import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service'
 import { AlertController, ToastController } from '@ionic/angular';
 import { LocationService } from '../services/Geolocation/geolocation.service';
 import { Router } from '@angular/router';
+import { Capacitor } from '@capacitor/core';
 
 // Define the prayer type
 interface Prayer {
@@ -88,7 +89,7 @@ export class prayerTimesPage implements OnInit {
 
   // Fetch new data from API
   refreshData() {
-    this.isLoading = true;
+    
     this.fetchNewData();
   }
 
@@ -157,15 +158,20 @@ export class prayerTimesPage implements OnInit {
   // Get current location from LocationService
   async getCurrentLocation(): Promise<string> {
     try {
-      const isLocationSupported =
-        await this.locationService.isLocationSupported();
-      if (!isLocationSupported) {
-        console.error('Location services are not suppoerted.');
-        this.isLoading = false;
-        this.location = 'Zon Tidak Dikenali';
-        await this.showToast('Peranti anda tidak menyokong lokasi.', 'danger');
-        return '';
+
+      if (Capacitor.getPlatform() === 'android') {
+        const isGpsEnabled = await this.locationService.checkGpsStatus();
+        if (!isGpsEnabled) {
+          console.log('GPS is not enabled');
+          await this.showToast(
+            'GPS tidak diaktifkan. Sila aktifkan GPS untuk menggunakan perkhidmatan lokasi.',
+            'danger'
+          );
+          return '';
+        }
       }
+
+      this.isLoading = true;
 
       const position = await this.locationService.getCurrentLocation();
       console.log('Current location:', position);
@@ -181,7 +187,6 @@ export class prayerTimesPage implements OnInit {
     } catch (error) {
       console.error('Error getting location:', error);
       this.isLoading = false;
-      this.location = 'Zon Tidak Dikenali'; // set to default value
       await this.showToast('' + error, 'danger');
       return '';
     }

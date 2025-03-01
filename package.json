@@ -35,7 +35,7 @@
     "@jcesarmobile/ssl-skip": "0.4.0",
     "bootstrap": "^5.3.3",
     "capacitor-native-settings": "^6.0.1",
-    "gpsenabler": "file:gpsenabler/gpsenabler-0.0.1.tgz",
+    "gpsenabler": "file:android/gpsenabler/gpsenabler-0.0.1.tgz",
     "ionicons": "^7.4.0",
     "rxjs": "^7.8.1",
     "tslib": "^2.3.0",

@@ -14,23 +14,4 @@ public class MainActivity extends BridgeActivity {
     super.onCreate(savedInstanceState);
     registerPlugin(GpsEnablerPlugin.class);
   }
-
-  @Override
-  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    super.onActivityResult(requestCode, resultCode, data);
-
-    if (requestCode == GpsEnablerPlugin.REQUEST_CHECK_SETTINGS) {
-      if (resultCode == Activity.RESULT_OK) {
-        // GPS enabled
-        if (bridge != null) {
-          bridge.triggerWindowJSEvent("onGpsEnabled");
-        }
-      } else {
-        // GPS not enabled
-        if (bridge != null) {
-          bridge.triggerWindowJSEvent("onGpsDisabled");
-        }
-      }
-    }
-  }
 }
