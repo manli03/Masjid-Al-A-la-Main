@@ -188,7 +188,6 @@ export class HomePage implements OnDestroy {
           isyak: this.formatPrayerTime(prayerData.isha),
         };
         this.currentHijriDate = this.formatHijriDate(prayerData.hijri);
-        this.loaded = true;
       }
       this.startUpdatingTime();
     } else {
@@ -241,6 +240,10 @@ export class HomePage implements OnDestroy {
   }
 
   private startUpdatingTime() {
+    // Clear any existing interval
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
     this.intervalId = setInterval(() => {
       const now = new Date();
       this.currentDate = now; // store current time for later use
@@ -325,6 +328,7 @@ export class HomePage implements OnDestroy {
     // Update the remaining time display (for the upcoming prayer)
     const diff = this.upcomingPrayer.date.getTime() - now.getTime();
     this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
+    this.loaded = true;
   }
 
   private updateRemainingTimeDisplay(

@@ -25,3 +25,6 @@ project(':jcesarmobile-ssl-skip').projectDir = new File('../node_modules/@jcesar
 
 include ':capacitor-native-settings'
 project(':capacitor-native-settings').projectDir = new File('../node_modules/capacitor-native-settings/android')
+
+include ':gpsenabler'
+project(':gpsenabler').projectDir = new File('../node_modules/gpsenabler/android')

@@ -32,7 +32,7 @@ export class prayerTimesPage implements OnInit {
   yearlyPrayers: any[] = [];
   userLocation: string = '';
   lastUpdated: string = '';
-  intervalId: any;
+  private intervalId: any;
   isLoading: boolean = false;
   closestPrayerTime: any;
   sameData: boolean = false;
@@ -243,7 +243,6 @@ export class prayerTimesPage implements OnInit {
       // Format the Hijri date using Malay language
       this.currentHijriDate = this.formatHijriDate(selectedPrayer.hijri);
       this.currentDate = new Date(selectedPrayer.date); // Update displayed date
-      this.loaded = true;
     } else {
       this.showError('Tiada waktu solat untuk hari ini.');
     }
@@ -474,6 +473,7 @@ export class prayerTimesPage implements OnInit {
     } else {
       this.remainingTime = 'Tiada solat terdekat pada masa ini';
     }
+    this.loaded = true;
   }
 
   // Toggle the visibility of the yearly prayer times table
@@ -571,6 +571,10 @@ export class prayerTimesPage implements OnInit {
   }
 
   startUpdatingRemainingTime() {
+    // Clear any existing interval
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
     // Set up a periodic update to check for the remaining time every second
     this.intervalId = setInterval(() => {
       this.calculateRemainingTime();
@@ -595,6 +599,8 @@ export class prayerTimesPage implements OnInit {
     // Stop the interval when the component is destroyed to prevent memory leaks
     if (this.intervalId) {
       clearInterval(this.intervalId);
+        console.log('Interval cleared');
+
     }
   }
 

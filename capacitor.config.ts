@@ -10,6 +10,7 @@ const config: CapacitorConfig = {
       launchAutoHide: false,
       launchFadeOutDuration: 0,
     },
+    GpsEnabler: {},
   },
 };
 
