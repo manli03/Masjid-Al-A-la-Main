@@ -4,6 +4,7 @@ import { AlertController, ToastController } from '@ionic/angular';
 import { LocationService } from '../services/Geolocation/geolocation.service';
 import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
+import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
 
 // Define the prayer type
 interface Prayer {
@@ -61,7 +62,7 @@ export class prayerTimesPage implements OnInit {
 
   async initializePrayerTimes() {
     // Get the saved data from localStorage if available
-    const savedData = this.prayerTimesService.getSavedYearlyPrayerTimes();
+    const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
 
     if (savedData) {
       // Load saved yearly prayers from localStorage
@@ -158,7 +159,6 @@ export class prayerTimesPage implements OnInit {
   // Get current location from LocationService
   async getCurrentLocation(): Promise<string> {
     try {
-
       if (Capacitor.getPlatform() === 'android') {
         const isGpsEnabled = await this.locationService.checkGpsStatus();
         if (!isGpsEnabled) {
@@ -173,17 +173,29 @@ export class prayerTimesPage implements OnInit {
 
       this.isLoading = true;
 
+      // Get current location
       const position = await this.locationService.getCurrentLocation();
       console.log('Current location:', position);
 
       // Call the new API to fetch the user zone code based on latitude and longitude
-      const zoneResponse = await this.prayerTimesService
-        .getUserZoneCode(position.coords.latitude, position.coords.longitude)
-        .toPromise();
-      const zoneCode = zoneResponse.data.attributes.jakim_code; // Extract the 'jakim_code'
-
-      // Return the zone code fetched from the API
-      return zoneCode;
+      try {
+        const zoneResponse = await firstValueFrom(
+          this.prayerTimesService.getUserZoneCode(
+            position.coords.latitude,
+            position.coords.longitude
+          )
+        );
+        const zoneCode = zoneResponse.data.attributes.jakim_code; // Extract the 'jakim_code'
+        return zoneCode;
+      } catch (error) {
+        console.error('Error getting zone code:', error);
+        this.isLoading = false;
+        await this.showToast(
+          'Koordinat tidak sah. Sila cuba lagi.',
+          'danger'
+        );
+        return '';
+      }
     } catch (error) {
       console.error('Error getting location:', error);
       this.isLoading = false;
@@ -294,8 +306,8 @@ export class prayerTimesPage implements OnInit {
   // Fetch yearly prayer times and save them to localStorage
   fetchYearlyPrayerTimes() {
     this.prayerTimesService.getPrayerTimes(this.zone, 'year').subscribe(
-      (data) => {
-        const savedData = this.prayerTimesService.getSavedYearlyPrayerTimes();
+      async (data) => {
+        const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
         if (data.status === 'OK!') {
           if (
             savedData &&

@@ -1,15 +1,17 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Preferences } from '@capacitor/preferences';
+import { Observable } from 'rxjs/internal/Observable';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class PrayerTimesService {
-  private apiUrl = 'https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat';
-  private userZoneApiUrl = 'https://mpt.i906.my/api/prayer';  // New API URL to fetch the zone code
+  private apiUrl =
+    'https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat';
+  private userZoneApiUrl = 'https://mpt.i906.my/api/prayer'; // New API URL to fetch the zone code
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   // Fetch prayer times for the whole year
   getPrayerTimes(zone: string, period: string): Observable<any> {
@@ -23,48 +25,57 @@ export class PrayerTimesService {
     return this.http.get<any>(url);
   }
 
-  // Save the fetched prayer times into localStorage
-  saveYearlyPrayerTimes(zone: string, yearlyPrayers: any[]) {
+  // Save the fetched prayer times into Preferences
+  async saveYearlyPrayerTimes(
+    zone: string,
+    yearlyPrayers: any[]
+  ): Promise<void> {
     const data = {
       zone: zone,
       prayers: yearlyPrayers,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    localStorage.setItem('yearlyPrayerTimes', JSON.stringify(data));
+    await Preferences.set({
+      key: 'yearlyPrayerTimes',
+      value: JSON.stringify(data),
+    });
   }
 
-  // Retrieve saved yearly prayer times from localStorage
-  getSavedYearlyPrayerTimes(): any {
-    const savedData = localStorage.getItem('yearlyPrayerTimes');
-    if (savedData) {
-      return JSON.parse(savedData);
+  // Retrieve saved yearly prayer times from Preferences
+  async getSavedYearlyPrayerTimes(): Promise<any> {
+    const { value } = await Preferences.get({ key: 'yearlyPrayerTimes' });
+    if (value) {
+      return JSON.parse(value);
     }
     console.log('No saved data found!');
     return null;
   }
 
   // Fetch and save default prayer times for the whole year
-  getDefaultPrayerTimes() {
-      let zone = 'KDH01';  // Default zone code for this app = Kubang Pasu
-      let period = 'year';
-      this.getPrayerTimes(zone, period).subscribe(data => {
-        if (data.status === 'OK!') {
-          const yearlyPrayerTimes: any = data.prayerTime || [];
-          const defaultData = {
-            zone: zone,
-            prayers: yearlyPrayerTimes,
-            timestamp: new Date().toISOString(),
-          };
-          localStorage.setItem('yearlyPrayerTimes', JSON.stringify(defaultData)); // Save to localStorage
-        } else {
-          console.log('Failed to fetch default prayer times!');
-        }
-      });
+  async getDefaultPrayerTimes(): Promise<void> {
+    let zone = 'KDH01'; // Default zone code for this app = Kubang Pasu
+    let period = 'year';
+    this.getPrayerTimes(zone, period).subscribe(async (data) => {
+      if (data.status === 'OK!') {
+        const yearlyPrayerTimes: any = data.prayerTime || [];
+        const defaultData = {
+          zone: zone,
+          prayers: yearlyPrayerTimes,
+          timestamp: new Date().toISOString(),
+        };
+        await Preferences.set({
+          key: 'yearlyPrayerTimes',
+          value: JSON.stringify(defaultData),
+        });
+      } else {
+        console.log('Failed to fetch default prayer times!');
+      }
+    });
   }
 
   // Check if the stored location is the same as the current one
-  isLocationChanged(newLocation: string): boolean {
-    const savedData = this.getSavedYearlyPrayerTimes();
+  async isLocationChanged(newLocation: string): Promise<boolean> {
+    const savedData = await this.getSavedYearlyPrayerTimes();
     if (savedData && savedData.zone !== newLocation) {
       return true;
     }

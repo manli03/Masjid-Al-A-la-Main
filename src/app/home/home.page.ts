@@ -156,8 +156,8 @@ export class HomePage implements OnDestroy {
     }
   }
 
-  private loadPrayerData() {
-    const savedData = this.prayerTimesService.getSavedYearlyPrayerTimes();
+  private async loadPrayerData() {
+    const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
     if (savedData) {
       const zone = savedData.zone;
       this.currentLocation =
