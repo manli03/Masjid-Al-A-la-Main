@@ -1,8 +1,13 @@
 import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Platform, ToastController, ActionSheetController } from '@ionic/angular';
+import {
+  Platform,
+  ToastController,
+  ActionSheetController,
+} from '@ionic/angular';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service';
+import { Preferences } from '@capacitor/preferences';
 
 @Component({
   selector: 'app-home',
@@ -21,6 +26,7 @@ export class HomePage implements OnDestroy {
   zoneNames: { [key: string]: string };
   private intervalId: any;
   isDarkMode: boolean = false;
+  prayerNotification: { [key: string]: boolean } = {};
 
   // Properties for tracking calculated state
   currentPrayer: { name: string; time: string; date: Date } | null = null;
@@ -139,6 +145,35 @@ export class HomePage implements OnDestroy {
           (navigator as any)['app'].exitApp();
         }
       });
+
+    const prayerNotification = await Preferences.get({
+      key: 'prayerNotification',
+    });
+    if (prayerNotification.value) {
+      this.prayerNotification = JSON.parse(prayerNotification.value);
+    } else {
+      this.prayerNotification = {
+        subuh: false,
+        dhuhr: false,
+        asr: false,
+        maghrib: false,
+        isha: false,
+      };
+
+      await Preferences.set({
+        key: 'prayerNotification',
+        value: JSON.stringify(this.prayerNotification),
+      });
+    }
+  }
+
+
+  async togglePrayerNotification(prayerName: string) {
+    this.prayerNotification[prayerName] = !this.prayerNotification[prayerName];
+    await Preferences.set({
+      key: 'prayerNotification',
+      value: JSON.stringify(this.prayerNotification),
+    });
   }
 
   ionViewWillLeave() {
@@ -517,22 +552,8 @@ export class HomePage implements OnDestroy {
     toast.present();
   }
 
-  prayerTracker: { [key: string]: boolean } = {
-    subuh: true,
-    dzuhur: true,
-    ashar: true,
-    maghrib: false,
-    isya: false,
-  };
-
-  checked: boolean[] = [true, true, true, false, false];
-
   navigateToPrayerTimes() {
     this.router.navigate(['/tabs/prayerTimes']);
-  }
-
-  toggleChecked(number: number) {
-    this.checked[number] = !this.checked[number];
   }
 
   handleRefresh(event: CustomEvent) {

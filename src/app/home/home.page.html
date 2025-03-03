@@ -105,28 +105,28 @@
       <h5 style="display: inline-block; vertical-align: top;">Peringatan Solat</h5>
     </div>
     <ion-row class="tracker-icons" style="display: flex; justify-content: space-around; margin: 15px 0;">
-      <ion-col (click)="toggleChecked(0)" style="text-align: center;">
-        <ion-icon [name]="checked[0] ? 'checkmark-circle' : 'ellipse-outline'"
+      <ion-col (click)="togglePrayerNotification('subuh')" style="text-align: center;">
+        <ion-icon [name]="prayerNotification['subuh'] ? 'checkmark-circle' : 'ellipse-outline'"
           style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span style="display: block; text-align: center;">Subuh</span>
       </ion-col>
-      <ion-col (click)="toggleChecked(1)" style="text-align: center;">
-        <ion-icon [name]="checked[1] ? 'checkmark-circle' : 'ellipse-outline'"
+      <ion-col (click)="togglePrayerNotification('dhuhr')" style="text-align: center;">
+        <ion-icon [name]="prayerNotification['dhuhr'] ? 'checkmark-circle' : 'ellipse-outline'"
           style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span style="display: block; text-align: center;">Zuhur</span>
       </ion-col>
-      <ion-col (click)="toggleChecked(2)" style="text-align: center;">
-        <ion-icon [name]="checked[2] ? 'checkmark-circle' : 'ellipse-outline'"
+      <ion-col (click)="togglePrayerNotification('asr')" style="text-align: center;">
+        <ion-icon [name]="prayerNotification['asr'] ? 'checkmark-circle' : 'ellipse-outline'"
           style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span style="display: block; text-align: center;">Asar</span>
       </ion-col>
-      <ion-col (click)="toggleChecked(3)" style="text-align: center;">
-        <ion-icon [name]="checked[3] ? 'checkmark-circle' : 'ellipse-outline'"
+      <ion-col (click)="togglePrayerNotification('maghrib')" style="text-align: center;">
+        <ion-icon [name]="prayerNotification['maghrib'] ? 'checkmark-circle' : 'ellipse-outline'"
           style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span style="display: block; text-align: center;">Maghrib</span>
       </ion-col>
-      <ion-col (click)="toggleChecked(4)" style="text-align: center;">
-        <ion-icon [name]="checked[4] ? 'checkmark-circle' : 'ellipse-outline'"
+      <ion-col (click)="togglePrayerNotification('isha')" style="text-align: center;">
+        <ion-icon [name]="prayerNotification['isha'] ? 'checkmark-circle' : 'ellipse-outline'"
           style="font-size: 25px; margin-bottom: 10px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span style="display: block; text-align: center;">Isyak</span>
       </ion-col>
