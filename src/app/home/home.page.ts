@@ -27,6 +27,7 @@ export class HomePage implements OnDestroy {
   private intervalId: any;
   isDarkMode: boolean = false;
   prayerNotification: { [key: string]: boolean } = {};
+  reloadQiblaCompass: boolean = false;
 
   // Properties for tracking calculated state
   currentPrayer: { name: string; time: string; date: Date } | null = null;
@@ -364,6 +365,7 @@ export class HomePage implements OnDestroy {
     const diff = this.upcomingPrayer.date.getTime() - now.getTime();
     this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
     this.loaded = true;
+    this.reloadQiblaCompass = true;
   }
 
   private updateRemainingTimeDisplay(

@@ -10,12 +10,13 @@
       <div *ngIf="loadPage">
         <div class="compass-frame" [ngClass]="{'aligned': isQiblaAligned}">
           <div class="compass-container">
-            <ion-img src="../../assets/icon/kompasKiblat1.png" class="compass-image" alt="Compass"
+            <ion-img [src]="qiblaImageUrl" class="compass-image" alt="Qibla Compass"
               [style.transform]="'rotate(' + (-accumulatedRotation) + 'deg)'">
             </ion-img>
           </div>
         </div>
-        <p>Heading: {{ displayHeading | number: '1.0-0' }}°</p>
+        <!-- <p>Heading: {{ displayHeading | number: '1.0-0' }}°</p> -->
+        <p>Heading: {{ displayHeading | number }}°</p>
       </div>
       <div class="errorMessage" *ngIf="!loadPage">
         <p>{{ errorMessageCompass }}</p>
