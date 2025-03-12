@@ -102,23 +102,27 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
   }
 
   startCompass() {
+    let alpha = 0.2; // Low-pass filter factor for noise reduction
+    let previousYaw = 0;
+
     this.sensor.addEventListener('reading', () => {
       const [x, y, z, w] = this.sensor.quaternion;
 
-      // Standard formula for compass heading from quaternion
+      // Calculate Yaw
       let yaw =
         Math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z)) *
         (180 / Math.PI);
 
       // Invert the yaw to reverse the rotation direction
       yaw = -yaw;
-
       // Adjust yaw to be within 0-360 degrees
-      if (yaw < 0) {
-        yaw += 360;
-      }
+      if (yaw < 0) yaw += 360;
+
+      // Low-pass filter to stabilize
+      yaw = alpha * yaw + (1 - alpha) * previousYaw;
 
       this.compassHeading = yaw;
+      previousYaw = yaw;
 
       // Initialize accumulated rotation to the starting position
       if (this.previousHeading === null) {
@@ -128,13 +132,16 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
         let difference = yaw - this.previousHeading;
 
         // Adjust difference to be minimal across the 0/360 boundary
-        if (difference > 180) {
-          difference -= 360;
-        } else if (difference < -180) {
-          difference += 360;
-        }
+        if (difference > 180) difference -= 360;
+        if (difference < -180) difference += 360;
 
         this.accumulatedRotation += difference;
+
+        // Magnetic distortion auto-reset
+        if (Math.abs(difference) > 30) {
+          console.warn('Magnetic distortion detected, resetting...');
+          this.accumulatedRotation = yaw;
+        }
       }
 
       this.previousHeading = yaw;
@@ -155,7 +162,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
   }
 
   checkQiblaAlignment() {
-    const tolerance = 5; // Allowable deviation in degrees
+    const tolerance = 1; // Allowable deviation in degrees
     const headingDiff = Math.abs(this.compassHeading - this.qiblaHeading);
     this.isQiblaAligned =
       headingDiff <= tolerance || headingDiff >= 360 - tolerance;
