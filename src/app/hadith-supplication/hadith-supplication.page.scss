@@ -3,7 +3,7 @@
 }
 
 ion-content {
-  padding: 10px;
+  padding: 30px;
   margin: auto;
 }
 
@@ -12,8 +12,9 @@ ion-item {
 }
 
 ion-label h2 {
-  font-size: 1.2em;
+  font-size: 1.5em; /* Increased font size for better visibility */
   font-weight: bold;
+  color: #333; /* Changed color for better contrast */
 }
 
 ion-icon {
@@ -30,20 +31,21 @@ ion-icon {
 }
 
 .arabic-text {
-  font-size: 1.2rem;
+  font-size: 1.5rem; /* Increased font size for better visibility */
   line-height: 1.6;
   direction: rtl;
   text-align: right;
 }
 
-.english-text {
-  font-size: 1rem;
+.malay-text {
+  font-size: 1.2rem; /* Increased font size for better visibility */
   line-height: 1.6;
   margin-top: 20px;
+  color: rgb(20, 20, 20);
 }
 
 .narrator {
-  font-size: 0.9rem;
+  font-size: 1rem; /* Increased font size for better visibility */
   color: gray;
   margin-top: 10px;
 }
@@ -58,5 +60,30 @@ ion-icon {
   color: rgb(0, 172, 95);
   text-decoration: none;
   font-weight: bold;
+  transition: color 0.3s; /* Added transition for hover effect */
 }
 
+.navigation a:hover {
+  color: rgb(0, 150, 80); /* Change color on hover for better interaction */
+}
+
+.malay-card {
+  background-color: rgb(202 255 231); /* Light green background */
+  padding: 5px; /* Add some padding for better appearance */
+  border-radius: 8px; /* Rounded corners */
+}
+
+@media (prefers-color-scheme: dark) {
+  .malay-card {
+    background-color: rgb(108 200 159); /* Light green background */
+  }
+}
+
+
+h2 {
+  margin: 30px 10px 40px 10px;
+}
+
+ion-card {
+  border-radius: 8px;
+}

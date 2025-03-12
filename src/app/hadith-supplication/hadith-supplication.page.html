@@ -14,8 +14,7 @@
     <ion-item>
       <ion-label>Select Book</ion-label>
       <ion-select value="{{selectedBook}}" (ionChange)="onBookChange($event)">
-        <ion-select-option *ngFor="let bookName of getBookKeys()"
-          value="{{bookName}}">{{bookName}}</ion-select-option>
+        <ion-select-option *ngFor="let bookName of getBookKeys()" value="{{bookName}}">{{bookName}}</ion-select-option>
       </ion-select>
     </ion-item>
 
@@ -33,17 +32,22 @@
     <ion-searchbar show-cancel-button="focus" placeholder="Search hadiths" [(ngModel)]="searchText"></ion-searchbar>
 
     <ion-list>
-      <ion-item *ngFor="let hadith of filteredHadiths()" (click)="selectHadith(hadith)">
-        <ion-label>
-          <h2>{{ hadith.hadith_number }}. {{ hadith.tajuk_hadith }}</h2>
-          <p>{{ hadith.perawi_melayu }}</p>
+      <ion-card *ngFor="let hadith of filteredHadiths()" (click)="selectHadith(hadith)">
+        <ion-card-header>
+          <ion-card-title>{{ hadith.hadith_number }}. {{ hadith.tajuk_hadith }}</ion-card-title>
+          <ion-card-subtitle>{{ hadith.perawi_melayu }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
           <div class="hadith-tags">{{ hadith.nama_buku }}</div>
-        </ion-label>
-      </ion-item>
+        </ion-card-content>
+      </ion-card>
     </ion-list>
+
   </div>
 
   <div *ngIf="selectedHadith" class="container">
+    <ion-loading [isOpen]="isLoading" message="Loading..."></ion-loading>
+
     <div class="d-flex justify-content-between align-items-center">
       <ion-icon name="arrow-back" (click)="deselectHadith()"></ion-icon>
       <div>
@@ -53,14 +57,27 @@
     </div>
 
     <div class="content">
-      <h2>{{ selectedHadith.tajuk_hadith }}</h2>
-      <p class="arabic-text">
-        {{ selectedHadith.arabic_text }}
-      </p>
-      <p class="english-text">
-        {{ selectedHadith.malay_translation }}
-      </p>
-      <p class="narrator">{{ selectedHadith.penulis_buku }}</p>
+      <ion-card>
+        <h2>{{ selectedHadith.tajuk_hadith }}</h2>
+
+        <ion-card-content>
+          <p class="arabic-text">
+            {{ selectedHadith.arabic_text }}
+          </p>
+
+        </ion-card-content>
+        <ion-card class="malay-card">
+          <ion-card-content>
+            <p class="malay-text">
+              {{ selectedHadith.malay_translation }}
+            </p>
+          </ion-card-content>
+        </ion-card>
+        <ion-card-content>
+          <hr>
+          <p class="narrator">Ditulis oleh: {{ selectedHadith.penulis_buku }}</p>
+        </ion-card-content>
+      </ion-card>
     </div>
 
     <div class="navigation">

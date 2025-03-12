@@ -34,6 +34,8 @@ interface BookDictionary {
   styleUrls: ['./hadith-supplication.page.scss'],
 })
 export class HadithSupplicationPage implements OnInit {
+  isLoading: boolean = false; // Added loading state
+
   searchText: string = '';
   selectedHadith: any = null;
   hadiths: Hadith[] = []; // Use the Hadith interface
@@ -84,22 +86,25 @@ export class HadithSupplicationPage implements OnInit {
 
   // Load Hadiths based on the selected book and chapter
   loadHadiths() {
+    this.isLoading = true; // Set loading to true when fetching data
     const bookSlug = this.BOOKS[this.selectedBook].replace('-', '_');
+
     const hadithUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
     this.http.get<any>(hadithUrl).subscribe(
       (data) => {
         if (data.status === 200) {
           this.hadiths = data.hadiths.data; // Access the 'data' array within 'hadiths'
+          this.isLoading = false; // Set loading to false when data is loaded
         } else {
+          this.isLoading = false; // Set loading to false when data is loaded
           console.error('Error loading hadiths:', data.message);
-          // Optionally display an error message to the user
           this.hadiths = []; // Clear existing hadiths to avoid displaying old data
         }
       },
       (error) => {
         console.error('Error loading hadiths:', error);
-        // Optionally display an error message to the user
         this.hadiths = []; // Clear existing hadiths
+        this.isLoading = false; // Set loading to false on error
       }
     );
   }
