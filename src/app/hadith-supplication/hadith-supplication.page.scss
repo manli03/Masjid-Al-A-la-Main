@@ -26,22 +26,32 @@ ion-icon {
   font-size: 0.9em;
 }
 
-.content {
-  margin-top: 20px;
+.hadith-content {
+  margin: 10px;
 }
 
 .arabic-text {
-  font-size: 1.5rem; /* Increased font size for better visibility */
+  font-size: 2rem;
   line-height: 1.6;
   direction: rtl;
   text-align: right;
+  // color: #222;
+}
+
+.latin-text {
+  font-size: 1.1rem;
+  font-style: italic;
+  color: #555;
 }
 
 .malay-text {
-  font-size: 1.2rem; /* Increased font size for better visibility */
-  line-height: 1.6;
-  margin-top: 20px;
-  color: rgb(20, 20, 20);
+  font-size: 1.2rem;
+  // line-height: 1.6;
+  // color: #222;
+}
+
+.malay-content .malay-text {
+  // color: #222;
 }
 
 .narrator {
@@ -53,32 +63,40 @@ ion-icon {
 .navigation {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
+  align-items: center;
+  margin: 20px 10px;
 }
 
-.navigation a {
-  color: rgb(0, 172, 95);
-  text-decoration: none;
-  font-weight: bold;
-  transition: color 0.3s; /* Added transition for hover effect */
+.malay-content {
+  background-color: rgb(0, 172, 95); /* Light green background */
+  border-radius: 0 0 20px 20px; /* Rounded corners at the bottom */
+  padding: 17px 21px;
 }
 
-.navigation a:hover {
-  color: rgb(0, 150, 80); /* Change color on hover for better interaction */
-}
-
-.malay-card {
-  background-color: rgb(202 255 231); /* Light green background */
-  padding: 5px; /* Add some padding for better appearance */
-  border-radius: 8px; /* Rounded corners */
+.hadith-title {
+  background-color: rgb(0, 172, 95);
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  border-radius: 20px 20px 0 0;
 }
 
 @media (prefers-color-scheme: dark) {
-  .malay-card {
-    background-color: rgb(108 200 159); /* Light green background */
+  .hadith-title {
+    background-color: rgb(0, 100, 55);
+    padding: 5px 10px;
+    margin-bottom: 10px;
+    color: #cccccc;
+  }
+
+  .malay-content {
+    background-color: rgb(0, 100, 55); /* Light green background */
+    color: #cccccc;
+  }
+
+  .arabic-text {
+    color: #cccccc;
   }
 }
-
 
 h2 {
   margin: 30px 10px 40px 10px;

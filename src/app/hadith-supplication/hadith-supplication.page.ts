@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Preferences } from '@capacitor/preferences';
 
 // Define an interface for the Hadith data structure (optional, but good practice)
 interface Hadith {
@@ -28,6 +29,16 @@ interface BookDictionary {
   [key: string]: string;
 }
 
+interface Dua {
+  id: string;
+  doa: string;
+  ayat: string;
+  latin: string;
+  artinya: string;
+}
+
+const DUA_STORAGE_KEY = 'my_duas'; // Key to store the duas in Preferences
+
 @Component({
   selector: 'app-hadith-supplication',
   templateUrl: './hadith-supplication.page.html',
@@ -36,6 +47,7 @@ interface BookDictionary {
 export class HadithSupplicationPage implements OnInit {
   isLoading: boolean = false; // Added loading state
 
+  //Hadith Properties
   searchText: string = '';
   selectedHadith: any = null;
   hadiths: Hadith[] = []; // Use the Hadith interface
@@ -56,11 +68,21 @@ export class HadithSupplicationPage implements OnInit {
     'Al-Silsila Sahiha': 'al-silsila-sahiha',
   };
 
+  //Dua Properties
+  duas: Dua[] = [];
+
+  //Segment Properties
+  selectedSegment: string = 'hadith';
+
+  @ViewChild('hadithContent', { static: false }) hadithContent!: ElementRef;
+
   constructor(private http: HttpClient) {}
 
-  ngOnInit() {
+  async ngOnInit() {
     this.loadChapters();
     this.loadHadiths(); // Load initial Hadiths on page load
+    await this.loadCachedDuas(); // Load from cache first
+    this.loadDuas(); // Load duas on page load/refresh
   }
 
   // Load chapters for the selected book
@@ -109,6 +131,57 @@ export class HadithSupplicationPage implements OnInit {
     );
   }
 
+  //Load Duas from API and save to storage
+  async loadDuas() {
+    try {
+      const response = await this.http
+        .get<Dua[]>(
+          'https://cors-anywhere.herokuapp.com/https://doa-doa-api-ahmadramadhan.fly.dev/api'
+        )
+        .toPromise();
+
+      if (response) {
+        this.duas = response;
+        await this.cacheDuas(response); // Save to Preferences
+      } else {
+        console.error('No duas received from API.');
+      }
+    } catch (error) {
+      console.error('Error loading duas:', error);
+      // Optionally, display a user-friendly error message
+    }
+  }
+
+  // Load Duas from Capacitor Preferences (local storage)
+  async loadCachedDuas() {
+    try {
+      const ret = await Preferences.get({ key: DUA_STORAGE_KEY });
+      const storedDuas = ret.value;
+
+      if (storedDuas) {
+        this.duas = JSON.parse(storedDuas);
+        console.log('Duas loaded from cache.');
+      } else {
+        console.log('No duas found in cache.');
+      }
+    } catch (error) {
+      console.error('Error loading duas from cache:', error);
+    }
+  }
+
+  // Save Duas to Capacitor Preferences
+  async cacheDuas(duas: Dua[]) {
+    try {
+      await Preferences.set({
+        key: DUA_STORAGE_KEY,
+        value: JSON.stringify(duas),
+      });
+      console.log('Duas cached successfully.');
+    } catch (error) {
+      console.error('Error caching duas:', error);
+    }
+  }
+
   getBookKeys(): string[] {
     return Object.keys(this.BOOKS);
   }
@@ -144,6 +217,13 @@ export class HadithSupplicationPage implements OnInit {
   selectHadith(hadith: Hadith) {
     // Use the Hadith interface
     this.selectedHadith = hadith;
+
+    if (this.hadithContent) {
+      this.hadithContent.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
   }
 
   deselectHadith() {
@@ -152,17 +232,58 @@ export class HadithSupplicationPage implements OnInit {
 
   navigateHadith(direction: string) {
     const currentIndex = this.hadiths.indexOf(this.selectedHadith);
-    if (direction === 'previous' && currentIndex > 0) {
-      this.selectedHadith = this.hadiths[currentIndex - 1];
-    } else if (direction === 'next' && currentIndex < this.hadiths.length - 1) {
-      this.selectedHadith = this.hadiths[currentIndex + 1];
+    let newIndex: number;
+
+    if (direction === 'previous') {
+      newIndex = currentIndex - 1;
+      if (newIndex >= 0) {
+        this.selectedHadith = this.hadiths[newIndex];
+      }
+    } else if (direction === 'next') {
+      newIndex = currentIndex + 1;
+      if (newIndex < this.hadiths.length) {
+        this.selectedHadith = this.hadiths[newIndex];
+      }
+    }
+
+    // Reset scroll position after navigating to a new Hadith
+    if (this.hadithContent) {
+      this.hadithContent.nativeElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }
   }
 
-  handleRefresh(event: CustomEvent) {
-    this.loadHadiths(); // Reload Hadiths from the API
+  async handleRefresh(event: CustomEvent) {
+    if (this.selectedSegment === 'hadith') {
+      this.loadHadiths(); // Reload Hadiths from the API
+    } else if (this.selectedSegment === 'doa') {
+      await this.loadDuas(); // Reload Duas from the API and refresh cache
+    }
     setTimeout(() => {
       (event.target as HTMLIonRefresherElement).complete();
     }, 1000);
+  }
+
+  segmentChanged(ev: any) {
+    // console.log('Segment changed', ev);
+    this.selectedSegment = ev.detail.value;
+  }
+
+  hasPreviousHadith(): boolean {
+    if (!this.selectedHadith) {
+      return false;
+    }
+    const currentIndex = this.hadiths.indexOf(this.selectedHadith);
+    return currentIndex > 0;
+  }
+
+  hasNextHadith(): boolean {
+    if (!this.selectedHadith) {
+      return false;
+    }
+    const currentIndex = this.hadiths.indexOf(this.selectedHadith);
+    return currentIndex < this.hadiths.length - 1;
   }
 }
