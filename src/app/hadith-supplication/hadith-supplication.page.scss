@@ -46,12 +46,6 @@ ion-icon {
 
 .malay-text {
   font-size: 1.2rem;
-  // line-height: 1.6;
-  // color: #222;
-}
-
-.malay-content .malay-text {
-  // color: #222;
 }
 
 .narrator {
@@ -104,4 +98,15 @@ h2 {
 
 ion-card {
   border-radius: 8px;
+}
+
+ion-segment-view {
+  height: 100%; // or a fixed height if appropriate for your layout
+}
+
+ion-segment-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto; /* Allows content to scroll within the segment */
 }
