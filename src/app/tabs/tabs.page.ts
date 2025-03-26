@@ -70,7 +70,7 @@ export class TabsPage implements OnInit, OnDestroy {
         // Set status bar to dark background with light text for dark mode
         await StatusBar.setBackgroundColor({ color: '#121212' }); // Dark background color for dark mode
       } else {
-        await StatusBar.setBackgroundColor({ color: '#FFFFFF' }); // Light background color for light mode
+        await StatusBar.setBackgroundColor({ color: '#f5f5f5' }); // Light background color for light mode
       }
     } catch (error) {
       console.error('Error updating status bar color:', error);

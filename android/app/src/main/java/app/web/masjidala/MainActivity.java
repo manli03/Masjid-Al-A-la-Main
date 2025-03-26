@@ -1,4 +1,4 @@
-package com.mjidala.prayer;
+package app.web.masjidala;
 
 import com.getcapacitor.BridgeActivity;
 

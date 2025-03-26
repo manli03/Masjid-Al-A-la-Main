@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
-import { ModalController } from '@ionic/angular';
-import { AddAnnouncementModalComponent } from '../add-announcement-modal/add-announcement-modal.component';
-import { EditAnnouncementModalComponent } from '../edit-announcement-modal/edit-announcement-modal.component';
+import { ModalController, AlertController } from '@ionic/angular';
+import { AddAnnouncementModalComponent } from '../component/add-announcement-modal/add-announcement-modal.component';
+import { EditAnnouncementModalComponent } from '../component/edit-announcement-modal/edit-announcement-modal.component';
 
 @Component({
   selector: 'app-manage-announcement',
@@ -13,58 +13,47 @@ export class ManageAnnouncementPage {
   isEditModalOpen = false;
   newsItems = [
     {
-      title: 'Masjid Al-A\'la: Menjadi Pusat Keagamaan Utama di Wilayah',
+      title: "Masjid Al-A'la: Menjadi Pusat Keagamaan Utama di Wilayah",
       author: 'Imam Ahmad Al-Farisi',
-      date: '12 SEP 2023',
+      date: new Date(2023, 8, 12).toLocaleString(),
       imageUrl: 'https://picsum.photos/600/400?random=1',
       content: `Masjid Al-A'la yang terletak di tengah kota adalah pusat ibadah...`,
       commentsCount: 3,
       likes: 78,
     },
     {
-      title: 'Peranan Masjid Al-A\'la dalam Meningkatkan Kehidupan Komuniti',
+      title: "Peranan Masjid Al-A'la dalam Meningkatkan Kehidupan Komuniti",
       author: 'Ustazah Zainab Salim',
-      date: '15 SEP 2023',
+      date: new Date(2023, 8, 15).toLocaleString(),
       imageUrl: 'https://picsum.photos/600/400?random=2',
       content: `Masjid Al-A'la bukan hanya tempat untuk ibadah...`,
       commentsCount: 24,
       likes: 59,
     },
     {
-      title: 'Masjid Al-A\'la: Memupuk Keharmonian dan Toleransi Agama',
+      title: "Masjid Al-A'la: Memupuk Keharmonian dan Toleransi Agama",
       author: 'Dr. Harun Abdullah',
-      date: '18 SEP 2023',
+      date: new Date(2023, 8, 18).toLocaleString(),
       imageUrl: 'https://picsum.photos/600/400?random=3',
       content: `Masjid Al-A'la telah memainkan peranan penting dalam memupuk keharmonian...`,
       commentsCount: 35,
       likes: 82,
     },
     {
-      title: 'Seni Bina Masjid Al-A\'la: Gabungan Tradisi dan Inovasi Moden',
+      title: "Seni Bina Masjid Al-A'la: Gabungan Tradisi dan Inovasi Moden",
       author: 'Arsitek Mustafa Azzam',
-      date: '20 SEP 2023',
+      date: new Date(2023, 8, 20).toLocaleString(),
       imageUrl: 'https://picsum.photos/600/400?random=4',
       content: `Masjid Al-A'la adalah contoh sempurna gabungan seni bina tradisional dan moden...`,
       commentsCount: 50,
       likes: 95,
-    }
+    },
   ];
 
-  newAnnouncement = {
-    title: '',
-    author: '',
-    date: '',
-    content: '',
-  };
-
-  editAnnouncement = {
-    title: '',
-    author: '',
-    date: '',
-    content: '',
-  };
-
-  constructor(private modalController: ModalController) { }
+  constructor(
+    private modalController: ModalController,
+    private alertController: AlertController
+  ) {}
 
   async openModal(modalId: string, news: any = null) {
     if (modalId === 'addAnnouncementModal') {
@@ -85,14 +74,15 @@ export class ManageAnnouncementPage {
       modal.onDidDismiss().then((data) => {
         if (data.data) {
           // Update the existing news item with the new data
-          const index = this.newsItems.findIndex((item) => item.title === data.data.title);
+          const index = this.newsItems.findIndex(
+            (item) => item.title === data.data.title
+          );
           this.newsItems[index] = data.data;
         }
       });
       return await modal.present();
     }
   }
-
 
   closeModal(modalId: string) {
     if (modalId === 'addAnnouncementModal') {
@@ -114,11 +104,32 @@ export class ManageAnnouncementPage {
     this.closeModal('editAnnouncementModal');
   }
 
-  deleteAnnouncement(news: any) {
-    const index = this.newsItems.findIndex((item) => item.title === news.title);
-    if (index > -1) {
-      this.newsItems.splice(index, 1);
-      alert(`Pengumuman "${news.title}" dihapus`);
-    }
+  async deleteAnnouncement(news: any) {
+    const alert = await this.alertController.create({
+      header: 'Hapus Pengumuman',
+      message: `Anda yakin ingin menghapus pengumuman "${news.title}"?`,
+      buttons: [
+        {
+          text: 'Batal',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: () => {},
+        },
+        {
+          text: 'Hapus',
+          handler: () => {
+            const index = this.newsItems.findIndex(
+              (item) => item.title === news.title
+            );
+            if (index > -1) {
+              this.newsItems.splice(index, 1);
+              window.alert(`Pengumuman "${news.title}" dihapus`);
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 }
+

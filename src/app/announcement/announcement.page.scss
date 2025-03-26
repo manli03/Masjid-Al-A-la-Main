@@ -1,9 +1,4 @@
-.news-list {
-  background-color: #f5f5f5;
-}
-
 .news-item {
-  background-color: #fff;
   padding: 15px;
   margin-bottom: 10px;
   border-radius: 5px;
@@ -164,4 +159,58 @@
 
 .send-reply-btn {
   padding: 5px 10px;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212; /* Dark background for the body */
+    color: #fff; /* Light text color for the body */
+  }
+
+  .news-item {
+    color: #fff;
+  }
+
+  .news-author {
+    color: rgb(147, 245, 195);
+  }
+
+  .news-date {
+    color: #ddd;
+  }
+
+  .article-container {
+    background-color: #333;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  .article-footer {
+    border-top: 1px solid #555;
+  }
+
+  .author {
+    color: #ccc;
+  }
+
+  .stats {
+    color: #aaa;
+  }
+
+  .comment-card {
+    background-color: #444;
+    color: #fff;
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.1);
+  }
+
+  .comment-text {
+    color: #ddd;
+  }
+
+  .reply-card {
+    background-color: #555;
+    color: #fff;
+    box-shadow: 0 0 3px rgba(255, 255, 255, 0.1);
+  }
 }

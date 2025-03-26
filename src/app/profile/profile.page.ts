@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
+import { AlertController, ModalController } from '@ionic/angular';
 import { AuthService } from '../services/Auth/auth.service';
 import { Router } from '@angular/router';
-import { ModalController } from '@ionic/angular';
 import { EditProfileModalComponent } from '../component/edit-profile-modal/edit-profile-modal.component';
 
 @Component({
@@ -12,6 +12,7 @@ import { EditProfileModalComponent } from '../component/edit-profile-modal/edit-
 export class ProfilePage {
 
   constructor(
+    private alertController: AlertController,
     private authService: AuthService,
     private router: Router,
     private modalController: ModalController,
@@ -21,7 +22,7 @@ export class ProfilePage {
     name: 'Muhammad Aiman bin Norazli',
     birthdate: '2003-01-02',
     phone: '017-409-2591',
-    address: '123 Jalan Masjid, Malang',
+    address: '123 Jalan Masjid, Taman Masjid, 83000, Malang, Johor, Malaysia',
   };
 
   handleRefresh(event: CustomEvent) {
@@ -32,9 +33,27 @@ export class ProfilePage {
     }, 2000);
   }
   
-  handleLogout() {
-    this.authService.logout();  // Remove the token from localStorage
-    this.router.navigate(['/tabs/authentication']);  // Redirect to the login page
+  async handleLogout() {
+    const alert = await this.alertController.create({
+      header: 'Log Keluar',
+      message: 'Adakah anda pasti ingin log keluar?',
+      buttons: [
+        {
+          text: 'Batal',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: () => {}
+        }, {
+          text: 'Log Keluar',
+          handler: () => {
+            this.authService.logout();  // Remove the token from localStorage
+            this.router.navigate(['/tabs/authentication']);  // Redirect to the login page
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 
   isAdmin() {
@@ -60,3 +79,4 @@ export class ProfilePage {
     return await modal.present();
   }
 }
+

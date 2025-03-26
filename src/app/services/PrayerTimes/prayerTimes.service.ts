@@ -40,7 +40,10 @@ export class PrayerTimesService {
       },
       error: (error) => {
         console.error('Error fetching compass direction:', error);
-        Preferences.set({ key: 'compassDirection', value: '291.52845530594317' });
+        Preferences.set({
+          key: 'compassDirection',
+          value: '291.52845530594317',
+        });
         this.cacheQiblaImage(latitude, longitude, '291.52845530594317');
       },
     });
@@ -87,22 +90,22 @@ export class PrayerTimesService {
   }
 
   // Check for a cached image matching current coordinates
-async getCachedQiblaImage() {
-  const fileName = `qibla_compass.png`;
+  async getCachedQiblaImage() {
+    const fileName = `qibla_compass.png`;
 
-  try {
-    // Check if the file exists
-    const { data } = await Filesystem.readFile({
-      path: fileName,
-      directory: Directory.Cache,
-    });
+    try {
+      // Check if the file exists
+      const { data } = await Filesystem.readFile({
+        path: fileName,
+        directory: Directory.Cache,
+      });
 
-    // Return the cached image as a base64 URL
-    return `data:image/png;base64,${data}`;
-  } catch (error) {
-    return null; // No cached image found
+      // Return the cached image as a base64 URL
+      return `data:image/png;base64,${data}`;
+    } catch (error) {
+      return null; // No cached image found
+    }
   }
-}
 
   // Save the fetched prayer times into Preferences
   async saveYearlyPrayerTimes(

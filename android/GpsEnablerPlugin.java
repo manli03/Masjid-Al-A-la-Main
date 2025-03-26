@@ -1,4 +1,4 @@
-package com.mjidala.prayer.plugins.gpsenabler;
+package com.web.masjidala.plugins.gpsenabler;
 
 import android.app.Activity;
 import android.content.Context;

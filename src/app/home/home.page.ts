@@ -15,7 +15,7 @@ import { Preferences } from '@capacitor/preferences';
   styleUrls: ['./home.page.scss'],
 })
 export class HomePage implements OnDestroy {
-  public loaded: boolean = false;
+  loaded: boolean = false;
   prayerNames = ['Subuh', 'Syuruk', 'Zuhur', 'Asar', 'Maghrib', 'Isyak'];
   currentLocation: string = 'Memuatkan lokasi...';
   currentHijriDate: string = '';
@@ -39,6 +39,7 @@ export class HomePage implements OnDestroy {
   private exitDelay = 2000; // 2 seconds
   private backButtonSubscription: any;
   private currentToast: HTMLIonToastElement | null = null;
+  firstLoad: boolean = false;
 
   constructor(
     private router: Router,
@@ -123,7 +124,7 @@ export class HomePage implements OnDestroy {
   }
 
   async ionViewDidEnter() {
-    await SplashScreen.hide();
+    // await SplashScreen.hide();
     this.checkDarkMode();
     this.loadPrayerData();
 
@@ -365,6 +366,10 @@ export class HomePage implements OnDestroy {
     const diff = this.upcomingPrayer.date.getTime() - now.getTime();
     this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
     this.loaded = true;
+    if (!this.firstLoad) {
+      SplashScreen.hide();
+      this.firstLoad = true;
+    }
     this.reloadQiblaCompass = true;
   }
 
@@ -480,7 +485,7 @@ export class HomePage implements OnDestroy {
     const prayerIndex = this.prayerNames.indexOf(prayerName);
 
     if (this.currentPrayer && prayerName === this.currentPrayer.name) {
-      return { color: this.currentPrayerRatio > 0.3 ? '#14AE5C' : 'yellow' };
+      return { color: this.currentPrayerRatio > 0.3 ? '#14AE5C' : '#FFD700' };
     }
     if (this.currentPrayer && prayerIndex < currentIndex && now >= subuhDate) {
       return { color: 'red' };

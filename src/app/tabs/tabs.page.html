@@ -14,14 +14,15 @@
           <ion-icon name="time"></ion-icon>
           <ion-label>Solat</ion-label>
         </ion-tab-button> -->
-        <ion-tab-button [tab]="isAdmin() ? 'manage-announcement' : 'announcement'">
-          <ion-icon name="megaphone"></ion-icon>
-          <ion-label>Pengumuman</ion-label>
-        </ion-tab-button>
         
         <ion-tab-button tab="hadithSupplication">
           <ion-icon name="book"></ion-icon>
           <ion-label>Hadis</ion-label>
+        </ion-tab-button>
+        
+        <ion-tab-button [tab]="isAdmin() ? 'manage-announcement' : 'announcement'">
+          <ion-icon name="megaphone"></ion-icon>
+          <ion-label>Pengumuman</ion-label>
         </ion-tab-button>
         
         <ion-tab-button tab="profile">

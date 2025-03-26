@@ -1,28 +1,50 @@
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
+import { Network } from '@capacitor/network';
+import { AlertController } from '@ionic/angular'; // Import AlertController
 
 // Define an interface for the Hadith data structure (optional, but good practice)
 interface Hadith {
   id: number;
   hadith_number: string;
-  status: string;
-  nama_buku: string;
-  penulis_buku: string;
   tajuk_hadith: string;
   perawi_melayu: string;
   english_text: string;
-  malay_translation: string;
   arabic_text: string;
+  malay_translation: string;
 }
 
 interface Chapter {
   id: number;
-  chapterNumber: string;
-  chapterEnglish: string;
-  chapterUrdu: string;
-  chapterArabic: string;
-  bookSlug: string;
+  english: string;
+  malay: string;
+}
+
+interface BookMetadata {
+  id: number;
+  length: number;
+  arabic: {
+    title: string;
+    author: string;
+    introduction: string;
+  };
+  english: {
+    title: string;
+    author: string;
+    introduction: string;
+  };
+  malay: {
+    title: string;
+    author: string;
+    introduction: string;
+  };
+}
+
+interface ChapterNamesResponse {
+  id: number;
+  metadata: BookMetadata;
+  chapters: Chapter[];
 }
 
 interface BookDictionary {
@@ -49,23 +71,25 @@ export class HadithSupplicationPage implements OnInit {
 
   //Hadith Properties
   searchText: string = '';
-  selectedHadith: any = null;
+  selectedHadith: Hadith | null = null;
   hadiths: Hadith[] = []; // Use the Hadith interface
   chapters: Chapter[] = [];
   selectedBook: string = 'Sahih Bukhari'; // Default book
   selectedChapter: string = '1'; // Default chapter
-  hadithBookSlug: string = 'sahih-bukhari';
+  hadithBookSlug: string = 'bukhari';
+
+  bookAuthor: string = ''; // Add this line
 
   BOOKS: BookDictionary = {
-    'Sahih Bukhari': 'sahih-bukhari',
-    'Sahih Muslim': 'sahih-muslim',
-    "Jami' Al-Tirmidhi": 'al-tirmidhi',
-    'Sunan Abu Dawood': 'abu-dawood',
-    'Sunan Ibn-e-Majah': 'ibn-e-majah',
-    'Sunan An-Nasa`i': 'sunan-nasai',
-    'Mishkat Al-Masabih': 'mishkat',
-    'Musnad Ahmad': 'musnad-ahmad',
-    'Al-Silsila Sahiha': 'al-silsila-sahiha',
+    'Sahih Bukhari': 'bukhari',
+    'Sahih Muslim': 'muslim',
+    "Jami' Al-Tirmidhi": 'tirmidhi',
+    'Sunan Abu Dawood': 'abudawud',
+    'Sunan Ibn-e-Majah': 'ibnmajah',
+    'Sunan An-Nasa`i': 'nasai',
+    'Muwatta Malik': 'malik',
+    'Musnad Ahmad': 'ahmed',
+    'Sunan ad-Darimi': 'darimi',
   };
 
   //Dua Properties
@@ -75,33 +99,73 @@ export class HadithSupplicationPage implements OnInit {
   selectedSegment: string = 'hadith';
 
   @ViewChild('hadithContent', { static: false }) hadithContent!: ElementRef;
+  connected: boolean = false;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private alertController: AlertController
+  ) {} //Inject AlertController
 
   async ngOnInit() {
+    await this.checkNetworkConnection(); // Check network status on component initialization
+
+    Network.addListener('networkStatusChange', (status) => {
+      console.log('Network status changed', status);
+      if (status.connected && !this.connected) {
+        this.loadChapters();
+        this.loadHadiths();
+        this.loadCachedDuas();
+      }
+    });
+
     this.loadChapters();
     this.loadHadiths(); // Load initial Hadiths on page load
     await this.loadCachedDuas(); // Load from cache first
-    this.loadDuas(); // Load duas on page load/refresh
+  }
+
+  //Check Network Connection
+  async checkNetworkConnection() {
+    const status = await Network.getStatus();
+    if (!status.connected) {
+      this.connected = false;
+      this.showNetworkAlert();
+    } else {
+      this.connected = true;
+    }
+  }
+
+  // Show Alert
+  async showNetworkAlert() {
+    const alert = await this.alertController.create({
+      header: 'Tiada Sambungan Internet',
+      message:
+        'Sila hidupkan sambungan internet anda untuk menggunakan aplikasi ini sepenuhnya.',
+      buttons: ['OK'],
+    });
+
+    await alert.present();
   }
 
   // Load chapters for the selected book
   loadChapters() {
-    const chapterUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/chapter/${
-      this.BOOKS[this.selectedBook]
-    }.json`; // Dynamically create URL
-    this.http.get<any>(chapterUrl).subscribe(
+    const bookSlug = this.BOOKS[this.selectedBook];
+    const chapterUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/hadiths/${bookSlug}/chapter_names.json`; // Dynamically create URL
+
+    this.http.get<ChapterNamesResponse>(chapterUrl).subscribe(
       (data) => {
-        if (data.status === 200) {
+        if (data) {
           this.chapters = data.chapters;
+          this.bookAuthor = data.metadata.english.author; //Get Author
         } else {
-          console.error('Error loading chapters:', data.message);
-          // Optionally display an error message to the user
+          console.error('Error loading chapters: Invalid data format');
+          this.chapters = [];
+          this.bookAuthor = '';
         }
       },
       (error) => {
         console.error('Error loading chapters:', error);
-        // Optionally display an error message to the user
+        this.chapters = []; // Clear existing chapters
+        this.bookAuthor = '';
       }
     );
   }
@@ -109,17 +173,17 @@ export class HadithSupplicationPage implements OnInit {
   // Load Hadiths based on the selected book and chapter
   loadHadiths() {
     this.isLoading = true; // Set loading to true when fetching data
-    const bookSlug = this.BOOKS[this.selectedBook].replace('-', '_');
+    const bookSlug = this.BOOKS[this.selectedBook];
+    const hadithUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/hadiths/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
 
-    const hadithUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
-    this.http.get<any>(hadithUrl).subscribe(
+    this.http.get<Hadith[]>(hadithUrl).subscribe(
       (data) => {
-        if (data.status === 200) {
-          this.hadiths = data.hadiths.data; // Access the 'data' array within 'hadiths'
+        if (data) {
+          this.hadiths = data; // Assign the data directly as it's already an array of Hadith
           this.isLoading = false; // Set loading to false when data is loaded
         } else {
           this.isLoading = false; // Set loading to false when data is loaded
-          console.error('Error loading hadiths:', data.message);
+          console.error('Error loading hadiths: Invalid data format');
           this.hadiths = []; // Clear existing hadiths to avoid displaying old data
         }
       },
@@ -136,7 +200,7 @@ export class HadithSupplicationPage implements OnInit {
     try {
       const response = await this.http
         .get<Dua[]>(
-          'https://cors-anywhere.herokuapp.com/https://doa-doa-api-ahmadramadhan.fly.dev/api'
+          'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json'
         )
         .toPromise();
 
@@ -162,6 +226,7 @@ export class HadithSupplicationPage implements OnInit {
         this.duas = JSON.parse(storedDuas);
         console.log('Duas loaded from cache.');
       } else {
+        this.loadDuas(); // Load duas from the API if not found in cache
         console.log('No duas found in cache.');
       }
     } catch (error) {
@@ -188,18 +253,21 @@ export class HadithSupplicationPage implements OnInit {
 
   // Update Hadiths when book selection changes
   onBookChange(event: any) {
+    this.checkNetworkConnection(); // Check network status when book changes
     this.selectedBook = event.target.value;
+    this.selectedChapter = '1'; // Reset chapter to default when book changes
     this.loadChapters();
     this.loadHadiths();
   }
 
   // Update Hadiths when chapter selection changes
   onChapterChange(event: any) {
+    this.checkNetworkConnection(); // Check network status when chapter changes
     this.selectedChapter = event.target.value;
     this.loadHadiths();
   }
 
-  filteredHadiths() {
+  filteredHadiths(): Hadith[] {
     if (!this.searchText) {
       return this.hadiths;
     }
@@ -231,7 +299,7 @@ export class HadithSupplicationPage implements OnInit {
   }
 
   navigateHadith(direction: string) {
-    const currentIndex = this.hadiths.indexOf(this.selectedHadith);
+    const currentIndex = this.hadiths.indexOf(this.selectedHadith!);
     let newIndex: number;
 
     if (direction === 'previous') {

@@ -1,6 +1,4 @@
- ion-content {
-    --background: #f5f5f5;
-  }
+
 
 .location,
 .prayer-header,
@@ -13,9 +11,6 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  ion-content {
-    --background: #121212;
-  }
   
   .location,
   .prayer-header,

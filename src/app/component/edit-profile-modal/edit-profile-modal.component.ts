@@ -3,6 +3,7 @@ import { ModalController } from '@ionic/angular';
 
 @Component({
   selector: 'app-edit-profile-modal',
+  styleUrls: ['edit-profile-modal.component.scss'],
   template: `
     <ion-header>
       <ion-toolbar>
@@ -18,21 +19,37 @@ import { ModalController } from '@ionic/angular';
     <ion-content>
       <ion-item>
         <ion-label position="stacked">Nama Penuh</ion-label>
-        <ion-input [(ngModel)]="profile.name" placeholder="Nama Penuh"></ion-input>
+        <ion-input
+          [(ngModel)]="profile.name"
+          placeholder="Nama Penuh"
+        ></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Tarikh Lahir</ion-label>
-        <ion-datetime [(ngModel)]="profile.birthdate" placeholder="Tarikh Lahir"></ion-datetime>
+        <ion-datetime
+          presentation="date"
+          [preferWheel]="true"
+          locale="ms-MY"
+          [(ngModel)]="profile.birthdate"
+          placeholder="Tarikh Lahir"
+        ></ion-datetime>
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Nombor Telefon</ion-label>
-        <ion-input [(ngModel)]="profile.phone" placeholder="Nombor Telefon"></ion-input>
+        <ion-input
+          [(ngModel)]="profile.phone"
+          placeholder="Nombor Telefon"
+        ></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Alamat</ion-label>
-        <ion-input [(ngModel)]="profile.address" placeholder="Alamat"></ion-input>
+        <ion-textarea
+          [(ngModel)]="profile.address"
+          placeholder="Alamat"
+          auto-grow="true"
+        ></ion-textarea>
       </ion-item>
-      
+
       <div class="ion-text-end">
         <ion-button (click)="dismiss()" color="light">Batal</ion-button>
         <ion-button (click)="save()" color="primary">Simpan</ion-button>
@@ -43,7 +60,7 @@ import { ModalController } from '@ionic/angular';
 export class EditProfileModalComponent {
   @Input() profile: any; // This will receive the profile data from parent
 
-  constructor(private modalController: ModalController) { }
+  constructor(private modalController: ModalController) {}
 
   dismiss() {
     this.modalController.dismiss();

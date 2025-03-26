@@ -1,11 +1,5 @@
 <ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title class="text-center">Login & Register</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content style="display: flex; flex-direction: column; justify-content: center; height: 100vh;">
-  <div style="height: 90%; display: flex; flex-direction: column; justify-content: center; margin-left: 20px; margin-right: 20px;">
     <!-- Segment for switching between Login and Register -->
     <ion-segment [(ngModel)]="segment" (ionChange)="segmentChanged($event)">
       <ion-segment-button value="login">
@@ -15,6 +9,12 @@
         Signup
       </ion-segment-button>
     </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container">
+    
 
     <!-- Login Form -->
     <form *ngIf="segment === 'login'" (submit)="login()">
@@ -30,7 +30,7 @@
         <a href="/tabs/forgot-password">Lupa kata laluan?</a>
       </ion-label>
 
-      <ion-button expand="full" type="submit" color="primary">Login</ion-button>
+      <ion-button type="submit" color="primary">Login</ion-button>
     </form>
 
     <!-- Register Form -->
@@ -44,7 +44,7 @@
       <ion-label position="stacked">Confirm Password</ion-label>
       <ion-input type="password" [(ngModel)]="confirmPassword" name="confirm password"></ion-input>
 
-      <ion-button expand="full" type="submit" color="secondary">Signup</ion-button>
+      <ion-button type="submit" color="secondary">Signup</ion-button>
     </form>
   </div>
 </ion-content>

@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.mjidala.prayer"
+    namespace "app.web.masjidala"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.mjidala.prayer"
+        applicationId "app.web.masjidala"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

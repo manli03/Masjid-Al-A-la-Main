@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.mjidala.prayer',
-  appName: "Masjid Al A'la Assistant",
+  appId: 'app.web.masjidala',
+  appName: "Masjid A'la",
   webDir: 'www',
   plugins: {
     StatusBar: {
@@ -13,14 +13,6 @@ const config: CapacitorConfig = {
       launchFadeOutDuration: 0,
     },
     GpsEnabler: {},
-    BackgroundRunner: {
-      label: 'com.mjidala.prayer.background.task',
-      src: 'src/app/app.component.ts',
-      event: 'myCustomEvent',
-      repeat: true,
-      interval: 15,
-      autoStart: true,
-    },
   },
 };
 

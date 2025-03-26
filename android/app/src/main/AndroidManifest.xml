@@ -10,7 +10,6 @@
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-
   <application
       android:allowBackup="true"
       android:icon="@mipmap/ic_launcher"
@@ -38,15 +37,6 @@
           android:grantUriPermissions="true">
           <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
       </provider>
-
-    <receiver
-      android:name=".plugins.gpsenabler.RebootReceiver"
-      android:enabled="true"
-      android:exported="true">
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED" />
-      </intent-filter>
-    </receiver>
   </application>
 
 </manifest>

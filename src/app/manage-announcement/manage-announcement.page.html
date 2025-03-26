@@ -1,4 +1,4 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-title class="text-center">Pengumuman</ion-title>
   </ion-toolbar>
@@ -7,7 +7,7 @@
 <ion-content class="ion-padding">
 
   <!-- Add Announcement Button -->
-  <div class="ion-text-end">
+  <div class="addAnnouncementButton">
     <ion-button color="primary" (click)="openModal('addAnnouncementModal')">
       Tambah Pengumuman
     </ion-button>
@@ -24,8 +24,8 @@
           </ion-card-header>
           <ion-card-content>
             <p>Penulis: {{ news.author }}</p>
-            <p>Tarikh: {{ news.date }}</p>
-            <p>{{ news.content | slice: 0:150 }}...</p>
+            <p>Terakhir diubah: {{ news.date }}</p>
+            <p class="preserve-whitespace">{{ news.content | slice: 0:150 }}...</p>
             <ion-button color="primary" (click)="openModal('editAnnouncementModal', news)">
               Edit
             </ion-button>
@@ -46,21 +46,16 @@
 /* announcements.page.scss */
 
 /* General Page Styles */
-ion-content {
-  --background: #f4f4f4;
-}
 
 ion-card {
   margin-bottom: 16px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
-  background-color: white;
 }
 
 ion-card-header {
   background-color: #f8f8f8;
   padding: 16px;
-  border-radius: 12px 12px 0 0;
 }
 
 ion-card-title {
@@ -77,6 +72,7 @@ ion-card-content {
 
 ion-button {
   margin: 4px;
+    width: 100%;
 }
 
 /* Modal Styles */
@@ -103,33 +99,21 @@ ion-input, ion-textarea, ion-datetime {
   margin: 0 8px;
 }
 
-ion-button[color="primary"] {
-  background-color: #3880ff;
-}
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
 
-ion-button[color="danger"] {
-  background-color: #eb445a;
-}
-
-ion-button[color="light"] {
-  background-color: #f4f4f4;
-}
-
-/* Responsive Design */
-@media screen and (max-width: 768px) {
   ion-card {
-    margin-bottom: 12px;
+    box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1);
   }
 
-  .ion-text-center {
-    margin-bottom: 16px;
+  ion-card-header {
+    background-color: #2c2c2c;
   }
-  
-  ion-button {
-    margin: 8px 0;
-    width: 100%;
+
+  ion-card-title,
+  ion-card-content,
+  ion-label {
+    color: #fff;
   }
 }
-
-
 </style>

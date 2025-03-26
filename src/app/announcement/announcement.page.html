@@ -40,6 +40,7 @@
             <img alt="News Image" [src]="item.imageUrl" />
           </ion-col>
         </ion-row>
+        <hr>
       </ion-grid>
     </ion-item>
   </ion-list>
@@ -55,7 +56,7 @@
     <div class="article-image">
       <img [src]="selectedArticle.imageUrl" alt="Article Image" />
     </div>
-    <div class="article-content">
+    <div class="article-content preserve-whitespace">
       {{ selectedArticle.content }}
     </div>
 
@@ -106,6 +107,6 @@
       </div>
     </div>
 
-    <ion-button (click)="deselectArticle()">Back to News</ion-button>
+    <ion-button (click)="deselectArticle()">Kembali</ion-button>
   </div>
 </ion-content>
