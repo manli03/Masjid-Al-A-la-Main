@@ -108,19 +108,13 @@ export class StorageService {
   // Clear all storage data (both secure and preferences)
   async clearAllStorage() {
     try {
-      // Clear Preferences storage
-      await Preferences.clear();
-
-      // Clear Secure Storage - remove known keys
-      // await this.removeSecure('auth_token');
-
-      // Clear in-memory data
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await SecureStoragePlugin.clear();
-        } catch (e) {
-          console.warn('Could not clear all secure storage:', e);
-        }
+      try {
+        // Clear Preferences storage for user data
+        await this.remove('user');
+        // Clear in-memory data
+        await SecureStoragePlugin.clear();
+      } catch (e) {
+        console.warn('Could not clear all secure storage:', e);
       }
 
       // Notify about user change
