@@ -1,51 +1,28 @@
 <ion-header class="ion-no-border">
   <ion-toolbar>
-    <!-- Segment for switching between Login and Register -->
-    <ion-segment [(ngModel)]="segment" (ionChange)="segmentChanged($event)">
-      <ion-segment-button value="login">
-        Login
-      </ion-segment-button>
-      <ion-segment-button value="register">
-        Signup
-      </ion-segment-button>
-    </ion-segment>
+    <ion-title class="ion-text-center">Log Masuk</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <div class="container">
-    
+<ion-content class="ion-padding auth-content">
+  <div class="auth-container">
 
-    <!-- Login Form -->
-    <form *ngIf="segment === 'login'" (submit)="login()">
-      <ion-label position="stacked">Email Address</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email"></ion-input>
+    <!-- App Logo (Replace with your actual logo path) -->
+    <img src="assets/icon/favicon.png" alt="App Logo" class="auth-logo" />
 
-      <ion-label position="stacked">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password">
-        <ion-input-password-toggle slot="end"></ion-input-password-toggle>
-      </ion-input>
+    <!-- Welcome Text -->
+    <h2 class="ion-text-center auth-title">Selamat Datang!</h2>
+    <p class="ion-text-center auth-subtitle">Sila log masuk menggunakan akaun Google anda.</p>
 
-      <ion-label style="text-align: left;">
-        <a href="/tabs/forgot-password">Lupa kata laluan?</a>
-      </ion-label>
+    <!-- Google Sign-In Button -->
+    <ion-button expand="block" (click)="signInWithGoogle()" [disabled]="isLoading" class="auth-button ion-margin-top">
+      <!-- Show spinner when loading -->
+      <ion-spinner *ngIf="isLoading" name="crescent" slot="start"></ion-spinner>
+      <!-- Show icon and text when not loading -->
+      <ion-icon *ngIf="!isLoading" slot="start" name="logo-google"></ion-icon>
+      <span *ngIf="!isLoading">Log Masuk dengan Google</span>
+      <span *ngIf="isLoading">Memproses...</span>
+    </ion-button>
 
-      <ion-button type="submit" color="primary">Login</ion-button>
-    </form>
-
-    <!-- Register Form -->
-    <form *ngIf="segment === 'register'" (submit)="register()">
-      <ion-label position="stacked">Email Address</ion-label>
-      <ion-input type="email" [(ngModel)]="email" name="email"></ion-input>
-
-      <ion-label position="stacked">Password</ion-label>
-      <ion-input type="password" [(ngModel)]="password" name="password"></ion-input>
-
-      <ion-label position="stacked">Confirm Password</ion-label>
-      <ion-input type="password" [(ngModel)]="confirmPassword" name="confirm password"></ion-input>
-
-      <ion-button type="submit" color="secondary">Signup</ion-button>
-    </form>
   </div>
 </ion-content>
-

@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { TabsPage } from './tabs.page';
-import { authGuard } from '../services/auth.guard';  // Import the authGuard function
+import { authGuard } from '../services/auth.guard'; // Import the authGuard function
 
 const routes: Routes = [
   {
@@ -10,58 +10,96 @@ const routes: Routes = [
     children: [
       {
         path: 'home',
-        loadChildren: () => import('../home/home.module').then(m => m.HomePageModule)
+        loadChildren: () =>
+          import('../home/home.module').then((m) => m.HomePageModule),
       },
       {
         path: 'prayerTimes',
-        loadChildren: () => import('../prayerTimes/prayerTimes.module').then(m => m.prayerTimesPageModule)
+        loadChildren: () =>
+          import('../prayerTimes/prayerTimes.module').then(
+            (m) => m.prayerTimesPageModule,
+          ),
+      },
+      {
+        path: 'qiblaCompass',
+        loadChildren: () =>
+          import('../qiblaCompass/qiblaCompass.module').then(
+            (m) => m.qiblaCompassPageModule,
+          ),
+      },
+      {
+        path: 'announcement-loading',
+        loadChildren: () =>
+          import('../announcement-loading/announcement-loading.module').then(
+            (m) => m.AnnouncementLoadingPageModule,
+          ),
       },
       {
         path: 'announcement',
-        loadChildren: () => import('../announcement/announcement.module').then(m => m.announcementPageModule),
-        canActivate: [authGuard]  // Use the authGuard function to protect this route
+        loadChildren: () =>
+          import('../announcement/announcement.module').then(
+            (m) => m.announcementPageModule,
+          ),
+        canActivate: [authGuard], // Keep the authGuard for additional protection
       },
       {
         path: 'hadithSupplication',
-        loadChildren: () => import('../hadith-supplication/hadith-supplication.module').then(m => m.HadithSupplicationPageModule)
+        loadChildren: () =>
+          import('../hadith-supplication/hadith-supplication.module').then(
+            (m) => m.HadithSupplicationPageModule,
+          ),
       },
       {
         path: 'profile',
-        loadChildren: () => import('../profile/profile.module').then(m => m.ProfilePageModule),
-        canActivate: [authGuard]
+        loadChildren: () =>
+          import('../profile/profile.module').then((m) => m.ProfilePageModule),
+        canActivate: [authGuard],
       },
       {
         path: 'authentication',
-        loadChildren: () => import('../authentication/authentication.module').then(m => m.AuthenticationPageModule)
+        loadChildren: () =>
+          import('../authentication/authentication.module').then(
+            (m) => m.AuthenticationPageModule,
+          ),
       },
       {
         path: 'forgot-password',
-        loadChildren: () => import('../forgot-password/forgot-password.module').then(m => m.ForgotPasswordPageModule)
+        loadChildren: () =>
+          import('../forgot-password/forgot-password.module').then(
+            (m) => m.ForgotPasswordPageModule,
+          ),
       },
       {
         path: 'bridge-login',
-        loadChildren: () => import('../bridge-login/bridge-login.module').then(m => m.BridgeLoginPageModule)
+        loadChildren: () =>
+          import('../bridge-login/bridge-login.module').then(
+            (m) => m.BridgeLoginPageModule,
+          ),
       },
       {
         path: 'manage-announcement',
-        loadChildren: () => import('../manage-announcement/manage-announcement.module').then(m => m.ManageAnnouncementPageModule),
-        canActivate: [authGuard]
+        loadChildren: () =>
+          import('../manage-announcement/manage-announcement.module').then(
+            (m) => m.ManageAnnouncementPageModule,
+          ),
+        canActivate: [authGuard],
       },
       {
         path: '',
         redirectTo: '/tabs/home',
-        pathMatch: 'full'
-      }
-    ]
+        pathMatch: 'full',
+      },
+    ],
   },
   {
     path: '',
     redirectTo: '/tabs/home',
-    pathMatch: 'full'
-  }
+    pathMatch: 'full',
+  },
 ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule],
 })
-export class TabsPageRoutingModule { }
+export class TabsPageRoutingModule {}

@@ -1,0 +1,32 @@
+ion-toggle {
+  --background: var(--ion-color-medium);
+  --background-checked: var(--ion-color-primary);
+}
+
+ion-progress-bar {
+  --background: rgba(var(--ion-color-primary-rgb), 0.2);
+  --progress-background: var(--ion-color-primary);
+}
+
+ion-item {
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+}
+
+ion-button[expand="block"] {
+  margin: 0;
+  width: 100%;
+}
+
+// ion-button {
+//   &.playing {
+//     --background: var(--ion-color-danger);
+//   }
+// }
+
+ion-list-header {
+  padding-top: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--ion-color-primary);
+} 

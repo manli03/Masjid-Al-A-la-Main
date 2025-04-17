@@ -1,13 +1,16 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Platform,
   ToastController,
   ActionSheetController,
+  ModalController,
 } from '@ionic/angular';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service';
+import { PrayerTimesService } from '../services/prayerTimes.service';
 import { Preferences } from '@capacitor/preferences';
+import { PrayerNotificationsService } from '../services/prayer-notifications.service';
+import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
 
 @Component({
   selector: 'app-home',
@@ -41,12 +44,16 @@ export class HomePage implements OnDestroy {
   private currentToast: HTMLIonToastElement | null = null;
   firstLoad: boolean = false;
 
+  @Output() homePageLoaded = new EventEmitter<boolean>();
+
   constructor(
     private router: Router,
     private prayerTimesService: PrayerTimesService,
     private platform: Platform,
     private toastController: ToastController,
-    private actionSheetController: ActionSheetController
+    private actionSheetController: ActionSheetController,
+    private prayerNotificationsService: PrayerNotificationsService,
+    private modalController: ModalController,
   ) {
     this.zoneNames = {
       jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
@@ -124,58 +131,142 @@ export class HomePage implements OnDestroy {
   }
 
   async ionViewDidEnter() {
-    // await SplashScreen.hide();
-    this.checkDarkMode();
-    this.loadPrayerData();
+    console.log('Home page entered, starting to load data');
+    // Set loaded to false when entering the view
+    this.loaded = false;
 
-    // Subscribe to the hardware back button on the Home page
-    this.backButtonSubscription =
-      this.platform.backButton.subscribeWithPriority(10, async () => {
-        if (!this.currentToast) {
-          this.currentToast = await this.toastController.create({
-            message: 'Tekan kembali lagi untuk keluar',
-            duration: this.exitDelay,
-            position: 'bottom',
-          });
-          // When the toast is dismissed, reset the reference.
-          this.currentToast.onDidDismiss().then(() => {
-            this.currentToast = null;
-          });
-          await this.currentToast.present();
-        } else {
-          // If the toast is already visible and back is pressed again, exit the app.
-          (navigator as any)['app'].exitApp();
-        }
-      });
+    try {
+      // Check dark mode
+      this.checkDarkMode();
 
-    const prayerNotification = await Preferences.get({
-      key: 'prayerNotification',
-    });
-    if (prayerNotification.value) {
-      this.prayerNotification = JSON.parse(prayerNotification.value);
-    } else {
-      this.prayerNotification = {
-        subuh: false,
-        dhuhr: false,
-        asr: false,
-        maghrib: false,
-        isha: false,
-      };
+      // Load prayer data
+      await this.loadPrayerData();
 
-      await Preferences.set({
-        key: 'prayerNotification',
-        value: JSON.stringify(this.prayerNotification),
-      });
+      // Initialize notifications service
+      await this.prayerNotificationsService.initialize();
+
+      // Subscribe to the hardware back button on the Home page
+      this.backButtonSubscription =
+        this.platform.backButton.subscribeWithPriority(10, async () => {
+          if (!this.currentToast) {
+            this.currentToast = await this.toastController.create({
+              message: 'Tekan kembali lagi untuk keluar',
+              duration: this.exitDelay,
+              position: 'bottom',
+            });
+            // When the toast is dismissed, reset the reference.
+            this.currentToast.onDidDismiss().then(() => {
+              this.currentToast = null;
+            });
+            await this.currentToast.present();
+          } else {
+            // If the toast is already visible and back is pressed again, exit the app.
+            (navigator as any)['app'].exitApp();
+          }
+        });
+
+      // Load notification status for each prayer
+      await this.updatePrayerNotificationStatus();
+
+      // Set loaded to true after everything is loaded
+      this.loaded = true;
+      console.log('Home page fully loaded, notifying app component');
+
+      // Notify the app component that home page is fully loaded
+      this.notifyAppLoaded();
+    } catch (error) {
+      console.error('Error loading home page:', error);
+      // Even on error, we should hide the loading screen
+      this.loaded = true;
+      this.notifyAppLoaded();
     }
   }
 
+  /**
+   * Update notification status for all prayers
+   */
+  async updatePrayerNotificationStatus() {
+    const prayerMap: { [key: string]: string } = {
+      subuh: 'Subuh',
+      dhuhr: 'Zuhur',
+      asr: 'Asar',
+      maghrib: 'Maghrib',
+      isha: 'Isyak',
+    };
 
+    // Reset all notifications
+    this.prayerNotification = {
+      subuh: false,
+      dhuhr: false,
+      asr: false,
+      maghrib: false,
+      isha: false,
+    };
+
+    // Check status for each prayer
+    for (const [key, value] of Object.entries(prayerMap)) {
+      this.prayerNotification[key] =
+        await this.prayerNotificationsService.isPrayerNotificationEnabled(
+          value,
+        );
+    }
+  }
+
+  /**
+   * Toggle notification for a specific prayer
+   */
   async togglePrayerNotification(prayerName: string) {
-    this.prayerNotification[prayerName] = !this.prayerNotification[prayerName];
-    await Preferences.set({
-      key: 'prayerNotification',
-      value: JSON.stringify(this.prayerNotification),
-    });
+    // Map the internal prayer name to the display name
+    const prayerDisplayName = {
+      subuh: 'Subuh',
+      dhuhr: 'Zuhur',
+      asr: 'Asar',
+      maghrib: 'Maghrib',
+      isha: 'Isyak',
+    }[prayerName];
+
+    if (!prayerDisplayName) return;
+
+    try {
+      // Optimistically update UI first for immediate feedback
+      this.prayerNotification[prayerName] =
+        !this.prayerNotification[prayerName];
+
+      // Add haptic feedback for better user experience
+      if (this.platform.is('capacitor')) {
+        try {
+          const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+          await Haptics.impact({ style: ImpactStyle.Light });
+        } catch (error) {
+          console.log('Haptics not available');
+        }
+      }
+
+      // Toggle notification using the service
+      this.prayerNotificationsService
+        .togglePrayerNotification(prayerDisplayName)
+        .then((success) => {
+          // Only handle failure cases
+          if (!success) {
+            // Revert UI change if failed
+            this.prayerNotification[prayerName] =
+              !this.prayerNotification[prayerName];
+            this.presentToast('Gagal mengemas kini notifikasi', 'danger');
+          }
+        })
+        .catch((error) => {
+          console.error('Error toggling prayer notification:', error);
+          // Revert UI change in case of error
+          this.prayerNotification[prayerName] =
+            !this.prayerNotification[prayerName];
+          this.presentToast('Ralat mengemas kini notifikasi', 'danger');
+
+          // Refresh the actual state to ensure UI is in sync
+          this.updatePrayerNotificationStatus();
+        });
+    } catch (error) {
+      console.error('Error in togglePrayerNotification:', error);
+    }
   }
 
   ionViewWillLeave() {
@@ -193,7 +284,7 @@ export class HomePage implements OnDestroy {
     }
   }
 
-  private async loadPrayerData() {
+  private async loadPrayerData(isFirstLoad: boolean = true) {
     const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
     if (savedData) {
       const zone = savedData.zone;
@@ -203,7 +294,7 @@ export class HomePage implements OnDestroy {
       const today = new Date();
       const formattedDate = this.formatDate(today);
       const prayerData = savedData.prayers.find(
-        (p: any) => p.date === formattedDate
+        (p: any) => p.date === formattedDate,
       );
       if (prayerData) {
         // Store the raw 24-hour times for calculation
@@ -228,9 +319,13 @@ export class HomePage implements OnDestroy {
       }
       this.startUpdatingTime();
     } else {
+      // if (!isFirstLoad) {
+      //   SplashScreen.hide();
+      //   return;
+      // }
       this.prayerTimesService.getDefaultPrayerTimes();
       setTimeout(() => {
-        this.loadPrayerData();
+        this.loadPrayerData(false);
       }, 2000);
     }
   }
@@ -339,7 +434,7 @@ export class HomePage implements OnDestroy {
       if (this.currentPrayer.name.toLowerCase() === 'isyak') {
         // For Isyak, the prayer time might belong to the previous day if now is after 12 AM.
         let currentPrayerTime = this.currentPrayer.date.getTime();
-        // If current prayer’s time is later than the upcoming prayer’s time,
+        // If current prayer's time is later than the upcoming prayer's time,
         // then currentPrayer was computed with today's date but should reflect yesterday.
         if (currentPrayerTime > this.upcomingPrayer.date.getTime()) {
           currentPrayerTime -= 24 * 3600 * 1000;
@@ -366,23 +461,23 @@ export class HomePage implements OnDestroy {
     const diff = this.upcomingPrayer.date.getTime() - now.getTime();
     this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
     this.loaded = true;
-    if (!this.firstLoad) {
-      SplashScreen.hide();
-      this.firstLoad = true;
-    }
+    // if (!this.firstLoad) {
+    //   SplashScreen.hide();
+    //   this.firstLoad = true;
+    // }
     this.reloadQiblaCompass = true;
   }
 
   private updateRemainingTimeDisplay(
     diff: number,
-    closestPrayer: { name: string; time: string }
+    closestPrayer: { name: string; time: string },
   ) {
     if (closestPrayer && diff >= 0) {
       // Adjust by adding one minute (as in prayerTimes.page)
       let adjustedDiff = diff + 1000 * 60;
       const hoursRemaining = Math.floor(adjustedDiff / (1000 * 3600));
       const minutesRemaining = Math.floor(
-        (adjustedDiff % (1000 * 3600)) / (1000 * 60)
+        (adjustedDiff % (1000 * 3600)) / (1000 * 60),
       );
       if (diff === 0) {
         this.remainingTime = 'sekarang';
@@ -528,13 +623,13 @@ export class HomePage implements OnDestroy {
           // Save the fetched times into localStorage via the service
           this.prayerTimesService.saveYearlyPrayerTimes(
             selectedZone,
-            yearlyPrayerTimes
+            yearlyPrayerTimes,
           );
           // Optionally, re-initialize data on the page (for example, reload prayer times display)
           this.loadPrayerData();
           this.presentToast(
             'Waktu solat dikemaskini untuk zon baru.',
-            'success'
+            'success',
           );
         } else {
           console.log('Failed to fetch manual prayer times.');
@@ -544,7 +639,7 @@ export class HomePage implements OnDestroy {
       (error) => {
         console.error(error);
         this.presentToast('Ralat sewaktu mendapatkan data.', 'danger');
-      }
+      },
     );
   }
 
@@ -569,5 +664,35 @@ export class HomePage implements OnDestroy {
       (event.target as HTMLIonRefresherElement).complete();
       this.loadPrayerData();
     }, 1000);
+  }
+
+  /**
+   * Open notification settings modal
+   */
+  async openNotificationSettings() {
+    const modal = await this.modalController.create({
+      component: NotificationSettingsComponent,
+      cssClass: 'notification-settings-modal',
+    });
+
+    modal.onDidDismiss().then(async (result) => {
+      if (result.data?.saved) {
+        // Update notification status if settings were saved
+        await this.updatePrayerNotificationStatus();
+      }
+    });
+
+    return await modal.present();
+  }
+
+  // Notify the app component that home page is fully loaded
+  private notifyAppLoaded() {
+    console.log('Dispatching homePageLoaded event');
+    const event = new CustomEvent('homePageLoaded', {
+      detail: { loaded: true },
+      bubbles: true, // Ensure the event bubbles up through the DOM
+      composed: true, // Allows the event to cross the shadow DOM boundary
+    });
+    window.dispatchEvent(event);
   }
 }

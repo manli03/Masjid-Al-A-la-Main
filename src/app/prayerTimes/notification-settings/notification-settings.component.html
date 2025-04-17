@@ -1,0 +1,105 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-button (click)="cancel()">
+                <ion-icon name="close"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+        <ion-title>Tetapan Notifikasi</ion-title>
+        <ion-buttons slot="end">
+            <ion-button (click)="saveSettings()" [disabled]="isLoading">
+                <ion-icon name="save"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content>
+    <ion-progress-bar type="indeterminate" *ngIf="isLoading"></ion-progress-bar>
+
+    <ion-list lines="full">
+        <ion-list-header>
+            <ion-label>Waktu Solat</ion-label>
+        </ion-list-header>
+
+        <ion-item *ngFor="let prayer of prayerNames">
+            <ion-label>{{ prayer }}</ion-label>
+            <ion-toggle [checked]="notificationSettings.enabledPrayers.includes(prayer)"
+                (ionChange)="togglePrayerNotification(prayer)" [disabled]="isLoading"></ion-toggle>
+        </ion-item>
+
+        <ion-list-header>
+            <ion-label>Bunyi Azan</ion-label>
+        </ion-list-header>
+
+        <ion-item>
+            <ion-label>Pilih Azan</ion-label>
+            <ion-select interface="action-sheet" [(ngModel)]="notificationSettings.selectedAzanSound"
+                (ionChange)="soundChanged()" [disabled]="isLoading">
+                <ion-select-option *ngFor="let sound of availableSounds" [value]="sound.id">
+                    {{ sound.name }}
+                </ion-select-option>
+            </ion-select>
+        </ion-item>
+
+        <!-- Show information message for web users -->
+        <ion-item *ngIf="!isNativePlatform" lines="none">
+            <ion-note color="warning">
+                <ion-icon name="information-circle-outline"></ion-icon>
+                Bunyi azan hanya tersedia dalam aplikasi mudah alih.
+            </ion-note>
+        </ion-item>
+
+        <!-- Show play button for all platforms (service will handle the platform differences) -->
+        <ion-item>
+            <ion-button expand="block" (click)="toggleAzanPreview()" [color]="isAzanPlaying ? 'danger' : 'primary'">
+                <ion-icon [name]="isAzanPlaying ? 'stop' : 'play'" slot="start"></ion-icon>
+                {{ isAzanPlaying ? 'Hentikan Azan' : 'Main Azan Preview' }}
+            </ion-button>
+        </ion-item>
+
+        <ion-list-header>
+            <ion-label>Masa Peringatan</ion-label>
+        </ion-list-header>
+
+        <ion-item>
+            <ion-label>Notifikasi</ion-label>
+            <ion-select interface="action-sheet" [(ngModel)]="notificationSettings.notificationAdvance"
+                [disabled]="isLoading">
+                <ion-select-option *ngFor="let option of advanceTimeOptions" [value]="option.value">
+                    {{ option.label }}
+                </ion-select-option>
+            </ion-select>
+        </ion-item>
+
+        <ion-list-header>
+            <ion-label>Ciri-ciri Notifikasi</ion-label>
+        </ion-list-header>
+
+        <ion-item>
+            <ion-label>Getaran</ion-label>
+            <ion-toggle [(ngModel)]="notificationSettings.vibrationEnabled" [disabled]="isLoading"></ion-toggle>
+        </ion-item>
+
+        <ion-item>
+            <ion-label>Keutamaan Tinggi</ion-label>
+            <ion-toggle [(ngModel)]="notificationSettings.highPriority" [disabled]="isLoading"></ion-toggle>
+        </ion-item>
+
+        <ion-item>
+            <ion-label>Lampu LED</ion-label>
+            <ion-toggle [(ngModel)]="notificationSettings.ledEnabled" [disabled]="isLoading"></ion-toggle>
+        </ion-item>
+
+        <ion-item>
+            <ion-label>Notifikasi Terapung</ion-label>
+            <ion-toggle [(ngModel)]="notificationSettings.floatingEnabled" [disabled]="isLoading"></ion-toggle>
+        </ion-item>
+    </ion-list>
+
+    <div class="ion-padding">
+        <ion-button expand="block" (click)="saveSettings()" [disabled]="isLoading">
+            Simpan Tetapan
+        </ion-button>
+    </div>
+</ion-content>

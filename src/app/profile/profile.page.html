@@ -8,13 +8,18 @@
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
-  <div class="container mt-5">
+<!-- Loading Indicator -->
+<div *ngIf="isLoading" class="ion-text-center">
+  <ion-spinner></ion-spinner>
+</div>
+
+<div class="container mt-5" *ngIf="!isLoading">
     <!-- Profile Header -->
     <div class="text-center">
-      <img alt="Profile picture of a person" src="https://picsum.photos/100/100"
+      <img [src]="userProfile.imageUrl" alt="Profile picture of a person"
         class="rounded-circle mb-3 profile-img" />
       <h5>{{ userProfile.name }}</h5>
-      <p class="member-status mb-4">{{ isAdmin() ? 'Admin' : 'Ahli Berdaftar' }}</p>
+      <p class="member-status mb-4">{{ isAdminValue ? 'Admin' : 'Ahli Berdaftar' }}</p>
     </div>
 
     <!-- Account Information Card -->
@@ -23,21 +28,21 @@
         <h6 class="card-title">Maklumat Akaun</h6>
         <div class="row mb-3">
           <div class="col-6">Nombor Keahlian</div>
-          <div class="col-6 text-end">1234567890</div>
+          <div class="col-6 text-end">{{ membershipNumber }}</div>
         </div>
         <div class="row mb-3">
           <div class="col-6">Akaun Dicipta</div>
-          <div class="col-6 text-end">10/11/2024</div>
+          <div class="col-6 text-end">{{ accountCreated }}</div>
         </div>
         <div class="row">
           <div class="col-6">Peringatan Solat</div>
-          <div class="col-6 text-end">Subuh, Maghrib</div>
+          <div class="col-6 text-end">{{ prayerNotifications.join(', ') }}</div>
         </div>
       </div>
     </div>
     
     <!-- Personal Details Card -->
-    <div class="card shadow-sm mb-6">
+    <div class="card shadow-sm mb-3">
       <ion-buttons slot="end" style="position: absolute; top: 0; right: 0; text-align: right; margin: 10px 10px 0 0;">
         <!-- You can add settings icon here if needed -->
         <ion-button (click)="openEditProfileModal()">
@@ -58,10 +63,19 @@
           <div class="col-5">Nombor Telefon</div>
           <div class="col-7 text-end">{{ userProfile.phone }}</div>
         </div>
-        <div class="row mb-3">
-          <div class="col-5">Alamat</div>
-          <div class="col-7 text-end preserve-whitespace" style="justify-content: right;">{{ userProfile.address }}</div>
-        </div>
+      </div>
+    </div>
+    
+    <!-- Admin Management Card (Only visible to admins) -->
+    <div class="card shadow-sm mb-3" *ngIf="isAdminValue">
+      <div class="card-body">
+        <h6 class="card-title">Pengurusan Admin</h6>
+        <p class="card-text">Anda boleh menambah admin baru dengan memberikan alamat e-mel mereka.</p>
+        <p class="card-text text-warning">Pengguna mesti telah mempunyai akaun sebelum boleh dijadikan admin.</p>
+        <ion-button expand="block" color="primary" (click)="openAddAdminDialog()">
+          <ion-icon name="person-add-outline" slot="start"></ion-icon>
+          Tambah Admin Baru
+        </ion-button>
       </div>
     </div>
 

@@ -1,35 +1,33 @@
+<!-- tab.html (remains the same) -->
 <ion-app>
   <ion-content>
-    <!-- <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-      <ion-refresher-content></ion-refresher-content>
-    </ion-refresher> -->
     <ion-tabs>
       <ion-tab-bar slot="bottom">
+        <!-- Home Tab -->
         <ion-tab-button tab="home" [ngClass]="{'active': router.url === '/tabs/prayerTimes'}">
           <ion-icon name="home"></ion-icon>
           <ion-label>Home</ion-label>
         </ion-tab-button>
 
-        <!-- <ion-tab-button tab="prayerTimes">
-          <ion-icon name="time"></ion-icon>
-          <ion-label>Solat</ion-label>
-        </ion-tab-button> -->
-        
+        <!-- Hadith Tab -->
         <ion-tab-button tab="hadithSupplication">
           <ion-icon name="book"></ion-icon>
           <ion-label>Hadis</ion-label>
         </ion-tab-button>
-        
-        <ion-tab-button [tab]="isAdmin() ? 'manage-announcement' : 'announcement'">
+
+        <!-- Pengumuman Tab - Uses click handler -->
+        <ion-tab-button (click)="goToAnnouncementTab()"
+          [ngClass]="{'active': router.url.includes('/tabs/announcement') || router.url.includes('/tabs/manage-announcement') || router.url.includes('/tabs/announcement-loading')}">
           <ion-icon name="megaphone"></ion-icon>
           <ion-label>Pengumuman</ion-label>
         </ion-tab-button>
-        
+
+        <!-- Profile Tab -->
         <ion-tab-button tab="profile">
           <ion-icon name="person"></ion-icon>
           <ion-label>Profil</ion-label>
         </ion-tab-button>
-        </ion-tab-bar>
+      </ion-tab-bar>
     </ion-tabs>
   </ion-content>
-  </ion-app>
+</ion-app>

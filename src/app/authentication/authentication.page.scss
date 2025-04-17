@@ -111,3 +111,57 @@ form {
   }
 }
 
+// Make content take full height and enable flex centering
+ion-content.auth-content {
+  --background: var(--ion-color-light); // Or your desired background
+
+  // Use Ionic CSS variables for dark mode compatibility
+  @media (prefers-color-scheme: dark) {
+    --background: var(--ion-color-dark);
+  }
+}
+
+// Flex container to center content vertically and horizontally
+.auth-container {
+  display: flex;
+  flex-direction: column; // Stack items vertically
+  justify-content: center; // Center vertically
+  align-items: center; // Center horizontally
+  height: 100%; // Take full height of the content area
+  padding: 0 20px; // Add some horizontal padding
+}
+
+// Logo styling
+.auth-logo {
+  max-width: 120px; // Adjust size as needed
+  margin-bottom: 2rem; // Space below the logo
+}
+
+// Title styling
+.auth-title {
+  font-weight: bold;
+  color: var(--ion-color-primary); // Use theme color
+  margin-bottom: 0.5rem;
+}
+
+// Subtitle styling
+.auth-subtitle {
+  color: var(--ion-color-medium-shade); // Softer color
+  margin-bottom: 2.5rem; // Space above the button
+  font-size: 0.9rem;
+
+  @media (prefers-color-scheme: dark) {
+    color: var(--ion-color-light-shade);
+  }
+}
+
+// Button styling
+.auth-button {
+  // Add specific button styles if needed, e.g., height, font-size
+  --border-radius: 8px; // Slightly rounded corners
+}
+
+// Ensure spinner inside the button looks okay
+ion-button ion-spinner {
+  margin-right: 8px; // Space between spinner and text if both were visible
+}

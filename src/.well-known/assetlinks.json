@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.web.masjidala",
+    "sha256_cert_fingerprints":
+    ["D8:07:02:5A:FA:4B:8D:65:83:E7:24:63:47:90:E0:3C:4B:DD:48:5F:B2:E7:C2:56:68:21:D3:2E:BE:79:A7:FF"]
+  }
+}]

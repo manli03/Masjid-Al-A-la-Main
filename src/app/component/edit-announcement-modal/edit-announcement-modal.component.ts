@@ -26,14 +26,6 @@ import { ModalController, AlertController } from '@ionic/angular';
         ></ion-textarea>
       </ion-item>
       <ion-item>
-        <ion-label position="stacked">Penulis</ion-label>
-        <ion-input
-          [(ngModel)]="editAnnouncement.author"
-          placeholder="Masukkan Penulis"
-          (ngModelChange)="checkFormValidity()"
-        ></ion-input>
-      </ion-item>
-      <ion-item>
         <ion-label position="stacked">Pengumuman</ion-label>
         <ion-textarea
           [(ngModel)]="editAnnouncement.content"
@@ -44,6 +36,10 @@ import { ModalController, AlertController } from '@ionic/angular';
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Gambar</ion-label>
+        <div class="image-size-tip">
+          <ion-icon name="information-circle-outline"></ion-icon>
+          Saiz gambar yang disyorkan: 600x400 px, maksimum 5MB
+        </div>
         <img
           *ngIf="editAnnouncement.imageUrl"
           [src]="editAnnouncement.imageUrl"
@@ -80,6 +76,22 @@ import { ModalController, AlertController } from '@ionic/angular';
       </div>
     </ion-content>
   `,
+  styles: [
+    `
+      .image-size-tip {
+        font-size: 12px;
+        padding: 5px 0;
+        color: #3880ff;
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+      }
+      .image-size-tip ion-icon {
+        margin-right: 5px;
+        font-size: 16px;
+      }
+    `,
+  ],
 })
 export class EditAnnouncementModalComponent {
   @Input() news: any;
@@ -91,12 +103,13 @@ export class EditAnnouncementModalComponent {
 
   constructor(
     private modalController: ModalController,
-    private alertController: AlertController
+    private alertController: AlertController,
   ) {}
 
   ngOnInit() {
     this.editAnnouncement = { ...this.news };
     this.originalAnnouncement = { ...this.news };
+    this.checkFormValidity();
   }
 
   dismiss() {
@@ -132,19 +145,85 @@ export class EditAnnouncementModalComponent {
   onImageSelected(event: any) {
     const file = event.target.files[0];
     this.imageName = file ? file.name : '';
+
+    // Check file size first (raw file)
+    const fileSizeMB = file.size / (1024 * 1024);
+    if (fileSizeMB > 5) {
+      // 5MB limit for raw images
+      this.alertController
+        .create({
+          header: 'Image Too Large',
+          message: `Selected image is ${fileSizeMB.toFixed(2)}MB. Please select an image smaller than 5MB.`,
+          buttons: ['OK'],
+        })
+        .then((alert) => alert.present());
+      return;
+    }
+
+    // Compress and resize the image before converting to base64
+    this.compressImage(file, 600, 0.7); // max width 600px, quality 70%
+  }
+
+  // Compress and resize image before converting to base64
+  compressImage(file: File, maxWidth: number, quality: number) {
     const reader = new FileReader();
-    reader.onload = () => {
-      this.editAnnouncement.imageUrl = reader.result as string;
-      this.checkFormValidity();
+    reader.onload = (event: any) => {
+      const img = new Image();
+      img.src = event.target.result;
+
+      img.onload = () => {
+        // Create canvas for resizing
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions if needed
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Draw and compress image
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('Could not get 2D context from canvas');
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to base64 with reduced quality
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        // Update component state
+        this.editAnnouncement.imageUrl = compressedDataUrl;
+
+        // Check final size of base64 string to ensure it's under limits
+        const base64Size = (compressedDataUrl.length * 3) / 4 / (1024 * 1024);
+        if (base64Size > 1) {
+          // If still too large, compress further or warn user
+          console.warn(
+            `Compressed image is still large: ${base64Size.toFixed(2)}MB`,
+          );
+
+          // For very large images, compress again with lower quality
+          if (base64Size > 2) {
+            this.compressImage(file, 600, 0.5);
+            return;
+          }
+        }
+
+        this.checkFormValidity();
+      };
     };
     reader.readAsDataURL(file);
   }
 
   checkFormValidity() {
     this.formIsValid =
-      this.editAnnouncement.title &&
-      this.editAnnouncement.author &&
-      this.editAnnouncement.content;
+      this.editAnnouncement.title && this.editAnnouncement.content;
   }
 
   isContentChanged() {

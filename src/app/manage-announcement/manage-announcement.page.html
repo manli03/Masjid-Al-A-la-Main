@@ -4,10 +4,20 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content class="ion-padding" *ngIf="userIsAdmin">
+  <!-- Loading indicator -->
+  <div class="loading-container" *ngIf="isLoading">
+    <ion-spinner></ion-spinner>
+    <p>Loading...</p>
+  </div>
+
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
 
   <!-- Add Announcement Button -->
-  <div class="addAnnouncementButton">
+  <div class="addAnnouncementButton" *ngIf="newsItems.length > 0">
     <ion-button color="primary" (click)="openModal('addAnnouncementModal')">
       Tambah Pengumuman
     </ion-button>
@@ -18,14 +28,23 @@
     <ion-row>
       <ion-col size="12" size-md="4" *ngFor="let news of newsItems">
         <ion-card>
-          <img [src]="news.imageUrl" />
-          <ion-card-header>
+          <div class="image-container" (click)="viewAnnouncementDetails(news)">
+            <img *ngIf="news.imageUrl" [src]="news.imageUrl" (error)="handleImageError($event, news)" />
+            <div *ngIf="!news.imageUrl" class="image-placeholder">
+              <ion-icon name="image-outline"></ion-icon>
+              <p>No image available</p>
+            </div>
+          </div>
+          <ion-card-header (click)="viewAnnouncementDetails(news)">
             <ion-card-title>{{ news.title }}</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <p>Penulis: {{ news.author }}</p>
             <p>Terakhir diubah: {{ news.date }}</p>
-            <p class="preserve-whitespace">{{ news.content | slice: 0:150 }}...</p>
+            <p class="preserve-whitespace" (click)="viewAnnouncementDetails(news)">{{ news.content | slice: 0:150 }}...</p>
+            <ion-button color="tertiary" expand="block" (click)="viewAnnouncementDetails(news)">
+              Lihat Penuh
+            </ion-button>
             <ion-button color="primary" (click)="openModal('editAnnouncementModal', news)">
               Edit
             </ion-button>
@@ -42,15 +61,86 @@
     </ion-row>
   </ion-grid>
 
+  <!-- Show if no items -->
+  <div class="no-items" *ngIf="newsItems.length === 0 && !isLoading">
+    <ion-icon name="newspaper-outline"></ion-icon>
+    <p>Tiada pengumuman lagi</p>
+    <ion-button color="primary" (click)="openModal('addAnnouncementModal')">
+      Tambah pengumuman pertama anda
+    </ion-button>
+  </div>
+  </ion-content>
+
 <style>
 /* announcements.page.scss */
 
 /* General Page Styles */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.image-container {
+  height: 200px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+.image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #888;
+  height: 100%;
+  width: 100%;
+}
+
+.image-placeholder ion-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+}
+
+.no-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.no-items ion-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.no-items ion-button {
+  margin-top: 20px;
+}
+
+.preserve-whitespace {
+  white-space: pre-line;
+}
 
 ion-card {
   margin-bottom: 16px;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
+  overflow: hidden;
 }
 
 ion-card-header {
@@ -72,7 +162,7 @@ ion-card-content {
 
 ion-button {
   margin: 4px;
-    width: 100%;
+  width: 100%;
 }
 
 /* Modal Styles */
@@ -101,6 +191,13 @@ ion-input, ion-textarea, ion-datetime {
 
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
+  .image-container {
+    background-color: #222;
+  }
+
+  .image-placeholder, .no-items {
+    color: #aaa;
+  }
 
   ion-card {
     box-shadow: 0px 4px 6px rgba(255, 255, 255, 0.1);

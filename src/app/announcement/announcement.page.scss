@@ -52,6 +52,7 @@
 .article-image {
   margin-top: 20px;
   text-align: center;
+  position: relative;
 }
 
 .article-image img {
@@ -59,6 +60,19 @@
   border-radius: 8px;
 }
 
+.article-image::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  background-image: url('../../assets/icon/expand.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  opacity: 0.7;
+  pointer-events: none;
+}
 
 .article-footer {
   margin-top: 20px;
@@ -159,6 +173,15 @@
 
 .send-reply-btn {
   padding: 5px 10px;
+}
+
+.clickable-image {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.clickable-image:hover {
+  transform: scale(1.02);
 }
 
 /* Dark mode styles */

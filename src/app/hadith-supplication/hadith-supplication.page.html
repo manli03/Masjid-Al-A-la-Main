@@ -10,6 +10,11 @@
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
+  <ion-toolbar color="default" *ngIf="selectedHadith">
+    <div class="d-flex justify-content-between align-items-center" style="cursor: pointer; margin-left: 10px;">
+      <ion-icon name="arrow-back" (click)="deselectHadith()"></ion-icon>
+    </div>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content scrollEvents="true">
@@ -79,9 +84,7 @@
   <div *ngIf="selectedHadith" #hadithContent>
     <ion-loading [isOpen]="isLoading" message="Memuatkan..."></ion-loading>
   
-    <div class="d-flex justify-content-between align-items-center" style="margin: 20px 10px;">
-      <ion-icon name="arrow-back" (click)="deselectHadith()"></ion-icon>
-    </div>
+    
   
     <div class="hadith-content">
       <div class="hadith-title">

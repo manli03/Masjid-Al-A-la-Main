@@ -10,7 +10,9 @@
           <ion-icon name="arrow-back"></ion-icon>
         </ion-button>
       </ion-buttons>
-      <ion-title>Waktu Solat</ion-title>
+      <ion-title>
+        <span style="font-weight: bold">Waktu Solat</span>
+      </ion-title>
       <ion-buttons slot="end">
         <ion-button (click)="refreshData()">
           <ion-icon name="location-outline"></ion-icon>
@@ -28,8 +30,7 @@
     </ion-refresher>
     <!-- Current Prayer Times -->
     <div class="header">
-      <img src="https://picsum.photos/600/200"
-        [attr.alt]="loaded ? 'Mosque silhouette background' : ''" />
+      <img src="assets/loading/hdpi_landscape.png"/>
       <h5 *ngIf="loaded; else skeletonLocation">{{ location }}</h5>
       <ng-template #skeletonLocation>
         <ion-skeleton-text [animated]="true" style="width: 150px; display: inline-block;"></ion-skeleton-text>
@@ -96,7 +97,11 @@
                 </ng-template>
               </td>
                 <td class="dark">
-                <button class="btn btn-reminder" *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">Ingatkan saya</button>
+                <button class="btn btn-reminder" [ngClass]="{'active': prayer.notificationEnabled}"
+                  *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">
+                  <ion-icon [name]="prayer.notificationEnabled ? 'notifications' : 'notifications-outline'"></ion-icon>
+                  {{ prayer.notificationEnabled ? 'Notifikasi Aktif' : 'Ingatkan saya' }}
+                </button>
                 <ng-template #skeletonReminderButton>
                   <ion-skeleton-text [animated]="true" style="width: 100px; height: 20px;"></ion-skeleton-text>
                 </ng-template>
@@ -126,7 +131,7 @@
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
     <div class="header" style="padding-bottom: 0;">
-      <img src="https://picsum.photos/600/200" [attr.alt]="loaded ? 'Mosque silhouette background' : ''" />
+      <img src="assets/loading/hdpi_landscape.png" />
       <div style="margin: 0 10px;">
         <h4 *ngIf="loaded; else skeletonYearlyLocation">{{ location }}</h4>
         <ng-template #skeletonYearlyLocation>

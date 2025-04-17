@@ -1,17 +1,54 @@
 import { CanActivateFn, Router } from '@angular/router';
+import { inject } from '@angular/core';
+import { StorageService } from './storage.service';
+import { AuthService } from './auth.service';
+import { AlertController } from '@ionic/angular';
 
+export const authGuard: CanActivateFn = async (route, state) => {
+  const router = inject(Router);
+  const storageService = inject(StorageService);
+  const authService = inject(AuthService);
+  const alertController = inject(AlertController);
 
-// This is the function-based guard
-export const authGuard: CanActivateFn = (route, state) => {
-  // Check if the user is authenticated by checking the localStorage
-  const isAuthenticated = localStorage.getItem('userToken') !== null;
-  const router = new Router();
+  // Check if user data exists in storage
+  const userData = await storageService.get('user');
 
-  if (isAuthenticated) {
-    return true;  // If authenticated, allow the navigation
-  } else {
-    // Redirect to the login page if not authenticated
-    router.navigate(['/tabs/bridge-login']);
+  if (!userData) {
+    // Redirect to authentication page if not logged in
+    router.navigate(['/tabs/authentication']);
     return false;
   }
+
+  // Get the URL path to determine which page is being accessed
+  const urlPath = state.url;
+
+  // For announcement and manage-announcement pages, check if profile is complete
+  if (
+    urlPath.includes('/tabs/announcement') ||
+    urlPath.includes('/tabs/manage-announcement')
+  ) {
+    const isProfileComplete = await authService.isProfileComplete();
+
+    if (!isProfileComplete) {
+      // Show alert about completing profile
+      const alert = await alertController.create({
+        header: 'Lengkapkan Profil',
+        message: 'Anda perlu melengkapkan profil untuk mengakses pengumuman.',
+        buttons: [
+          {
+            text: 'OK',
+            handler: () => {
+              router.navigate(['/tabs/profile']);
+            },
+          },
+        ],
+      });
+      await alert.present();
+      return false;
+    }
+  }
+
+  // Allow access to profile page regardless of completion
+  // Allow access to other pages if user is logged in and profile check passes
+  return true;
 };

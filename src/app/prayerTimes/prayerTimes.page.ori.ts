@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
-import { PrayerTimesService } from '../services/PrayerTimes/prayerTimes.service';
+import { PrayerTimesService } from '../services/prayerTimes.service';
 import { AlertController } from '@ionic/angular';
-import { LocationService } from '../services/Geolocation/geolocation.service';
+import { LocationService } from '../services/geolocation.service';
 
 // Define the prayer type
 interface Prayer {

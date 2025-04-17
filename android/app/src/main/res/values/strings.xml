@@ -4,4 +4,6 @@
     <string name="title_activity_main">Masjid A\'la</string>
     <string name="package_name">app.web.masjidala</string>
     <string name="custom_url_scheme">app.web.masjidala</string>
+    <string name="server_client_id">1004857377739-v0fsdh2laq99udcmv54juh7v3ohsihfd.apps.googleusercontent.com</string>
+    <string name="default_notification_channel_id">post_notifications</string>
 </resources>

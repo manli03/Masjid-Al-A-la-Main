@@ -6,7 +6,11 @@ const routes: Routes = [
   {
     path: '',
     component: announcementPage,
-  }
+  },
+  {
+    path: ':id',
+    component: announcementPage,
+  },
 ];
 
 @NgModule({

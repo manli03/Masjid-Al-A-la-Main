@@ -9,14 +9,10 @@ import { HomePageRoutingModule } from './home-routing.module';
 import { HomePage } from './home.page';
 
 import { QiblaCompassComponent } from '../component/qibla-compass/qibla-compass.component';
+// import { LoadingComponent } from '../component/loading/loading.component';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonicModule,
-    HomePageRoutingModule,
-  ],
-  declarations: [HomePage, QiblaCompassComponent]
+  imports: [CommonModule, FormsModule, IonicModule, HomePageRoutingModule],
+  declarations: [HomePage, QiblaCompassComponent],
 })
 export class HomePageModule {}

@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, NgZone } from '@angular/core';
 import { AlertController, Platform } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
-import { PrayerTimesService } from 'src/app/services/PrayerTimes/prayerTimes.service';
+import { PrayerTimesService } from 'src/app/services/prayerTimes.service';
 
 // Declare sensor types to avoid TypeScript errors
 declare const AbsoluteOrientationSensor: any;
