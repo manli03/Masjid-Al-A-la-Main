@@ -2,7 +2,8 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
-import { AlertController } from '@ionic/angular'; // Import AlertController
+import { AlertController, Platform } from '@ionic/angular'; // Import AlertController
+import { Router } from '@angular/router';
 
 // Define an interface for the Hadith data structure (optional, but good practice)
 interface Hadith {
@@ -100,10 +101,14 @@ export class HadithSupplicationPage implements OnInit {
 
   @ViewChild('hadithContent', { static: false }) hadithContent!: ElementRef;
   connected: boolean = false;
+  backButtonSubscription: any;
+  justDeselected: any;
 
   constructor(
     private http: HttpClient,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private platform: Platform,
+    private router: Router,
   ) {} //Inject AlertController
 
   async ngOnInit() {
@@ -121,6 +126,40 @@ export class HadithSupplicationPage implements OnInit {
     this.loadChapters();
     this.loadHadiths(); // Load initial Hadiths on page load
     await this.loadCachedDuas(); // Load from cache first
+  }
+
+  ionViewWillEnter() {
+    // Back button logic
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, () => {
+        if (this.justDeselected) {
+          // If we just deselected, consume this back press and reset the flag
+          console.log('Consumed back press after deselection.');
+          this.justDeselected = false;
+          return; // Stop further processing in this handler
+        }
+        if (this.selectedHadith) {
+          this.deselectHadith(); // Deselect the Hadith if it's selected
+          this.justDeselected = true; // Set the flag
+        } else {
+          this.router.navigateByUrl('/tabs/home');
+        }
+      });
+  }
+
+  ionViewWillLeave() {
+    // Unsubscribe to avoid multiple subscriptions when entering the announcement page
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
+  }
+
+  ngOnDestroy() {
+    // Clean up subscription to prevent memory leaks
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 
   //Check Network Connection
@@ -166,7 +205,7 @@ export class HadithSupplicationPage implements OnInit {
         console.error('Error loading chapters:', error);
         this.chapters = []; // Clear existing chapters
         this.bookAuthor = '';
-      }
+      },
     );
   }
 
@@ -191,7 +230,7 @@ export class HadithSupplicationPage implements OnInit {
         console.error('Error loading hadiths:', error);
         this.hadiths = []; // Clear existing hadiths
         this.isLoading = false; // Set loading to false on error
-      }
+      },
     );
   }
 
@@ -199,9 +238,9 @@ export class HadithSupplicationPage implements OnInit {
   async loadDuas() {
     try {
       const response = await this.http
-        .get<Dua[]>(
-          'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json'
-        )
+        .get<
+          Dua[]
+        >('https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json')
         .toPromise();
 
       if (response) {
@@ -278,7 +317,7 @@ export class HadithSupplicationPage implements OnInit {
           .includes(this.searchText.toLowerCase()) ||
         hadith.malay_translation
           .toLowerCase()
-          .includes(this.searchText.toLowerCase())
+          .includes(this.searchText.toLowerCase()),
     );
   }
 

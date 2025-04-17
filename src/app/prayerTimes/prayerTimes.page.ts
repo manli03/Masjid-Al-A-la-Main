@@ -1,9 +1,9 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { PrayerTimesService } from '../services/prayerTimes.service';
 import {
-  AlertController,
   ToastController,
   ModalController,
+  Platform,
 } from '@ionic/angular';
 import { LocationService } from '../services/geolocation.service';
 import { Router } from '@angular/router';
@@ -47,16 +47,17 @@ export class prayerTimesPage implements OnInit {
   closestPrayerTime: any;
   sameData: boolean = false;
   notificationsEnabled: boolean = false;
-  private isSettingReminder = false;
+  backButtonSubscription: any;
+  justDeselected: any;
 
   constructor(
     private prayerTimesService: PrayerTimesService,
-    private alertController: AlertController,
     private locationService: LocationService,
     private toastController: ToastController,
     private router: Router,
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
+    private platform: Platform,
   ) {}
 
   async ngOnInit() {
@@ -68,6 +69,49 @@ export class prayerTimesPage implements OnInit {
     await this.initializePrayerTimes();
 
     this.checkDarkMode();
+  }
+
+  // Handle page resume
+  ionViewWillEnter() {
+    this.loaded = false;
+    this.initializePrayerTimes();
+
+    // Back button logic
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, () => {
+        if (this.justDeselected) {
+          // If we just deselected, consume this back press and reset the flag
+          console.log('Consumed back press after deselection.');
+          this.justDeselected = false;
+          return; // Stop further processing in this handler
+        }
+        if (this.showYearlyPrayerTimes) {
+          this.backToMainPrayerTimes();
+          this.justDeselected = true; // Set the flag to indicate we just deselected
+        } else {
+          this.router.navigateByUrl('/tabs/home');
+        }
+      });
+  }
+
+  ionViewWillLeave() {
+    // Unsubscribe to avoid multiple subscriptions when entering the announcement page
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
+  }
+
+  ngOnDestroy() {
+    // Stop the interval when the component is destroyed to prevent memory leaks
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      console.log('Interval cleared');
+    }
+    // Clean up subscription to prevent memory leaks
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+    }
   }
 
   checkDarkMode() {
@@ -705,20 +749,6 @@ export class prayerTimesPage implements OnInit {
       (event.target as HTMLIonRefresherElement).complete();
       this.initializePrayerTimes();
     }, 1000);
-  }
-
-  // Handle page resume
-  ionViewWillEnter() {
-    this.loaded = false;
-    this.initializePrayerTimes();
-  }
-
-  ngOnDestroy() {
-    // Stop the interval when the component is destroyed to prevent memory leaks
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      console.log('Interval cleared');
-    }
   }
 
   navigateTo(path: string) {

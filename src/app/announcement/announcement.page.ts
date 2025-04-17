@@ -1,13 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { StorageService } from '../services/storage.service';
-import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import {
-  LoadingController,
   ToastController,
   AlertController,
   ModalController,
+  Platform,
 } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { AnnouncementService } from '../services/announcement.service';
@@ -83,18 +82,18 @@ export class announcementPage implements OnInit, OnDestroy {
   private userChangeSubscription: Subscription | null = null;
   isCheckingAdmin: boolean = true;
   isInitialLoad: boolean = true;
+  private backButtonSubscription: any;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private storageService: StorageService,
-    private http: HttpClient,
-    private loadingController: LoadingController,
     private toastController: ToastController,
     private alertController: AlertController,
     private announcementService: AnnouncementService,
     private authService: AuthService,
     private modalController: ModalController,
+    private platform: Platform,
   ) {}
 
   async ngOnInit() {
@@ -152,9 +151,7 @@ export class announcementPage implements OnInit, OnDestroy {
       // Handle admin cases
       if (this.isAdmin && !announcementId) {
         // Admin without specific announcement - redirect to management
-        await this.router.navigateByUrl('/tabs/manage-announcement', {
-          replaceUrl: true,
-        });
+        await this.router.navigateByUrl('/tabs/manage-announcement');
         return;
       }
 
@@ -188,6 +185,19 @@ export class announcementPage implements OnInit, OnDestroy {
           }
         }
       }
+
+      // Back button logic
+      this.backButtonSubscription =
+        this.platform.backButton.subscribeWithPriority(10, () => {
+          if (this.selectedArticle) {
+            this.deselectArticle();
+          } else if (this.isInitialLoad || this.isLoading) {
+            // If the page is still loading, do nothing
+            return;
+          } else {
+            this.router.navigateByUrl('/tabs/home');
+          }
+        });
     } catch (error) {
       console.error('Error during initialization:', error);
       this.presentToast('Error loading page. Please try again.');
@@ -198,10 +208,21 @@ export class announcementPage implements OnInit, OnDestroy {
     }
   }
 
+  ionViewWillLeave() {
+    // Unsubscribe to avoid multiple subscriptions when entering the announcement page
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
+  }
+
   ngOnDestroy() {
     // Clean up subscription to prevent memory leaks
     if (this.userChangeSubscription) {
       this.userChangeSubscription.unsubscribe();
+    }
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
     }
   }
 

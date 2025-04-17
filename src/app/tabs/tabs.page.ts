@@ -48,13 +48,13 @@ export class TabsPage implements OnInit, OnDestroy {
       this.backButtonSubscription =
         this.platform.backButton.subscribeWithPriority(10, () => {
           const homeTabRoute = '/tabs/home';
-          if (this.router.url !== homeTabRoute) {
+          const profileTabRoute = '/tabs/profile';
+          const ManageAnnouncementPageRoute =
+            '/tabs/manage-announcement';
+          const currentRoute = this.router.url;
+          if (currentRoute === profileTabRoute || currentRoute === ManageAnnouncementPageRoute) {
+            // If on prayer times or profile tab or manage-announcement tab, navigate to home tab
             this.router.navigateByUrl(homeTabRoute);
-          } else {
-            console.log(
-              'Already on home tab, back button press ignored or handle app exit.',
-            );
-            // App.exitApp();
           }
         });
 
