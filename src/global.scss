@@ -105,3 +105,7 @@ ion-content {
   --height: 100%;
   --border-radius: 0;
 }
+
+.non-home-screen {
+  background-color: var(--ion-background-color); /* Use the default background color */
+}

@@ -1,14 +1,16 @@
 // tab.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Platform, AlertController } from '@ionic/angular'; // Added AlertController
+import { Platform } from '@ionic/angular';
 import { StatusBar } from '@capacitor/status-bar';
 import { Router, NavigationExtras } from '@angular/router';
 import { StorageService } from '../services/storage.service';
-import { AuthService } from '../services/auth.service'; // Added AuthService
+import { AuthService } from '../services/auth.service';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { FcmService } from '../services/fcm.service';
 import { SplashScreen } from '@capacitor/splash-screen';
-// import { App } from '@capacitor/app'; // If needed for exitApp
+import { Subscription } from 'rxjs';
+import { NavigationEnd } from '@angular/router';
+import { LoadingComponent } from '../component/loading/loading.component';
 
 @Component({
   selector: 'app-tabs',
@@ -20,10 +22,7 @@ export class TabsPage implements OnInit, OnDestroy {
   private backButtonSubscription: any;
   private darkModeMediaQuery: MediaQueryList;
   private darkModeListener: () => void;
-  // isAdminValue can still be used if needed elsewhere, but it won't be
-  // automatically updated on view enter anymore. It will be updated
-  // within goToAnnouncementTab when that specific tab is clicked.
-  // Initialize it to a default state.
+  private routerEventsSubscription!: Subscription;
   isAdminValue: boolean = false;
 
   constructor(
@@ -32,11 +31,12 @@ export class TabsPage implements OnInit, OnDestroy {
     private storageService: StorageService,
     private authService: AuthService, // Added AuthService
     private prayerNotificationsService: PrayerNotificationsService,
-    private fcmService: FcmService, // Called in constructor
+    private fcmService: FcmService, // Called in constructor,
   ) {
     this.darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     this.darkModeListener = () => {
-      this.updateStatusBarColor();
+      const isHome = this.router.url === '/tabs/home';
+      this.handleStatusBarAndClass(isHome);
     };
   }
 
@@ -49,10 +49,12 @@ export class TabsPage implements OnInit, OnDestroy {
         this.platform.backButton.subscribeWithPriority(10, () => {
           const homeTabRoute = '/tabs/home';
           const profileTabRoute = '/tabs/profile';
-          const ManageAnnouncementPageRoute =
-            '/tabs/manage-announcement';
+          const ManageAnnouncementPageRoute = '/tabs/manage-announcement';
           const currentRoute = this.router.url;
-          if (currentRoute === profileTabRoute || currentRoute === ManageAnnouncementPageRoute) {
+          if (
+            currentRoute === profileTabRoute ||
+            currentRoute === ManageAnnouncementPageRoute
+          ) {
             // If on prayer times or profile tab or manage-announcement tab, navigate to home tab
             this.router.navigateByUrl(homeTabRoute);
           }
@@ -60,7 +62,6 @@ export class TabsPage implements OnInit, OnDestroy {
 
       // Status bar logic
       this.darkModeMediaQuery.addEventListener('change', this.darkModeListener);
-      this.updateStatusBarColor(); // Set initial status bar color
 
       // Hide Splash Screen
       SplashScreen.hide().catch((error) => {
@@ -76,11 +77,15 @@ export class TabsPage implements OnInit, OnDestroy {
       }
     });
 
-    // Optional: You *could* do an initial check here if needed when the app
-    // first loads, but it won't re-check on subsequent returns to the tab page.
-    // this.storageService.isAdmin().then(isAdmin => this.isAdminValue = isAdmin);
-    // For the requirement of checking *only* on click, we leave this out or
-    // just rely on the default `isAdminValue = false`.
+    this.routerEventsSubscription = this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        const isHome = event.urlAfterRedirects === '/tabs/home';
+        this.handleStatusBarAndClass(isHome);
+      }
+    });
+    // On first load
+    const isHome = this.router.url === '/tabs/home';
+    this.handleStatusBarAndClass(isHome);
   }
 
   // REMOVED ionViewWillEnter() method
@@ -93,6 +98,9 @@ export class TabsPage implements OnInit, OnDestroy {
       'change',
       this.darkModeListener,
     );
+    if (this.routerEventsSubscription) {
+      this.routerEventsSubscription.unsubscribe();
+    }
   }
 
   // Keep the isAdmin utility function
@@ -102,17 +110,54 @@ export class TabsPage implements OnInit, OnDestroy {
     return isAdmin;
   }
 
-  async updateStatusBarColor() {
-    if (!this.platform.is('hybrid')) {
-      return;
-    }
-    try {
-      const isDarkMode = this.darkModeMediaQuery.matches;
-      const color = isDarkMode ? '#121212' : '#f5f5f5';
-      await StatusBar.setBackgroundColor({ color });
-    } catch (error) {
-      console.error('Error updating status bar color:', error);
-    }
+  private async handleStatusBarAndClass(isHome: boolean) {
+    // Function to check loading status
+    const checkLoadingStatus = async (): Promise<void> => {
+      const isLoaded = !LoadingComponent.isLoaded;
+      console.log('Checking loading status:', isLoaded);
+
+      if (!isLoaded) {
+        // Set status bar color
+        if (this.platform.is('hybrid')) {
+          StatusBar.setOverlaysWebView({ overlay: false });
+          try {
+            const isDarkMode = this.darkModeMediaQuery.matches;
+            let color: string;
+            if (isHome) {
+              color = isDarkMode ? '#121212' : '#f5f5f5';
+            } else {
+              // Use a different color for non-home pages
+              color =
+                getComputedStyle(document.documentElement).getPropertyValue(
+                  '--ion-toolbar-background',
+                ) || (isDarkMode ? '#222428' : '#ffffff');
+            }
+            await StatusBar.setBackgroundColor({ color: color.trim() });
+          } catch (error) {
+            console.error('Error updating status bar color:', error);
+          }
+        }
+
+        // Toggle .non-home-screen class on <ion-app>
+        const ionApp = document.querySelector('ion-app');
+        if (ionApp) {
+          if (!isHome) {
+            ionApp.classList.add('non-home-screen');
+          } else {
+            ionApp.classList.remove('non-home-screen');
+          }
+        }
+      } else {
+        // If still loading, set the loading color and check again after delay
+        if (this.platform.is('hybrid')) {
+          // Check again after 100ms
+          setTimeout(() => checkLoadingStatus(), 100);
+        }
+      }
+    };
+
+    // Start the initial check
+    await checkLoadingStatus();
   }
 
   // --- Modified Method to use loading page and handle announcement IDs ---

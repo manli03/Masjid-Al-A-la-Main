@@ -6,6 +6,7 @@ import { Platform } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { filter } from 'rxjs/operators';
+import { StatusBar } from '@capacitor/status-bar';
 
 @Component({
   selector: 'app-root',
@@ -28,6 +29,11 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     // Record app initialization time
     this.appInitTime = Date.now();
+
+    // Check if the app is running on a mobile device
+    if (this.platform.is('hybrid')) {
+      StatusBar.setOverlaysWebView({ overlay: true });
+    }
 
     // Listen for homePageLoaded event
     window.addEventListener('homePageLoaded', ((event: Event) => {

@@ -9,7 +9,6 @@ import { AppRoutingModule } from './app-routing.module';
 import { HttpClientModule } from '@angular/common/http';
 import { AnnouncementLoadingPageModule } from './announcement-loading/announcement-loading.module';
 import { LoadingComponent } from './component/loading/loading.component';
-// import { LoadingComponent } from './component/loading/loading.component';
 
 @NgModule({
   declarations: [AppComponent, LoadingComponent],

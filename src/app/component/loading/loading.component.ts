@@ -5,7 +5,6 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
-import { Platform } from '@ionic/angular';
 
 @Component({
   selector: 'app-loading',
@@ -125,11 +124,12 @@ export class LoadingComponent implements OnInit, OnChanges {
   @Input() isHomePage = false;
   isLandscape = false;
   shouldHide = false;
+  static isLoaded = false;
   startTime: number = 0;
   minDisplayTime = 5000; // 5 seconds minimum for home page
   nonHomeDisplayTime = 3000; // 3 seconds fixed for non-home pages
 
-  constructor(private platform: Platform) {}
+  constructor() {}
 
   ngOnInit() {
     console.log(
@@ -153,7 +153,7 @@ export class LoadingComponent implements OnInit, OnChanges {
       this.checkOrientation();
     });
 
-    // For non-home pages, show for exactly 2 seconds regardless of loaded state
+    // For non-home pages, show for exactly 3 seconds regardless of loaded state
     if (!this.isHomePage) {
       console.log(
         'Non-home page detected, will show loading for 2 seconds fixed',
@@ -161,6 +161,7 @@ export class LoadingComponent implements OnInit, OnChanges {
       setTimeout(() => {
         console.log('Non-home page timer complete, hiding loading screen');
         this.shouldHide = true;
+        LoadingComponent.isLoaded = true;
         // Release body overflow after transition
         setTimeout(() => {
           document.body.style.overflow = '';
@@ -197,6 +198,7 @@ export class LoadingComponent implements OnInit, OnChanges {
 
         setTimeout(() => {
           this.shouldHide = true;
+          LoadingComponent.isLoaded = true;
           // When loaded becomes true, ensure we release body overflow after transition
           setTimeout(() => {
             document.body.style.overflow = '';
@@ -208,6 +210,7 @@ export class LoadingComponent implements OnInit, OnChanges {
           'Minimum display time already elapsed, hiding home page loading screen',
         );
         this.shouldHide = true;
+        LoadingComponent.isLoaded = true;
 
         // When loaded becomes true, ensure we release body overflow after transition
         setTimeout(() => {
