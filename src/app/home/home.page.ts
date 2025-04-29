@@ -6,9 +6,7 @@ import {
   ActionSheetController,
   ModalController,
 } from '@ionic/angular';
-import { SplashScreen } from '@capacitor/splash-screen';
 import { PrayerTimesService } from '../services/prayerTimes.service';
-import { Preferences } from '@capacitor/preferences';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
 
@@ -589,26 +587,137 @@ export class HomePage implements OnDestroy {
   }
 
   async selectLocation() {
-    const buttons = Object.keys(this.zoneNames).map((key) => ({
-      text: this.zoneNames[key],
-      handler: () => {
-        // Update currentLocation display
-        this.currentLocation = this.zoneNames[key];
-        // Fetch new yearly prayer times for the selected zone
-        this.getManualPrayerTimes(key);
-      },
-    }));
+    // Group zone codes by state
+    const stateGroups: { [state: string]: { code: string; name: string }[] } = {
+      Johor: [
+        { code: 'jhr01', name: this.zoneNames['jhr01'] },
+        { code: 'jhr02', name: this.zoneNames['jhr02'] },
+        { code: 'jhr03', name: this.zoneNames['jhr03'] },
+        { code: 'jhr04', name: this.zoneNames['jhr04'] },
+      ],
+      Kedah: [
+        { code: 'kdh01', name: this.zoneNames['kdh01'] },
+        { code: 'kdh02', name: this.zoneNames['kdh02'] },
+        { code: 'kdh03', name: this.zoneNames['kdh03'] },
+        { code: 'kdh04', name: this.zoneNames['kdh04'] },
+        { code: 'kdh05', name: this.zoneNames['kdh05'] },
+        { code: 'kdh06', name: this.zoneNames['kdh06'] },
+        { code: 'kdh07', name: this.zoneNames['kdh07'] },
+      ],
+      Kelantan: [
+        { code: 'ktn01', name: this.zoneNames['ktn01'] },
+        { code: 'ktn03', name: this.zoneNames['ktn03'] },
+      ],
+      Melaka: [{ code: 'mlk01', name: this.zoneNames['mlk01'] }],
+      'Negeri Sembilan': [
+        { code: 'ngs01', name: this.zoneNames['ngs01'] },
+        { code: 'ngs02', name: this.zoneNames['ngs02'] },
+      ],
+      Pahang: [
+        { code: 'phg01', name: this.zoneNames['phg01'] },
+        { code: 'phg02', name: this.zoneNames['phg02'] },
+        { code: 'phg03', name: this.zoneNames['phg03'] },
+        { code: 'phg04', name: this.zoneNames['phg04'] },
+        { code: 'phg05', name: this.zoneNames['phg05'] },
+        { code: 'phg06', name: this.zoneNames['phg06'] },
+      ],
+      Perlis: [{ code: 'pls01', name: this.zoneNames['pls01'] }],
+      'Pulau Pinang': [{ code: 'png01', name: this.zoneNames['png01'] }],
+      Perak: [
+        { code: 'prk01', name: this.zoneNames['prk01'] },
+        { code: 'prk02', name: this.zoneNames['prk02'] },
+        { code: 'prk03', name: this.zoneNames['prk03'] },
+        { code: 'prk04', name: this.zoneNames['prk04'] },
+        { code: 'prk05', name: this.zoneNames['prk05'] },
+        { code: 'prk06', name: this.zoneNames['prk06'] },
+        { code: 'prk07', name: this.zoneNames['prk07'] },
+      ],
+      Sabah: [
+        { code: 'sbh01', name: this.zoneNames['sbh01'] },
+        { code: 'sbh02', name: this.zoneNames['sbh02'] },
+        { code: 'sbh03', name: this.zoneNames['sbh03'] },
+        { code: 'sbh04', name: this.zoneNames['sbh04'] },
+        { code: 'sbh05', name: this.zoneNames['sbh05'] },
+        { code: 'sbh06', name: this.zoneNames['sbh06'] },
+        { code: 'sbh07', name: this.zoneNames['sbh07'] },
+        { code: 'sbh08', name: this.zoneNames['sbh08'] },
+        { code: 'sbh09', name: this.zoneNames['sbh09'] },
+      ],
+      Selangor: [
+        { code: 'sgr01', name: this.zoneNames['sgr01'] },
+        { code: 'sgr02', name: this.zoneNames['sgr02'] },
+        { code: 'sgr03', name: this.zoneNames['sgr03'] },
+      ],
+      Sarawak: [
+        { code: 'swk01', name: this.zoneNames['swk01'] },
+        { code: 'swk02', name: this.zoneNames['swk02'] },
+        { code: 'swk03', name: this.zoneNames['swk03'] },
+        { code: 'swk04', name: this.zoneNames['swk04'] },
+        { code: 'swk05', name: this.zoneNames['swk05'] },
+        { code: 'swk06', name: this.zoneNames['swk06'] },
+        { code: 'swk07', name: this.zoneNames['swk07'] },
+        { code: 'swk08', name: this.zoneNames['swk08'] },
+        { code: 'swk09', name: this.zoneNames['swk09'] },
+      ],
+      Terengganu: [
+        { code: 'trg01', name: this.zoneNames['trg01'] },
+        { code: 'trg02', name: this.zoneNames['trg02'] },
+        { code: 'trg03', name: this.zoneNames['trg03'] },
+        { code: 'trg04', name: this.zoneNames['trg04'] },
+      ],
+      'Wilayah Persekutuan': [
+        { code: 'wly01', name: this.zoneNames['wly01'] },
+        { code: 'wly02', name: this.zoneNames['wly02'] },
+      ],
+    };
+
+    // Build grouped buttons with headers
+    const buttons: any[] = [];
+    const stateIcons: { [state: string]: string } = {
+      Johor: '🟦',
+      Kedah: '🟩',
+      Kelantan: '🟧',
+      Melaka: '🟫',
+      'Negeri Sembilan': '🟪',
+      Pahang: '🟨',
+      Perlis: '⬜',
+      'Pulau Pinang': '🟦',
+      Perak: '⬛',
+      Sabah: '🟧',
+      Selangor: '🟪',
+      Sarawak: '🟩',
+      Terengganu: '🟦',
+      'Wilayah Persekutuan': '⭐',
+    };
+    Object.keys(stateGroups).forEach((state) => {
+      buttons.push({
+        text: `${stateIcons[state] || ''} ${state}`,
+        role: 'header',
+        cssClass: 'state-header',
+        handler: () => {}, // No action for header
+      });
+      stateGroups[state].forEach((zone) => {
+        buttons.push({
+          text: zone.name,
+          handler: () => {
+            this.currentLocation = zone.name;
+            this.getManualPrayerTimes(zone.code);
+          },
+        });
+      });
+    });
 
     // Add a Cancel button at the end
     buttons.push({
       text: 'Cancel',
+      role: 'cancel',
       handler: () => {
         console.log('Cancelled');
       },
     });
 
     const actionSheet = await this.actionSheetController.create({
-      header: 'Select Location',
+      header: 'Pilih Negeri & Zon',
       buttons: buttons,
     });
     await actionSheet.present();
