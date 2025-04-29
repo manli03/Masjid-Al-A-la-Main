@@ -33,10 +33,6 @@ export class NotificationSettingsComponent implements OnInit {
     enabledPrayers: [],
     selectedAzanSound: 'azan1',
     notificationAdvance: 0,
-    vibrationEnabled: true,
-    highPriority: true,
-    ledEnabled: true,
-    floatingEnabled: true,
     lastScheduled: null,
   };
 

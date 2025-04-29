@@ -384,38 +384,4 @@ export class AnnouncementService {
     });
     await toast.present();
   }
-
-  /**
-   * Send a local notification for a new announcement
-   */
-  async sendAnnouncementNotification(announcement: any): Promise<boolean> {
-    try {
-      // Create notification title and body
-      const title = `Pengumuman: ${announcement.title}`;
-      let body = announcement.content;
-
-      // Truncate body if too long and strip HTML tags
-      if (body) {
-        // Remove HTML tags
-        body = body.replace(/<[^>]*>?/gm, '');
-
-        // Truncate if too long
-        if (body.length > 100) {
-          body = body.substring(0, 97) + '...';
-        }
-      } else {
-        body = "Pengumuman baharu daripada Masjid Al-A'la";
-      }
-
-      // Send the notification
-      return await this.prayerNotificationsService.schedulePostNotification(
-        title,
-        body,
-        announcement.id,
-      );
-    } catch (error) {
-      console.error('Error sending announcement notification:', error);
-      return false;
-    }
-  }
 }

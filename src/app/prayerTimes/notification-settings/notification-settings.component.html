@@ -71,30 +71,6 @@
                 </ion-select-option>
             </ion-select>
         </ion-item>
-
-        <ion-list-header>
-            <ion-label>Ciri-ciri Notifikasi</ion-label>
-        </ion-list-header>
-
-        <ion-item>
-            <ion-label>Getaran</ion-label>
-            <ion-toggle [(ngModel)]="notificationSettings.vibrationEnabled" [disabled]="isLoading"></ion-toggle>
-        </ion-item>
-
-        <ion-item>
-            <ion-label>Keutamaan Tinggi</ion-label>
-            <ion-toggle [(ngModel)]="notificationSettings.highPriority" [disabled]="isLoading"></ion-toggle>
-        </ion-item>
-
-        <ion-item>
-            <ion-label>Lampu LED</ion-label>
-            <ion-toggle [(ngModel)]="notificationSettings.ledEnabled" [disabled]="isLoading"></ion-toggle>
-        </ion-item>
-
-        <ion-item>
-            <ion-label>Notifikasi Terapung</ion-label>
-            <ion-toggle [(ngModel)]="notificationSettings.floatingEnabled" [disabled]="isLoading"></ion-toggle>
-        </ion-item>
     </ion-list>
 
     <div class="ion-padding">

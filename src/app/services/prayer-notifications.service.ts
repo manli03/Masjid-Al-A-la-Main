@@ -1,19 +1,12 @@
 import { Injectable } from '@angular/core';
-import {
-  LocalNotifications,
-  ScheduleOptions,
-  PendingLocalNotificationSchema,
-  Channel,
-  LocalNotificationDescriptor,
-} from '@capacitor/local-notifications';
+import { LocalNotifications, Channel } from '@capacitor/local-notifications';
 import { PrayerTimesService } from './prayerTimes.service';
 import { Preferences } from '@capacitor/preferences';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { debounce } from 'lodash';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import AndroidAudio from '../plugins/android-audio';
 
 // Define notification settings interface
@@ -22,10 +15,6 @@ export interface PrayerNotificationSettings {
   lastScheduled: string | null;
   selectedAzanSound: string;
   notificationAdvance: number;
-  vibrationEnabled: boolean;
-  highPriority: boolean;
-  ledEnabled: boolean;
-  floatingEnabled: boolean;
 }
 
 // Define interface for custom AndroidAudio plugin
@@ -395,10 +384,6 @@ export class PrayerNotificationsService {
         lastScheduled: null,
         selectedAzanSound: 'azan1',
         notificationAdvance: 0,
-        vibrationEnabled: true,
-        highPriority: true,
-        ledEnabled: true,
-        floatingEnabled: true,
       };
 
       // Update settings observable
@@ -416,22 +401,6 @@ export class PrayerNotificationsService {
       lastScheduled: parsedSettings.lastScheduled || null,
       selectedAzanSound: parsedSettings.selectedAzanSound || 'azan1',
       notificationAdvance: parsedSettings.notificationAdvance || 0,
-      vibrationEnabled:
-        parsedSettings.vibrationEnabled !== undefined
-          ? parsedSettings.vibrationEnabled
-          : true,
-      highPriority:
-        parsedSettings.highPriority !== undefined
-          ? parsedSettings.highPriority
-          : true,
-      ledEnabled:
-        parsedSettings.ledEnabled !== undefined
-          ? parsedSettings.ledEnabled
-          : true,
-      floatingEnabled:
-        parsedSettings.floatingEnabled !== undefined
-          ? parsedSettings.floatingEnabled
-          : true,
     };
 
     // Update settings observable
@@ -539,11 +508,11 @@ export class PrayerNotificationsService {
         id: this.currentChannelId,
         name: 'Waktu Solat',
         description: 'Notifikasi waktu solat',
-        importance: settings.highPriority ? 5 : 4,
-        visibility: settings.floatingEnabled ? 1 : 0,
+        importance: 3,
+        visibility: 1,
         sound: sound,
-        vibration: settings.vibrationEnabled,
-        lights: settings.ledEnabled,
+        vibration: true,
+        lights: true,
       };
 
       await LocalNotifications.createChannel(channelConfig);
@@ -635,25 +604,6 @@ export class PrayerNotificationsService {
       }
     } catch (error) {
       console.error('Error in stopAzanSound:', error);
-    }
-  }
-
-  /**
-   * Check if we need to reschedule notifications and do so if needed
-   */
-  private async checkAndRescheduleNotifications(): Promise<void> {
-    try {
-      const settings = await this.getNotificationSettings();
-
-      // Check if we should reschedule
-      if (this.shouldReschedule(settings.lastScheduled)) {
-        console.log('Rescheduling notifications...');
-        await this.scheduleAllNotifications();
-      } else {
-        console.log('Notifications are up to date, no need to reschedule');
-      }
-    } catch (error) {
-      console.error('Error checking/rescheduling notifications:', error);
     }
   }
 
@@ -847,7 +797,7 @@ export class PrayerNotificationsService {
                 prayerName === 'Syuruk' || prayerName === 'Dhuha'
                   ? `Sekarang masa ${prayerName}`
                   : `Sekarang waktu untuk solat ${prayerName}`,
-              schedule: { at: prayerDateTime },
+              schedule: { at: prayerDateTime, allowWhileIdle: true },
               channelId: this.currentChannelId,
               autoCancel: true,
               ongoing: false,
@@ -1082,68 +1032,6 @@ export class PrayerNotificationsService {
         console.error('Error during periodic notification check:', error);
       }
     });
-  }
-
-  /**
-   * Schedule a post notification
-   */
-  async schedulePostNotification(
-    title: string,
-    body: string,
-    announcementId: number,
-  ): Promise<boolean> {
-    try {
-      // Get notification settings to respect user preferences
-      const settings = await this.getNotificationSettings();
-
-      // Create a notification
-      const notificationOptions: any = {
-        id: 100000 + announcementId, // Use a different range than prayer notifications
-        title: title,
-        body: body,
-        channelId: this.POST_NOTIFICATION_CHANNEL_ID,
-        autoCancel: true,
-        smallIcon: 'ic_notification',
-        actionTypeId: 'announcement',
-        extra: {
-          announcementId: announcementId.toString(),
-          channel_id: this.POST_NOTIFICATION_CHANNEL_ID,
-        },
-      };
-
-      // Apply Android-specific options
-      if (Capacitor.getPlatform() === 'android') {
-        // Apply vibration setting
-        notificationOptions.vibrate = settings.vibrationEnabled;
-
-        // Apply LED setting
-        if (settings.ledEnabled) {
-          notificationOptions.lightColor = '0x3488FF';
-        }
-
-        // Apply high priority setting
-        if (settings.highPriority) {
-          notificationOptions.importance = 4;
-        }
-
-        // Apply floating notification setting
-        if (settings.floatingEnabled) {
-          notificationOptions.visibility = 1;
-        }
-      }
-
-      await LocalNotifications.schedule({
-        notifications: [notificationOptions],
-      });
-
-      console.log(
-        `Post notification scheduled for announcement ID ${announcementId}`,
-      );
-      return true;
-    } catch (error) {
-      console.error('Error scheduling post notification:', error);
-      return false;
-    }
   }
 
   /**
