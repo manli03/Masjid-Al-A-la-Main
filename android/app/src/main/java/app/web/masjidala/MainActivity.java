@@ -1,18 +1,20 @@
 package app.web.masjidala;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+//import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
 
 import com.getcapacitor.BridgeActivity;
-import com.getcapacitor.Bridge;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class MainActivity extends BridgeActivity {
   private static final String TAG = "MainActivity";
@@ -21,48 +23,28 @@ public class MainActivity extends BridgeActivity {
 
   private String pendingJsExecution = null;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        // Register our plugins before super.onCreate
-        registerPlugin(AndroidAudio.class);
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    registerPlugin(AndroidAudio.class);
+    super.onCreate(savedInstanceState);
 
-        super.onCreate(savedInstanceState);
+    PrayerNotificationHelper.scheduleDailyCheck(this);
 
-        // Schedule the daily notification check when app starts
-        PrayerNotificationHelper.scheduleDailyCheck(this);
-
-        maybeShowAutostartSettingsOnce(this); // 👈 Show only one time
-
-        // Check for JavaScript execution requests from intents
-        Intent intent = getIntent();
-        if (intent != null && intent.hasExtra("executeJs")) {
-            pendingJsExecution = intent.getStringExtra("executeJs");
-        }
+    Intent intent = getIntent();
+    if (intent != null && intent.hasExtra("executeJs")) {
+      pendingJsExecution = intent.getStringExtra("executeJs");
     }
+  }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+  @Override
+  public void onStart() {
+    super.onStart();
+    executePendingJavascript();
+    new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::showStartupDialogs, 5000);
+  }
 
-        // Execute any pending JavaScript after a delay to ensure WebView is ready
-        if (pendingJsExecution != null) {
-            final String jsToExecute = pendingJsExecution;
-            pendingJsExecution = null;
-
-            // Use a handler with a delay to ensure the WebView is fully loaded
-            new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                if (getBridge() != null && getBridge().getWebView() != null) {
-                    Log.d(TAG, "Executing JavaScript: " + jsToExecute);
-                    getBridge().getWebView().evaluateJavascript(jsToExecute, null);
-                } else {
-                    Log.e(TAG, "Bridge or WebView not ready for JavaScript execution");
-                }
-            }, 1000); // 1 second delay
-        }
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
+  @Override
+  protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
 
         if (intent.hasExtra("executeJs")) {
@@ -81,31 +63,47 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-  private void maybeShowAutostartSettingsOnce(Context context) {
-    SharedPreferences prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-    boolean alreadyShown = prefs.getBoolean(KEY_AUTOSTART_SHOWN, false);
-
-    if (!alreadyShown) {
-      new android.app.AlertDialog.Builder(this)
-        .setTitle("Enable Auto Start")
-        .setMessage("To ensure prayer notifications work after reboot, please allow the app to auto-start in your phone's settings.")
-        .setPositiveButton("Open Settings", (dialog, which) -> {
-          openAutoStartSettings(context);
-          prefs.edit().putBoolean(KEY_AUTOSTART_SHOWN, true).apply(); // Save flag as shown
-        })
-        .setNegativeButton("Cancel", null)
-        .setCancelable(true)
-        .show();
-
-      Log.d(TAG, "Autostart settings dialog shown");
+  private void executePendingJavascript() {
+    if (pendingJsExecution != null && getBridge() != null && getBridge().getWebView() != null) {
+      getBridge().getWebView().evaluateJavascript(pendingJsExecution, null);
+      pendingJsExecution = null;
     }
-    Log.d(TAG, "Autostart settings dialog already shown before");
   }
 
-  private void openAutoStartSettings(Context context) {
+  private void showStartupDialogs() {
+    maybeShowAutostartSettingsOnce(this::maybeRequestBatteryOptimizationDisable);
+  }
+
+  private void maybeShowAutostartSettingsOnce(Runnable onComplete) {
+    SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    boolean alreadyShown = prefs.getBoolean(KEY_AUTOSTART_SHOWN, false);
+
+    List<String> allowedManufacturers = Arrays.asList(
+      "xiaomi", "oppo", "vivo", "letv", "asus", "huawei", "honor", "oneplus"
+    );
+    String manufacturer = Build.MANUFACTURER.toLowerCase();
+
+    if (!allowedManufacturers.contains(manufacturer) || alreadyShown) {
+      onComplete.run();
+      return;
+    }
+
+    new AlertDialog.Builder(this)
+      .setTitle("Enable Auto Start")
+      .setMessage("Untuk memastikan azan dimainkan selepas phone reboot, sila aktifkan Auto-Start untuk Masjid A'la dalam setting telefon anda.")
+      .setPositiveButton("Buka Setting", (dialog, which) -> {
+        openAutoStartSettings(manufacturer);
+        prefs.edit().putBoolean(KEY_AUTOSTART_SHOWN, true).apply();
+        onComplete.run();
+      })
+      .setNegativeButton("Abaikan", (dialog, which) -> onComplete.run())
+      .setCancelable(false)
+      .show();
+  }
+
+  private void openAutoStartSettings(String manufacturer) {
     Intent intent = new Intent();
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    String manufacturer = Build.MANUFACTURER.toLowerCase();
 
     switch (manufacturer) {
       case "xiaomi":
@@ -136,10 +134,34 @@ public class MainActivity extends BridgeActivity {
     }
 
     try {
-      context.startActivity(intent);
+      startActivity(intent);
     } catch (Exception e) {
-      Log.e(TAG, "Unable to open autostart/battery settings: " + e.getMessage());
-      context.startActivity(new Intent(Settings.ACTION_SETTINGS));
+      Log.e(TAG, "Unable to open AutoStart settings: " + e.getMessage());
+      startActivity(new Intent(Settings.ACTION_SETTINGS));
     }
+  }
+
+  private void maybeRequestBatteryOptimizationDisable() {
+//    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+//    String packageName = getPackageName();
+//
+//    if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+//      new AlertDialog.Builder(this)
+//        .setTitle("Disable Battery Optimization")
+//        .setMessage("Untuk memastikan azan dan notifikasi tidak tertunda, sila matikan Battery Optimization untuk Masjid A'la dalam setting telefon anda.")
+//        .setPositiveButton("Buka Setting", (dialog, which) -> {
+//          try {
+//            Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+//            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            startActivity(intent);
+//          } catch (Exception e) {
+//            Log.e(TAG, "Unable to open battery optimization settings: " + e.getMessage());
+//            startActivity(new Intent(Settings.ACTION_SETTINGS));
+//          }
+//        })
+//        .setNegativeButton("Abaikan", null)
+//        .setCancelable(false)
+//        .show();
+//    }
   }
 }
