@@ -3,7 +3,6 @@ import {
   ModalController,
   AlertController,
   ViewWillEnter,
-  LoadingController,
   ToastController,
 } from '@ionic/angular';
 import { AddAnnouncementModalComponent } from '../component/add-announcement-modal/add-announcement-modal.component';
@@ -48,7 +47,6 @@ export class ManageAnnouncementPage implements ViewWillEnter {
     private authService: AuthService,
     private router: Router,
     private http: HttpClient,
-    private loadingController: LoadingController,
     private toastController: ToastController,
   ) {}
 
