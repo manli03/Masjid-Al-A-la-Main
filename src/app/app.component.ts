@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { filter } from 'rxjs/operators';
 import { StatusBar } from '@capacitor/status-bar';
+import { CheckUpdateService } from './services/check-update.service';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,7 @@ export class AppComponent implements OnInit {
   constructor(
     private router: Router,
     private platform: Platform,
+    private updateCheck: CheckUpdateService,
   ) {
     this.initializeApp();
   }
@@ -32,6 +34,8 @@ export class AppComponent implements OnInit {
 
     // Check if the app is running on a mobile device
     if (this.platform.is('hybrid')) {
+      this.updateCheck.checkForUpdate();
+      console.log('Checking for updates on mobile device');
       StatusBar.setOverlaysWebView({ overlay: true });
     }
 
