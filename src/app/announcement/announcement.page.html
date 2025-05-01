@@ -63,7 +63,7 @@
                     {{ item.author }}
                   </div>
                   <div class="news-date">
-                    {{ item.date }}
+                    {{ formatDate(item.date) }}
                   </div>
                 </ion-col>
                 <ion-col size="4" class="image-container">
@@ -115,8 +115,7 @@
       <!-- Author and Stats (moved under article content) -->
       <div class="article-footer">
         <div class="author">
-          <p><strong>Oleh {{ selectedArticle.author }} </strong><br /> {{ selectedArticle.date
-            }}</p>
+          <p><strong>Oleh {{ selectedArticle.author }} </strong><br /> {{ formatDate(selectedArticle.date) }}</p>
         </div>
         <div class="stats" style="font-size: 24px;">
           <ion-icon name="chatbubble-ellipses-outline"></ion-icon> {{ selectedArticle.commentsCount }}
@@ -143,7 +142,7 @@
               <ion-icon *ngIf="!comment.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
             </div>
             <div class="comment-info">
-              <p class="comment-username">{{ comment.user }} <small>{{ comment.created_at | date:'short' }}</small></p>
+              <p class="comment-username">{{ comment.user }} <small>{{ formatDate(comment?.created_at ?? '') }}</small></p>
               <!-- Display comment text or edit form based on if we're editing -->
               <p class="comment-text" *ngIf="editingCommentId !== comment.id">
                 {{ comment.text }}
@@ -190,7 +189,7 @@
                 <ion-icon *ngIf="!reply.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
               </div>
               <div class="comment-info">
-                <p class="comment-username">{{ reply.user }} <small>{{ reply.created_at | date:'short' }}</small></p>
+                <p class="comment-username">{{ reply.user }} <small>{{ formatDate(reply?.created_at ?? '') }}</small></p>
                 <!-- Display reply text or edit form based on if we're editing -->
                 <p class="comment-text" *ngIf="editingCommentId !== reply.id">
                   {{ reply.text }}

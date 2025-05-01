@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import {
   ModalController,
   AlertController,
@@ -74,6 +74,45 @@ export class ManageAnnouncementPage implements ViewWillEnter {
     // Load announcements from backend
     await this.loadAnnouncements();
     this.isLoading = false;
+  }
+
+  formatDate(dateStr: string): string {
+    const date = new Date(dateStr);
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+
+    // Format hours and AM/PM
+    let hours = date.getHours();
+    const ampm = hours >= 12 ? 'PTG' : 'PG';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // Handle midnight (0 hours)
+
+    // Pad minutes with leading zero if needed
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    // Format the date based on whether it's the current year
+    const monthNames = [
+      'Jan',
+      'Feb',
+      'Mac',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Ogo',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Dis',
+    ];
+    const month = monthNames[date.getMonth()];
+    const day = date.getDate();
+
+    if (dateYear === currentYear) {
+      return `${day} ${month}, ${hours}:${minutes} ${ampm}`;
+    } else {
+      return `${day} ${month}, ${dateYear}, ${hours}:${minutes} ${ampm}`;
+    }
   }
 
   async loadAnnouncements() {

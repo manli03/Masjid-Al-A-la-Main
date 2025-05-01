@@ -8,7 +8,7 @@
   <!-- Loading indicator -->
   <div class="loading-container" *ngIf="isLoading">
     <ion-spinner></ion-spinner>
-    <p>Loading...</p>
+    <p>Memuatkan...</p>
   </div>
 
   <!-- Pull to refresh -->
@@ -32,7 +32,7 @@
             <img *ngIf="news.imageUrl" [src]="news.imageUrl" (error)="handleImageError($event, news)" />
             <div *ngIf="!news.imageUrl" class="image-placeholder">
               <ion-icon name="image-outline"></ion-icon>
-              <p>No image available</p>
+              <p>Tiada gambar tersedia</p>
             </div>
           </div>
           <ion-card-header (click)="viewAnnouncementDetails(news)">
@@ -40,7 +40,7 @@
           </ion-card-header>
           <ion-card-content>
             <p>Penulis: {{ news.author }}</p>
-            <p>Terakhir diubah: {{ news.date }}</p>
+            <p>Terakhir diubah: {{ formatDate(news.date) }}</p>
             <p class="preserve-whitespace" (click)="viewAnnouncementDetails(news)">{{ news.content | slice: 0:150 }}...</p>
             <ion-button color="tertiary" expand="block" (click)="viewAnnouncementDetails(news)">
               Lihat Penuh
@@ -52,8 +52,8 @@
               Hapus
             </ion-button>
             <ion-item lines="none">
-              <ion-label>Likes: {{ news.likes }}</ion-label>
-              <ion-label>Comments: {{ news.commentsCount }}</ion-label>
+              <ion-label>Suka: {{ news.likes }}</ion-label>
+              <ion-label>Komen: {{ news.commentsCount }}</ion-label>
             </ion-item>
           </ion-card-content>
         </ion-card>
