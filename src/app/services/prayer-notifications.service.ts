@@ -382,7 +382,7 @@ export class PrayerNotificationsService {
       const defaultSettings: PrayerNotificationSettings = {
         enabledPrayers: [],
         lastScheduled: null,
-        selectedAzanSound: 'azan1',
+        selectedAzanSound: 'azan10',
         notificationAdvance: 0,
       };
 
