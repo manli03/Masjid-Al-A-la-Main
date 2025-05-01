@@ -21,13 +21,6 @@ const routes: Routes = [
           ),
       },
       {
-        path: 'qiblaCompass',
-        loadChildren: () =>
-          import('../qiblaCompass/qiblaCompass.module').then(
-            (m) => m.qiblaCompassPageModule,
-          ),
-      },
-      {
         path: 'announcement-loading',
         loadChildren: () =>
           import('../announcement-loading/announcement-loading.module').then(
