@@ -1,7 +1,7 @@
 // tab.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
-import { StatusBar } from '@capacitor/status-bar';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { Router, NavigationExtras } from '@angular/router';
 import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
@@ -36,7 +36,8 @@ export class TabsPage implements OnInit, OnDestroy {
     this.darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     this.darkModeListener = () => {
       const isHome = this.router.url === '/tabs/home';
-      this.handleStatusBarAndClass(isHome);
+      const isAuth = this.router.url === '/tabs/authentication';
+      this.handleStatusBarAndClass(isHome, isAuth);
     };
   }
 
@@ -80,15 +81,11 @@ export class TabsPage implements OnInit, OnDestroy {
     this.routerEventsSubscription = this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         const isHome = event.urlAfterRedirects === '/tabs/home';
-        this.handleStatusBarAndClass(isHome);
+        const isAuth = event.urlAfterRedirects === '/tabs/authentication';
+        this.handleStatusBarAndClass(isHome, isAuth);
       }
     });
-    // On first load
-    const isHome = this.router.url === '/tabs/home';
-    this.handleStatusBarAndClass(isHome);
   }
-
-  // REMOVED ionViewWillEnter() method
 
   ngOnDestroy() {
     if (this.backButtonSubscription) {
@@ -110,7 +107,7 @@ export class TabsPage implements OnInit, OnDestroy {
     return isAdmin;
   }
 
-  private async handleStatusBarAndClass(isHome: boolean) {
+  private async handleStatusBarAndClass(isHome: boolean, isAuth: boolean) {
     // Function to check loading status
     const checkLoadingStatus = async (): Promise<void> => {
       const isLoaded = !LoadingComponent.isLoaded;
@@ -119,12 +116,15 @@ export class TabsPage implements OnInit, OnDestroy {
       if (!isLoaded) {
         // Set status bar color
         if (this.platform.is('hybrid')) {
-          StatusBar.setOverlaysWebView({ overlay: false });
+          StatusBar.setStyle({ style: Style.Default });
           try {
             const isDarkMode = this.darkModeMediaQuery.matches;
             let color: string;
             if (isHome) {
               color = isDarkMode ? '#121212' : '#f5f5f5';
+            } else if(isAuth) {
+              // Use a different color for authentication page
+              color = isDarkMode ? '#333333' : '#ffffff';
             } else {
               // Use a different color for non-home pages
               color =

@@ -18,7 +18,6 @@ import { CheckUpdateService } from './services/check-update.service';
 export class AppComponent implements OnInit {
   isAppLoaded: boolean = false;
   isHomePage: boolean = false;
-  appInitTime: number = 0;
 
   constructor(
     private router: Router,
@@ -28,15 +27,13 @@ export class AppComponent implements OnInit {
     this.initializeApp();
   }
 
-  ngOnInit() {
-    // Record app initialization time
-    this.appInitTime = Date.now();
-
-    // Check if the app is running on a mobile device
+  ngOnInit() {// Check if the app is running on a mobile device
     if (this.platform.is('hybrid')) {
+      StatusBar.setBackgroundColor({
+        color: '#025a9e',
+      });
       this.updateCheck.checkForUpdate();
       console.log('Checking for updates on mobile device');
-      StatusBar.setOverlaysWebView({ overlay: true });
     }
 
     // Listen for homePageLoaded event
