@@ -47,8 +47,11 @@ public class PrayerNotificationHelper {
                 if (!alarmManager.canScheduleExactAlarms()) {
                     // Permission is not granted, request it
                     Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(intent);
                     return; // Exit if permission is not granted
+                } else {
+                    Log.d(TAG, "Exact alarms permission is granted");
                 }
             }
 
