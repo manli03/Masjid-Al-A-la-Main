@@ -9,6 +9,7 @@ import {
 import { PrayerTimesService } from '../services/prayerTimes.service';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
+import { Device } from '@capacitor/device';
 
 @Component({
   selector: 'app-home',
@@ -130,6 +131,15 @@ export class HomePage implements OnDestroy {
 
   async ionViewDidEnter() {
     console.log('Home page entered, starting to load data');
+    
+    const info = await Device.getInfo();
+    if (info.androidSDKVersion && info.androidSDKVersion >= 35) {
+      const headerLocation = document.querySelector('.header-location') as HTMLElement;
+      if (headerLocation) {
+        headerLocation.style.paddingTop = '15px';
+      }
+    }
+    
     // Set loaded to false when entering the view
     this.loaded = false;
 

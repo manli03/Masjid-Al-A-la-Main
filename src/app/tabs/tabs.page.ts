@@ -11,6 +11,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { Subscription } from 'rxjs';
 import { NavigationEnd } from '@angular/router';
 import { LoadingComponent } from '../component/loading/loading.component';
+import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 
 @Component({
   selector: 'app-tabs',
@@ -114,6 +115,7 @@ export class TabsPage implements OnInit, OnDestroy {
       console.log('Checking loading status:', isLoaded);
 
       if (!isLoaded) {
+        NavigationBar.setTransparency({ isTransparent: false });
         // Set status bar color
         if (this.platform.is('hybrid')) {
           StatusBar.setStyle({ style: Style.Default });
@@ -133,6 +135,12 @@ export class TabsPage implements OnInit, OnDestroy {
                 ) || (isDarkMode ? '#222428' : '#ffffff');
             }
             await StatusBar.setBackgroundColor({ color: color.trim() });
+            NavigationBar.setColor({
+              color: getComputedStyle(
+                document.documentElement,
+              ).getPropertyValue('--ion-toolbar-background'),
+              darkButtons: !isDarkMode,
+            });
           } catch (error) {
             console.error('Error updating status bar color:', error);
           }

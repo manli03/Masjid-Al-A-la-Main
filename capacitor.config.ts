@@ -12,6 +12,7 @@ const config: CapacitorConfig = {
       launchAutoHide: true,
       launchShowDuration: 1,
       launchFadeOutDuration: 500,
+      splashImmersive: true,
     },
     GpsEnabler: {},
     GoogleAuth: {

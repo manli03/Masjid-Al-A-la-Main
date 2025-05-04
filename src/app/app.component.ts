@@ -8,6 +8,9 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { filter } from 'rxjs/operators';
 import { StatusBar } from '@capacitor/status-bar';
 import { CheckUpdateService } from './services/check-update.service';
+import { SafeArea } from 'capacitor-plugin-safe-area';
+import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
+import { Device } from '@capacitor/device';
 
 @Component({
   selector: 'app-root',
@@ -27,10 +30,14 @@ export class AppComponent implements OnInit {
     this.initializeApp();
   }
 
-  ngOnInit() {// Check if the app is running on a mobile device
+  ngOnInit() {
+    // Check if the app is running on a mobile device
     if (this.platform.is('hybrid')) {
       StatusBar.setBackgroundColor({
         color: '#025a9e',
+      });
+      NavigationBar.setTransparency({
+        isTransparent: true,
       });
       this.updateCheck.checkForUpdate();
       console.log('Checking for updates on mobile device');
@@ -90,6 +97,7 @@ export class AppComponent implements OnInit {
   }
 
   initializeApp() {
+    this.applySafeAreaIfSDK35Plus();
     this.platform.ready().then(async () => {
       try {
         // Set loading state to false first
@@ -106,6 +114,31 @@ export class AppComponent implements OnInit {
         this.isAppLoaded = true; // Ensure loading screen is hidden if there's an error
       }
     });
+  }
+
+  async applySafeAreaIfSDK35Plus() {
+    const info = await Device.getInfo();
+
+    if (
+      info.platform === 'android' &&
+      info.androidSDKVersion &&
+      info.androidSDKVersion >= 35
+    ) {
+      const { insets } = await SafeArea.getSafeAreaInsets();
+      document.body.style.setProperty('--ion-safe-area-top', `${insets.top}px`);
+      document.body.style.setProperty(
+        '--ion-safe-area-right',
+        `${insets.right}px`,
+      );
+      document.body.style.setProperty(
+        '--ion-safe-area-bottom',
+        `${insets.bottom}px`,
+      );
+      document.body.style.setProperty(
+        '--ion-safe-area-left',
+        `${insets.left}px`,
+      );
+    }
   }
 
   private setupAppUrlListener() {
