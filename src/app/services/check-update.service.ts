@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Dialog } from '@capacitor/dialog';
-import { Browser } from '@capacitor/browser';
+import { lastValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -18,8 +18,8 @@ export class CheckUpdateService {
   async checkForUpdate() {
     try {
       // Load local embedded version
-      const local: any = await this.http.get(this.localUpdatePath).toPromise();
-      this.embeddedModified = local?.lastPreviousUpdate;
+      const local: any = await lastValueFrom(this.http.get(this.localUpdatePath));
+      this.embeddedModified = local.lastPreviousUpdate;
 
       if (!this.embeddedModified) {
         console.warn('No embedded update date found');
@@ -27,7 +27,11 @@ export class CheckUpdateService {
       }
 
       // Load server update info
-      const remote: any = await this.http.get(this.updateJsonUrl).toPromise();
+      const headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
+      const remote: any = await lastValueFrom(
+        this.http.get(this.updateJsonUrl, { headers })
+      );
+
       const serverModified = remote?.lastPreviousUpdate;
 
       if (!serverModified) return;
@@ -44,7 +48,7 @@ export class CheckUpdateService {
         });
 
         if (value) {
-          await Browser.open({ url: this.apkUrl });
+          window.open(this.apkUrl, '_blank');
         }
       }
     } catch (err) {
