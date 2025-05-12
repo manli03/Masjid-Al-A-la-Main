@@ -3,10 +3,12 @@
 
   <!-- 1. Initial State: Button to Start -->
   <div *ngIf="uiState === 'initial'" style="text-align: center; padding: 20px;">
-    <p style="margin-bottom: 15px;">Untuk ketepatan, sila kalibrasi kompas dahulu.</p>
+    <!-- <p style="margin-bottom: 15px;">Untuk ketepatan, sila kalibrasi kompas dahulu.</p> -->
+    <p style="margin-bottom: 15px;">Sila tekan butang dibawah untuk menggunakan kompas.</p>
     <ion-button (click)="startCalibrationProcess()" expand="block" color="primary">
       <ion-icon name="sync-circle-outline" slot="start"></ion-icon>
-      Mula Kalibrasi Kompas
+      <!-- Mula Kalibrasi Kompas -->
+       Gunakan Kompas
     </ion-button>
   </div>
 

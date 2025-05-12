@@ -1,6 +1,5 @@
 import { Component, OnDestroy, OnInit, NgZone } from '@angular/core';
 import { AlertController, Platform } from '@ionic/angular';
-import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
 import { PrayerTimesService } from 'src/app/services/prayerTimes.service';
 
@@ -153,7 +152,8 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
         )
       ) {
         console.log('Sensor permissions granted or prompt.');
-        this.initializeSensorForCalibration();
+        // this.initializeSensorForCalibration();
+        this.completeCalibration(); // Directly complete calibration for demo
       } else {
         throw new Error('Required sensor permissions denied.');
       }
