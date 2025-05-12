@@ -1,4 +1,5 @@
 <ion-content class="ion-padding">
+  <img src="../../assets/loading/image.png" alt="App Background" class="background-image" />
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
@@ -10,7 +11,7 @@
         <ion-icon name="location-outline"
           style="font-size: 24px; margin: 0 10px 0 5px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span *ngIf="loaded; else skeletonLocation"
-          style="font-weight: 500; max-width: 65vw; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          style="font-weight: 500; max-width: 60vw; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
           {{ currentLocation }}
         </span>
         <ng-template #skeletonLocation>
@@ -19,7 +20,7 @@
       </div>
     </div>
     <!-- Notification Icon -->
-    <div class="d-flex justify-content-end" style="position: absolute; right: 0; font-size: 24px;">
+    <div class="d-flex justify-content-end bell" style="position: absolute; right: 0; font-size: 24px; color: var(--ion-color-primary);">
       <ion-icon name="notifications-outline" style="vertical-align: middle;" (click)="openNotificationSettings()"></ion-icon>
     </div>
   </div>
@@ -133,5 +134,7 @@
   </div>
 
   <!-- Qibla Compass -->
-  <app-qibla-compass></app-qibla-compass>
+   <div class="qibla-compass">
+     <app-qibla-compass></app-qibla-compass>
+   </div>
 </ion-content>
