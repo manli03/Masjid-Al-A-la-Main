@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
 import { from, map, Observable } from 'rxjs';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { PrayerNotificationsService } from './prayer-notifications.service';
 
 @Injectable({
   providedIn: 'root',
@@ -13,7 +14,7 @@ export class PrayerTimesService {
   private userZoneApiUrl = 'https://mpt.i906.my/api/prayer'; // API URL to fetch the zone code
   private compassApiUrl = 'https://api.aladhan.com/v1/qibla'; // API URL to fetch the compass data
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private prayerNotificationsService: PrayerNotificationsService) { }
 
   // Fetch prayer times for the whole year
   getPrayerTimes(zone: string, period: string): Observable<any> {
@@ -121,6 +122,8 @@ export class PrayerTimesService {
       key: 'yearlyPrayerTimes',
       value: JSON.stringify(data),
     });
+    console.log('Choosen prayer times saved successfully!');
+    this.prayerNotificationsService.forceRescheduleNotifications();
   }
 
   // Retrieve saved yearly prayer times from Preferences
@@ -161,6 +164,8 @@ export class PrayerTimesService {
           key: 'yearlyPrayerTimes',
           value: JSON.stringify(defaultData),
         });
+        console.log('Default prayer times saved successfully!');
+        this.prayerNotificationsService.forceRescheduleNotifications();
       } else {
         console.log('Failed to fetch default prayer times!');
       }
