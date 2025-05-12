@@ -1,5 +1,6 @@
 package app.web.masjidala;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -22,53 +23,19 @@ public class MainActivity extends BridgeActivity {
   private static final String PREF_NAME = "masjidala_prefs";
   private static final String KEY_AUTOSTART_SHOWN = "autostart_shown";
 
-  private String pendingJsExecution = null;
-
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     registerPlugin(AndroidAudio.class);
     super.onCreate(savedInstanceState);
 
-    PrayerNotificationHelper.scheduleDailyCheck(this);
-
-    Intent intent = getIntent();
-    if (intent != null && intent.hasExtra("executeJs")) {
-      pendingJsExecution = intent.getStringExtra("executeJs");
-    }
+    DailyNotificationScheduling.scheduleDailyCheck(this);
+//    PreferenceLogger.logAllPreferences(this);
   }
 
   @Override
   public void onStart() {
     super.onStart();
-    executePendingJavascript();
     new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::showStartupDialogs, 5000);
-  }
-
-  @Override
-  protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-
-        if (intent.hasExtra("executeJs")) {
-            final String jsToExecute = intent.getStringExtra("executeJs");
-
-            // Execute JavaScript if bridge is ready
-            if (getBridge() != null && getBridge().getWebView() != null) {
-                Log.d(TAG, "Executing JavaScript on new intent: " + jsToExecute);
-                assert jsToExecute != null;
-                getBridge().getWebView().evaluateJavascript(jsToExecute, null);
-            } else {
-                Log.e(TAG, "Bridge or WebView not ready for JavaScript execution on new intent");
-                // Store for later execution
-                pendingJsExecution = jsToExecute;
-            }
-        }
-    }
-
-  private void executePendingJavascript() {
-    if (pendingJsExecution != null && getBridge() != null && getBridge().getWebView() != null) {
-      getBridge().getWebView().evaluateJavascript(pendingJsExecution, null);
-      pendingJsExecution = null;
-    }
   }
 
   private void showStartupDialogs() {
@@ -168,7 +135,7 @@ public class MainActivity extends BridgeActivity {
         .setMessage("Sila benarkan aplikasi ini berjalan di latar belakang tanpa sekatan bateri. Ini penting untuk memastikan notifikasi azan dihantar tepat pada waktunya.")
         .setPositiveButton("Buka Setting", (dialog, which) -> {
           try {
-            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            @SuppressLint("BatteryLife") Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
             intent.setData(Uri.parse("package:" + getPackageName()));
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);

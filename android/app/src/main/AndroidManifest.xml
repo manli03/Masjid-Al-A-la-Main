@@ -71,6 +71,20 @@
               <action android:name="app.web.masjidala.CHECK_NOTIFICATIONS" />
           </intent-filter>
       </receiver>
+
+    <receiver android:name=".PrayerAlarmReceiver" android:exported="false"/>
+
+      <!-- reschedule the next alarm with updated times-->
+<!--      <receiver-->
+<!--        android:name=".TimeChangeReceiver"-->
+<!--        android:enabled="true"-->
+<!--        android:exported="true">-->
+<!--        <intent-filter>-->
+<!--          <action android:name="android.intent.action.TIME_SET" />-->
+<!--          <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
+<!--        </intent-filter>-->
+<!--      </receiver>-->
+
   </application>
 
 </manifest>

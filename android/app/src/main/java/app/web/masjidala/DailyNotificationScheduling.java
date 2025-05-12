@@ -9,25 +9,16 @@ import android.os.Build;
 import android.provider.Settings;
 import android.util.Log;
 
-import com.getcapacitor.JSObject;
-import com.getcapacitor.Plugin;
-import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
-import com.getcapacitor.annotation.CapacitorPlugin;
-
 import java.util.Calendar;
 
 /**
  * Helper class for managing prayer notifications
  */
-public class PrayerNotificationHelper {
-    private static final String TAG = "PrayerNotificationHelper";
+public class DailyNotificationScheduling {
+    private static final String TAG = "DailyNotificationScheduling";
     private static final String PREFERENCES_NAME = "prayer_notification_helper";
     private static final String KEY_LAST_CHECK = "last_notification_check";
     private static final String NOTIFICATION_CHECK_ACTION = "app.web.masjidala.CHECK_NOTIFICATIONS";
-
-    // Interval to check for notifications (24 hours in milliseconds)
-    private static final long CHECK_INTERVAL = 24 * 60 * 60 * 1000;
 
     /**
      * Schedule a daily check for prayer notifications
@@ -93,43 +84,6 @@ public class PrayerNotificationHelper {
             preferences.edit().putLong(KEY_LAST_CHECK, calendar.getTimeInMillis()).apply();
         } catch (Exception e) {
             Log.e(TAG, "Error scheduling daily check: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Reschedule notifications after device reboot
-     */
-    public static void rescheduleNotifications(Context context) {
-        Log.d(TAG, "Rescheduling notifications after boot");
-
-        try {
-            // Schedule the daily check
-            scheduleDailyCheck(context);
-
-            // Execute JavaScript to trigger notification rescheduling
-            executeJavaScript(context, "triggerNotificationReschedule");
-        } catch (Exception e) {
-            Log.e(TAG, "Error rescheduling notifications: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Execute JavaScript in the WebView to trigger functions
-     */
-    private static void executeJavaScript(Context context, String functionName) {
-        try {
-            // Create an intent to start the MainActivity
-            Intent launchIntent = new Intent(context, MainActivity.class);
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            launchIntent.putExtra("executeJs", "window.dispatchEvent(new CustomEvent('" + functionName + "'));");
-
-            // Log what we're doing
-            Log.d(TAG, "Executing JavaScript: " + functionName);
-
-            // Start the app
-            context.startActivity(launchIntent);
-        } catch (Exception e) {
-            Log.e(TAG, "Error executing JavaScript: " + e.getMessage());
         }
     }
 }

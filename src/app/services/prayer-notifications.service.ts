@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
 import { LocalNotifications, Channel } from '@capacitor/local-notifications';
-import { PrayerTimesService } from './prayerTimes.service';
 import { Preferences } from '@capacitor/preferences';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
@@ -15,6 +14,7 @@ export interface PrayerNotificationSettings {
   lastScheduled: string | null;
   selectedAzanSound: string;
   notificationAdvance: number;
+  currentChannelId?: string;
 }
 
 // Define interface for custom AndroidAudio plugin
@@ -52,7 +52,7 @@ export class PrayerNotificationsService {
   private readonly POST_NOTIFICATION_CHANNEL_ID = 'post_notifications';
 
   // Max days to schedule ahead
-  private readonly MAX_DAYS_AHEAD = 3;
+  private readonly MAX_DAYS_AHEAD = 1;
 
   // Notification channel ID
   private readonly CHANNEL_ID_PREFIX = 'prayer_times_';
@@ -128,15 +128,11 @@ export class PrayerNotificationsService {
   ];
 
   constructor(
-    private prayerTimesService: PrayerTimesService,
     private toastController: ToastController,
     private router: Router,
   ) {
     // Set up notification listeners
     this.setupNotificationListeners();
-
-    // Listen for custom events from native code
-    this.setupNativeEventListeners();
 
     // Initialize with a new channel ID
     this.currentChannelId = this.generateNewChannelId();
@@ -376,7 +372,6 @@ export class PrayerNotificationsService {
    */
   async getNotificationSettings(): Promise<PrayerNotificationSettings> {
     const { value } = await Preferences.get({ key: this.PREFERENCES_KEY });
-
     if (!value) {
       // Default settings with new fields
       const defaultSettings: PrayerNotificationSettings = {
@@ -384,6 +379,7 @@ export class PrayerNotificationsService {
         lastScheduled: null,
         selectedAzanSound: 'azan10',
         notificationAdvance: 0,
+        currentChannelId: this.currentChannelId,
       };
 
       // Update settings observable
@@ -401,6 +397,8 @@ export class PrayerNotificationsService {
       lastScheduled: parsedSettings.lastScheduled || null,
       selectedAzanSound: parsedSettings.selectedAzanSound || 'azan1',
       notificationAdvance: parsedSettings.notificationAdvance || 0,
+      currentChannelId:
+        parsedSettings.currentChannelId || this.currentChannelId,
     };
 
     // Update settings observable
@@ -517,6 +515,17 @@ export class PrayerNotificationsService {
 
       await LocalNotifications.createChannel(channelConfig);
       console.log('Notification channel created with config:', channelConfig);
+
+      // Save the new channel ID to preferences
+      await Preferences.set({
+        key: this.PREFERENCES_KEY,
+        value: JSON.stringify({
+          ...settings,
+          lastScheduled: new Date().toISOString(),
+          currentChannelId: this.currentChannelId,
+        }),
+      });
+      console.log('Notification settings updated with new channel ID');
 
       // Verify channel was created with correct settings
       const updatedChannels = await LocalNotifications.listChannels();
@@ -714,8 +723,8 @@ export class PrayerNotificationsService {
       );
 
       // Get the prayer times for the next few days
-      const savedPrayerTimes =
-        await this.prayerTimesService.getSavedYearlyPrayerTimes();
+      const result = await Preferences.get({ key: 'yearlyPrayerTimes' });
+      const savedPrayerTimes = result.value ? JSON.parse(result.value) : null;
 
       if (!savedPrayerTimes || !savedPrayerTimes.prayers) {
         console.error('No prayer times available to schedule notifications');
@@ -723,7 +732,7 @@ export class PrayerNotificationsService {
       }
 
       // Log complete configuration for debugging
-      this.logNotificationConfig(settings, savedPrayerTimes);
+      // this.logNotificationConfig(settings, savedPrayerTimes);
 
       console.log(
         `Found ${savedPrayerTimes.prayers.length} days of prayer times data`,
@@ -884,6 +893,7 @@ export class PrayerNotificationsService {
   private mapPrayerNameToProperty(prayerName: string): string | null {
     // Map from prayer display names to API property names
     const map: { [key: string]: string } = {
+      Imsak: 'imsak',
       Subuh: 'fajr',
       Syuruk: 'syuruk',
       Dhuha: 'dhuha',
@@ -892,6 +902,7 @@ export class PrayerNotificationsService {
       Maghrib: 'maghrib',
       Isyak: 'isha',
       // Add lowercase mappings for case-insensitive lookup
+      imsak: 'imsak',
       subuh: 'fajr',
       syuruk: 'syuruk',
       dhuha: 'dhuha',
@@ -929,18 +940,6 @@ export class PrayerNotificationsService {
     const year = date.getFullYear();
 
     return `${day}-${month}-${year}`;
-  }
-
-  /**
-   * Format date for display in notifications
-   */
-  private formatDateForDisplay(date: Date): string {
-    return date.toLocaleDateString('ms-MY', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
   }
 
   /**
@@ -1003,35 +1002,6 @@ export class PrayerNotificationsService {
         this.router.navigate(['/tabs/prayerTimes']);
       },
     );
-  }
-
-  /**
-   * Set up listeners for native events
-   */
-  private setupNativeEventListeners(): void {
-    window.addEventListener('triggerNotificationReschedule', async () => {
-      console.log('Native code requested notification reschedule after reboot');
-      await this.forceRescheduleNotifications(false); // Don't show toasts for system events
-    });
-
-    window.addEventListener('checkAndRescheduleNotifications', async () => {
-      console.log(
-        'Native code requested notification reschedule every 12 hours',
-      );
-      try {
-        const settings = await this.getNotificationSettings();
-
-        // Check if we should reschedule
-        if (this.shouldReschedule(settings.lastScheduled)) {
-          console.log('Rescheduling notifications from system check...');
-          await this.forceRescheduleNotifications(false); // Don't show toasts for system events
-        } else {
-          console.log('Notifications are up to date, no need to reschedule');
-        }
-      } catch (error) {
-        console.error('Error during periodic notification check:', error);
-      }
-    });
   }
 
   /**
