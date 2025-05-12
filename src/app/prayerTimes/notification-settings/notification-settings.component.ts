@@ -4,7 +4,6 @@ import {
   PrayerNotificationsService,
   PrayerNotificationSettings,
 } from '../../services/prayer-notifications.service';
-import { StorageService } from '../../services/storage.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Capacitor } from '@capacitor/core';
@@ -55,7 +54,6 @@ export class NotificationSettingsComponent implements OnInit {
     private modalCtrl: ModalController,
     private prayerNotificationsService: PrayerNotificationsService,
     private toastController: ToastController,
-    private storageService: StorageService,
   ) {
     // Check if running on native platform
     this.isNativePlatform = Capacitor.isNativePlatform();
@@ -98,13 +96,10 @@ export class NotificationSettingsComponent implements OnInit {
     this.isLoading = true;
 
     try {
-      // Save all notification settings
+      // Save and reschedule all notification with new settings
       await this.prayerNotificationsService.saveNotificationSettings(
         this.notificationSettings,
       );
-
-      // // Batch update all prayer notifications
-      // await this.prayerNotificationsService.rescheduleNotifications();
 
       this.showToast('Tetapan notifikasi telah disimpan', 'success');
       this.dismiss();
