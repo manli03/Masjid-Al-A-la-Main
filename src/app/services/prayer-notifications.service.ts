@@ -76,6 +76,11 @@ export class PrayerNotificationsService {
   // Available azan sounds
   public readonly availableSounds = [
     {
+      id: 'none',
+      name: 'Lalai',
+      file: '',
+    },
+    {
       id: 'azan1',
       name: 'Azan 1',
       file: 'android/app/src/main/res/raw/azan1.mp3',
@@ -377,7 +382,7 @@ export class PrayerNotificationsService {
       const defaultSettings: PrayerNotificationSettings = {
         enabledPrayers: [],
         lastScheduled: null,
-        selectedAzanSound: 'azan10',
+        selectedAzanSound: 'none',
         notificationAdvance: 0,
         currentChannelId: this.currentChannelId,
       };
@@ -389,13 +394,13 @@ export class PrayerNotificationsService {
     }
 
     const parsedSettings = JSON.parse(value);
-    console.log('Parsed settings:', parsedSettings);
+    // console.log('Parsed settings:', parsedSettings);
 
     // Ensure all fields exist (backward compatibility)
     const settings: PrayerNotificationSettings = {
       enabledPrayers: parsedSettings.enabledPrayers || [],
       lastScheduled: parsedSettings.lastScheduled || null,
-      selectedAzanSound: parsedSettings.selectedAzanSound || 'azan1',
+      selectedAzanSound: parsedSettings.selectedAzanSound || 'none',
       notificationAdvance: parsedSettings.notificationAdvance || 0,
       currentChannelId:
         parsedSettings.currentChannelId || this.currentChannelId,
