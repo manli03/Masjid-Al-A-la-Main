@@ -12,6 +12,9 @@ import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { NotificationSettingsComponent } from './notification-settings/notification-settings.component';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import * as htmlToImage from 'html-to-image';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // Define the prayer type
 interface Prayer {
@@ -28,6 +31,9 @@ interface Prayer {
 })
 export class prayerTimesPage implements OnInit {
   @ViewChild('yearlyTable', { static: false }) yearlyTable!: ElementRef;
+  // Add ViewChild for the shareable content div to ensure it exists before trying to access it
+  @ViewChild('prayerTimesToShareContainer', { static: false })
+  prayerTimesToShareContainer!: ElementRef<HTMLDivElement>;
   loaded: boolean = false;
   isDarkMode: boolean = false;
   prayers: Prayer[] = [];
@@ -773,6 +779,176 @@ export class prayerTimesPage implements OnInit {
     } catch (error) {
       console.error('Error opening notification settings:', error);
       await this.presentToast('Ralat membuka tetapan notifikasi', 'danger');
+    }
+  }
+
+  async sharePrayerTimes() {
+    if (!this.loaded || this.prayers.length === 0) {
+      await this.presentToast(
+        'Data waktu solat belum dimuatkan atau tiada.',
+        'warning',
+      );
+      return;
+    }
+
+    // Ensure the container div is available
+    if (
+      !this.prayerTimesToShareContainer ||
+      !this.prayerTimesToShareContainer.nativeElement
+    ) {
+      console.error('Shareable container element not found');
+      await this.presentToast(
+        'Ralat: Elemen untuk dikongsi tidak ditemui.',
+        'danger',
+      );
+      return;
+    }
+    const shareContainerElement =
+      this.prayerTimesToShareContainer.nativeElement;
+    const shareContentElement = document.getElementById(
+      'prayerTimesToShareContent',
+    );
+
+    if (!shareContentElement) {
+      console.error('Shareable content element not found');
+      await this.presentToast(
+        'Ralat: Elemen kandungan untuk dikongsi tidak ditemui.',
+        'danger',
+      );
+      return;
+    }
+
+    // 1. Populate the shareable element
+    const shareTitleEl = document.getElementById('shareTitle');
+    const shareLocationEl = document.getElementById('shareLocation');
+    const shareHijriDateEl = document.getElementById('shareHijriDate');
+    const sharePrayerTableBodyEl = document.getElementById(
+      'sharePrayerTableBody',
+    );
+
+    if (
+      !shareTitleEl ||
+      !shareLocationEl ||
+      !shareHijriDateEl ||
+      !sharePrayerTableBodyEl
+    ) {
+      console.error('Required elements within shareable div not found');
+      await this.presentToast(
+        'Ralat: Struktur untuk dikongsi tidak lengkap.',
+        'danger',
+      );
+      return;
+    }
+
+    const formattedCurrentDate = this.currentDate.toLocaleDateString('ms-MY', {
+      day: 'numeric', // '2-digit' can cause issues on some browsers/OS with long, use numeric.
+      month: 'long',
+      year: 'numeric',
+    });
+    shareTitleEl.innerText = `Waktu Solat - ${formattedCurrentDate}`;
+    shareLocationEl.innerText = this.location;
+    shareHijriDateEl.innerText = this.currentHijriDate;
+
+    // Clear previous table rows
+    sharePrayerTableBodyEl.innerHTML = '';
+
+    // Populate new table rows
+    this.prayers.forEach((prayer) => {
+      const sharePrayerTableBodyEl = document.getElementById('sharePrayerTableBody') as HTMLTableSectionElement;
+      const row = sharePrayerTableBodyEl.insertRow();
+      const cell1 = row.insertCell();
+      const cell2 = row.insertCell();
+
+      cell1.style.padding = '10px'; // Matched with th style
+      cell1.style.border = '1px solid #ccc'; // Matched with th style
+      cell1.style.fontSize = '1em'; // Matched with th style
+
+      cell2.style.padding = '10px'; // Matched with th style
+      cell2.style.border = '1px solid #ccc'; // Matched with th style
+      cell2.style.fontSize = '1em'; // Matched with th style
+
+      cell1.innerText = prayer.name;
+      cell2.innerText = this.convertTimeToDate(prayer.time).toLocaleTimeString(
+        'ms-MY',
+        {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        },
+      );
+    });
+
+    // Make the container temporarily visible for rendering, but off-screen
+    shareContainerElement.style.display = 'block'; // This will make children like prayerTimesToShareContent visible too.
+
+    let tempFileName = '';
+
+    try {
+      this.isLoading = true;
+
+      // Wait a brief moment for DOM updates
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const dataUrl = await htmlToImage.toPng(shareContentElement, {
+        pixelRatio: 2, // For better quality on high DPI screens
+        // Ensure styles are applied by the browser before capture
+        // Explicitly set background if needed, though defined in the div's style
+        // backgroundColor: '#ffffff',
+      });
+
+      tempFileName = `waktu_solat_${new Date().getTime()}.png`;
+      const savedFile = await Filesystem.writeFile({
+        path: tempFileName,
+        data: dataUrl, // dataUrl is already base64
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title: `Waktu Solat ${formattedCurrentDate}`,
+        text: `Berikut adalah waktu solat untuk ${this.location} pada ${formattedCurrentDate} (${this.currentHijriDate}).`,
+        url: savedFile.uri,
+        dialogTitle: 'Kongsi Waktu Solat',
+      });
+    } catch (error: any) {
+      console.error('Error sharing prayer times:', error);
+      if (
+        (error &&
+          error.message &&
+          error.message.toLowerCase().includes('share canceled')) ||
+        error.message.toLowerCase().includes('share dismissed')
+      ) {
+        await this.presentToast('Perkongsian dibatalkan.', 'medium');
+      } else if (
+        error &&
+        error.message &&
+        error.message.toLowerCase().includes('activity not found')
+      ) {
+        await this.presentToast(
+          'Tiada aplikasi untuk berkongsi ditemui.',
+          'warning',
+        );
+      } else {
+        await this.presentToast(
+          'Ralat semasa cuba berkongsi waktu solat.',
+          'danger',
+        );
+      }
+    } finally {
+      // Hide the element again
+      shareContainerElement.style.display = 'none';
+      this.isLoading = false;
+
+      // Clean up the temporary file
+      if (tempFileName) {
+        try {
+          await Filesystem.deleteFile({
+            path: tempFileName,
+            directory: Directory.Cache,
+          });
+        } catch (cleanupError) {
+          console.warn('Error cleaning up temporary share file:', cleanupError);
+        }
+      }
     }
   }
 }
