@@ -853,21 +853,42 @@ export class prayerTimesPage implements OnInit {
     sharePrayerTableBodyEl.innerHTML = '';
 
     // Populate new table rows
+    // Iterate through each prayer to populate the prayer times table for sharing
     this.prayers.forEach((prayer) => {
+      // Get the table body element where new rows will be inserted
       const sharePrayerTableBodyEl = document.getElementById('sharePrayerTableBody') as HTMLTableSectionElement;
+      
+      // Create a new table row
       const row = sharePrayerTableBodyEl.insertRow();
+      
+      // Create cells for the prayer name and time
       const cell1 = row.insertCell();
       const cell2 = row.insertCell();
 
-      cell1.style.padding = '10px'; // Matched with th style
-      cell1.style.border = '1px solid #ccc'; // Matched with th style
-      cell1.style.fontSize = '1em'; // Matched with th style
+      // Style the cells
+      cell1.style.padding = '10px';
+      cell1.style.border = '1px solid #ccc';
+      cell1.style.fontSize = '1em';
+      cell1.style.display = 'flex';
+      cell1.style.alignItems = 'center';
 
-      cell2.style.padding = '10px'; // Matched with th style
-      cell2.style.border = '1px solid #ccc'; // Matched with th style
-      cell2.style.fontSize = '1em'; // Matched with th style
+      cell2.style.padding = '10px';
+      cell2.style.border = '1px solid #ccc';
+      cell2.style.fontSize = '1em';
 
-      cell1.innerText = prayer.name;
+      // Create and style the prayer icon
+      const icon = document.createElement('img');
+      icon.src = `../../assets/icon/${prayer.name.toLowerCase()}-white.svg`;
+      icon.alt = `${prayer.name} icon`;
+      icon.style.width = '20px';
+      icon.style.height = '20px';
+      icon.style.marginRight = '5px';
+
+      // Append the icon and prayer name to the first cell
+      cell1.appendChild(icon);
+      cell1.appendChild(document.createTextNode(prayer.name));
+
+      // Format and set the prayer time in the second cell
       cell2.innerText = this.convertTimeToDate(prayer.time).toLocaleTimeString(
         'ms-MY',
         {
