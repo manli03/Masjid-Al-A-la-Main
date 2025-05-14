@@ -4,7 +4,8 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
   <!-- Header -->
-  <div class="d-flex align-items-center justify-content-between header-location" style="position: relative; width: 100%; margin: 0;">
+  <div class="d-flex align-items-center justify-content-between header-location"
+    style="position: relative; width: 100%; margin: 0;">
     <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
       <!-- Location Name -->
       <div (click)="selectLocation()" class="d-flex align-items-center location" style="padding: 10px; margin: 15px 0;">
@@ -12,16 +13,18 @@
           style="font-size: 24px; margin: 0 10px 0 5px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span *ngIf="loaded; else skeletonLocation"
           style="font-weight: 500; max-width: 60vw; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          {{ currentLocation }}
+          Zon: {{ currentLocation }}
         </span>
         <ng-template #skeletonLocation>
-          <ion-skeleton-text [animated]="true" style="width: 65vw;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" style="width: 60vw; height: 20px;"></ion-skeleton-text>
         </ng-template>
       </div>
     </div>
     <!-- Notification Icon -->
-    <div class="d-flex justify-content-end bell" style="position: absolute; right: 0; font-size: 24px; color: var(--ion-color-primary);">
-      <ion-icon name="notifications-outline" style="vertical-align: middle;" (click)="openNotificationSettings()"></ion-icon>
+    <div class="d-flex justify-content-end bell"
+      style="position: absolute; right: 0; font-size: 24px; color: var(--ion-color-primary);">
+      <ion-icon name="notifications-outline" style="vertical-align: middle;"
+        (click)="openNotificationSettings()"></ion-icon>
     </div>
   </div>
 
@@ -46,6 +49,11 @@
 
   <!-- Current Time Section -->
   <div class="prayer-time" (click)="navigateToPrayerTimes()">
+    <div class="section-header">
+      <ion-icon name="time-outline"
+        style="vertical-align: top; margin-bottom: 10px; margin-right: 8px; font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
+      <h5 style="display: inline-block; vertical-align: top;">Waktu Solat Hari Ini</h5>
+    </div>
     <ion-row>
       <ion-col>
         <span *ngIf="loaded; else skeletonDate">{{ currentHijriDate }}</span>
@@ -62,7 +70,8 @@
         </ng-template>
       </ion-col>
       <ion-col class="text-end">
-        <img *ngIf="loaded; else skeletonIcon" alt="Drum icon" src="../../assets/icon/homegong.png" width="100" height="auto" />
+        <img *ngIf="loaded; else skeletonIcon" alt="Drum icon" src="../../assets/icon/homegong.png" width="100"
+          height="auto" />
         <ng-template #skeletonIcon>
           <ion-skeleton-text [animated]="true" style="width: 100px; height: 100px;"></ion-skeleton-text>
         </ng-template>
@@ -100,9 +109,10 @@
 
   <!-- Prayer Tracker -->
   <div class="prayer-tracker">
-    <div class="prayer-tracker-header">
-      <ion-icon name="notifications-outline" style="vertical-align: top; margin-bottom: 10px; font-size: 25px;"></ion-icon>
-      <h5 style="display: inline-block; vertical-align: top;">Peringatan Waktu Solat</h5>
+    <div class="section-header">
+      <ion-icon name="notifications-outline"
+        style="vertical-align: top; margin-bottom: 10px; margin-right: 8px; font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
+      <h5 style="display: inline-block; vertical-align: top;">Set Peringatan Solat</h5>
     </div>
     <ion-row class="tracker-icons" style="display: flex; justify-content: space-around; margin: 15px 0;">
       <ion-col (click)="togglePrayerNotification('subuh')" style="text-align: center;">
@@ -134,7 +144,7 @@
   </div>
 
   <!-- Qibla Compass -->
-   <div class="qibla-compass">
-     <app-qibla-compass></app-qibla-compass>
-   </div>
+  <div class="qibla-compass">
+    <app-qibla-compass></app-qibla-compass>
+  </div>
 </ion-content>
