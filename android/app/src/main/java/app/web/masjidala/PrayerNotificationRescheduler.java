@@ -17,6 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.TimeZone;
 
 public class PrayerNotificationRescheduler {
     private static final String TAG = "PrayerNotifRescheduler";
@@ -29,6 +30,7 @@ public class PrayerNotificationRescheduler {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String notifJson = prefs.getString(PREF_KEY_NOTIF, null);
         String timesJson = prefs.getString(PREF_KEY_TIMES, null);
+        final String DEFAULT_PRAYER_CHANNEL_ID = "default_prayer_channel";
 
         if (notifJson == null || timesJson == null) {
             Log.w(TAG, "No notification or prayer times preferences found.");
@@ -40,7 +42,7 @@ public class PrayerNotificationRescheduler {
             JSONArray enabledPrayers = notifSettings.optJSONArray("enabledPrayers");
             int advanceMinutes = notifSettings.optInt("notificationAdvance", 0);
             String channelId = notifSettings.optString("currentChannelId", null);
-            if (channelId.isEmpty()) {
+            if (channelId == null || channelId.isEmpty()) {
                 Log.w(TAG, "No currentChannelId found in preferences. Prayer notifications will not be scheduled.");
                 return;
             }
@@ -66,12 +68,30 @@ public class PrayerNotificationRescheduler {
                     long prayerTimeMillis = convertToMillis(dateStr, timeStr);
                     prayerTimeMillis -= (long) advanceMinutes * 60 * 1000;
                     if (prayerTimeMillis > now) {
-                        schedulePrayerAlarm(context, prayerTimeMillis, requestCodeBase + scheduledCount, prayerName, channelId);
+                        // Use default channel for Imsak, Syuruk, Dhuha
+                        String usedChannelId = channelId;
+                        if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
+                            usedChannelId = DEFAULT_PRAYER_CHANNEL_ID;
+                        }
+                        schedulePrayerAlarm(context, prayerTimeMillis, requestCodeBase + scheduledCount, prayerName, usedChannelId);
                         scheduledCount++;
                         break; // Only schedule the next one for this prayer
                     }
                 }
             }
+
+            // Update lastScheduled timestamp
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+            String isoTimestamp = sdf.format(new Date());
+
+            // Save the timestamp
+            notifSettings.put("lastScheduled", isoTimestamp);
+
+            prefs.edit()
+            .putString(PREF_KEY_NOTIF, notifSettings.toString())
+            .apply();
+
             Log.i(TAG, "Rescheduled " + scheduledCount + " prayer notifications.");
         } catch (JSONException e) {
             Log.e(TAG, "JSON parse error: ", e);
@@ -142,8 +162,8 @@ public class PrayerNotificationRescheduler {
         intent.putExtra("channel_id", channelId);
         intent.putExtra("title", "Waktu " + prayerName);
         // Use the same message logic as the service
-        if ("Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
-            intent.putExtra("message", "Sekarang masa " + prayerName);
+        if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
+            intent.putExtra("message", "Sekarang waktu " + prayerName);
         } else {
             intent.putExtra("message", "Sekarang waktu untuk solat " + prayerName);
         }

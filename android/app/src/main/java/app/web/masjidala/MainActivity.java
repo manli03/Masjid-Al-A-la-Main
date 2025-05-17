@@ -30,6 +30,11 @@ public class MainActivity extends BridgeActivity {
 
     DailyNotificationScheduling.scheduleDailyCheck(this);
 //    PreferenceLogger.logAllPreferences(this);
+
+    // Just open the app normally when notification is clicked
+    if (getIntent() != null && getIntent().hasExtra("openPage")) {
+      Log.d(TAG, "App opened from notification");
+    }
   }
 
   @Override

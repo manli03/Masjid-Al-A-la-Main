@@ -16,29 +16,31 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
         String channelId = intent.getStringExtra("channel_id");
         String title = intent.getStringExtra("title");
         String message = intent.getStringExtra("message");
-        String sound = intent.getStringExtra("sound");
 
-        // Build notification
+        // Create an intent to open the app to prayer times page 
+        Intent launchIntent = context.getPackageManager().getLaunchIntentForPackage("app.web.masjidala");
+        if (launchIntent != null) {
+            // Add flags to create new task and clear top
+            launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            // Add data to indicate we want to show prayer times
+            launchIntent.putExtra("openPage", "prayerTimes");
+        }
+
+        // Create the pending intent
+        PendingIntent contentIntent = PendingIntent.getActivity(
+            context, 
+            0,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
-                .setSmallIcon(R.mipmap.ic_launcher) // Ensure this resource exists
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true);
-
-        // Set custom sound if provided
-        if (sound != null && !sound.equals("default")) {
-            // You may need to map 'sound' to a URI in your res/raw folder
-            int soundResId = context.getResources().getIdentifier(sound, "raw", context.getPackageName());
-            if (soundResId != 0) {
-                Uri soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + soundResId);
-                builder.setSound(soundUri);
-            } else {
-                builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
-            }
-        } else {
-            builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION));
-        }
+                .setAutoCancel(true)
+                .setContentIntent(contentIntent);
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         int notificationId = (int) System.currentTimeMillis();

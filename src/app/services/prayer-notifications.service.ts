@@ -56,6 +56,7 @@ export class PrayerNotificationsService {
 
   // Notification channel ID
   private readonly CHANNEL_ID_PREFIX = 'prayer_times_';
+  private readonly DEFAULT_PRAYER_CHANNEL_ID = 'default_prayer_channel';
   private currentChannelId: string = '';
 
   // Track if notification operations are in progress to prevent double-clicking
@@ -194,6 +195,9 @@ export class PrayerNotificationsService {
             this.currentChannelId = existingChannel.id;
           }
         }
+
+        // Create default prayer channel
+        await this.createDefaultPrayerChannel();
       }
 
       // Check if we need to schedule/reschedule notifications
@@ -477,13 +481,16 @@ export class PrayerNotificationsService {
     }
 
     try {
-      // Delete all existing channels except post notification channel
+      // List all existing channels
       const channels = await LocalNotifications.listChannels();
       console.log('Current channels before deletion:', channels.channels);
 
-      // Delete all channels except post notification channel
+      // Delete all channels except post notification channel and default prayer notification channel
       for (const channel of channels.channels) {
-        if (channel.id !== this.POST_NOTIFICATION_CHANNEL_ID) {
+        if (
+          channel.id !== this.POST_NOTIFICATION_CHANNEL_ID &&
+          channel.id !== this.DEFAULT_PRAYER_CHANNEL_ID
+        ) {
           console.log(`Deleting channel: ${channel.id}`);
           await LocalNotifications.deleteChannel({ id: channel.id });
         }
@@ -542,6 +549,33 @@ export class PrayerNotificationsService {
     } catch (error) {
       console.error('Error creating notification channel:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Create default prayer notification channel
+   */
+  private async createDefaultPrayerChannel(): Promise<void> {
+    if (Capacitor.getPlatform() !== 'android') return;
+    try {
+      const channels = await LocalNotifications.listChannels();
+      if (
+        !channels.channels.some((c) => c.id === this.DEFAULT_PRAYER_CHANNEL_ID)
+      ) {
+        await LocalNotifications.createChannel({
+          id: this.DEFAULT_PRAYER_CHANNEL_ID,
+          name: 'Notifikasi Waktu Biasa',
+          description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
+          importance: 3,
+          visibility: 1,
+          vibration: true,
+          lights: true,
+          // No custom sound: use default
+        });
+        console.log('Default prayer notification channel created');
+      }
+    } catch (error) {
+      console.error('Error creating default prayer channel:', error);
     }
   }
 
@@ -803,25 +837,37 @@ export class PrayerNotificationsService {
               10,
             );
 
+            // Determine channel: default for Imsak, Syuruk, Dhuha; custom for others
+            let channelId = this.currentChannelId;
+            if (
+              prayerName === 'Imsak' ||
+              prayerName === 'Syuruk' ||
+              prayerName === 'Dhuha'
+            ) {
+              channelId = this.DEFAULT_PRAYER_CHANNEL_ID;
+            }
+
             // Prepare notification options based on settings
             const notificationOptions: any = {
               id: notificationId,
               title: `Waktu ${prayerName}`,
               body:
-                prayerName === 'Syuruk' || prayerName === 'Dhuha'
-                  ? `Sekarang masa ${prayerName}`
+                prayerName === 'Imsak' ||
+                prayerName === 'Syuruk' ||
+                prayerName === 'Dhuha'
+                  ? `Sekarang waktu ${prayerName}`
                   : `Sekarang waktu untuk solat ${prayerName}`,
               schedule: { at: prayerDateTime, allowWhileIdle: true },
-              channelId: this.currentChannelId,
+              channelId: channelId,
               autoCancel: true,
               ongoing: false,
             };
 
             // Extra Android options - use the channel ID consistently
             if (Capacitor.getPlatform() === 'android') {
-              notificationOptions.channelId = this.currentChannelId;
+              notificationOptions.channelId = channelId;
               notificationOptions.extra = {
-                channel_id: this.currentChannelId,
+                channel_id: channelId,
               };
             }
 
@@ -829,7 +875,7 @@ export class PrayerNotificationsService {
             scheduledCount++;
 
             console.log(
-              `Scheduled notification for ${prayerName} on ${prayerDateTime.toLocaleString()}`,
+              `Scheduled notification for ${prayerName} on ${prayerDateTime.toLocaleString()} (channel: ${channelId})`,
             );
           }
         }

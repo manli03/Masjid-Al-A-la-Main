@@ -150,9 +150,6 @@ export class HomePage implements OnDestroy {
       // Load prayer data
       await this.loadPrayerData();
 
-      // Initialize notifications service
-      await this.prayerNotificationsService.initialize();
-
       // Subscribe to the hardware back button on the Home page
       this.backButtonSubscription =
         this.platform.backButton.subscribeWithPriority(10, async () => {
