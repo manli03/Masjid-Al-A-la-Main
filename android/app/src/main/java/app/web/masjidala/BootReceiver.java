@@ -16,10 +16,13 @@ public class BootReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         try {
             if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_BOOT_COMPLETED)) {
-                Log.d(TAG, "Device booted, rescheduling prayer notifications");
+              Log.d(TAG, "Device booted, rescheduling prayer notifications");
 
-                // Reschedule notifications
-                PrayerNotificationRescheduler.rescheduleAll(context);
+              // Reschedule next day's check first
+              DailyNotificationScheduling.scheduleDailyCheck(context);
+
+              // Reschedule notifications
+              PrayerNotificationRescheduler.rescheduleAll(context);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error in boot receiver: " + e.getMessage());

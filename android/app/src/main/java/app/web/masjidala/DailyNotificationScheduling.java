@@ -58,7 +58,10 @@ public class DailyNotificationScheduling {
               PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
-            // Set repeating alarm
+            // 🔥 Cancel any existing alarm
+            alarmManager.cancel(pendingIntent);
+
+            // Schedule for 00:05 AM
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.HOUR_OF_DAY, 0); // Midnight
             calendar.set(Calendar.MINUTE, 5);      // 5 minutes after midnight
