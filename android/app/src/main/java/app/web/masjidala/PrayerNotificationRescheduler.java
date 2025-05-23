@@ -173,5 +173,7 @@ public class PrayerNotificationRescheduler {
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
     }
 
-
+    static void callCancelMethod(Context context) {
+      cancelAllScheduledAlarms(context);
+    }
 }

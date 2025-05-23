@@ -1,5 +1,6 @@
 package app.web.masjidala;
 
+import android.content.Context;
 import android.media.MediaPlayer;
 import android.util.Log;
 
@@ -39,29 +40,29 @@ public class AndroidAudio extends Plugin {
                 call.reject("Resource not found: " + resourceName);
                 return;
             }
-            
+
             Log.d(TAG, "Creating MediaPlayer for resource: " + resourceName + " (ID: " + resourceId + ")");
-            
+
             // Create MediaPlayer from resource ID directly
             mediaPlayer = MediaPlayer.create(getContext(), resourceId);
-            
+
             if (mediaPlayer == null) {
                 Log.e(TAG, "Failed to create MediaPlayer for resource: " + resourceName);
                 call.reject("Failed to create MediaPlayer for resource: " + resourceName);
                 return;
             }
-            
+
             // Set completion listener
             mediaPlayer.setOnCompletionListener(mp -> {
                 Log.d(TAG, "Sound playback completed");
                 // Clean up when sound completes
                 stopCurrentSound();
             });
-            
+
             // Start playback
             mediaPlayer.start();
             Log.d(TAG, "Started playing sound: " + resourceName);
-            
+
             // Return success
             JSObject ret = new JSObject();
             ret.put("success", true);
@@ -84,7 +85,7 @@ public class AndroidAudio extends Plugin {
             call.reject("Error stopping sound: " + e.getMessage(), e);
         }
     }
-    
+
     private void stopCurrentSound() {
         if (mediaPlayer != null) {
             try {
@@ -99,16 +100,16 @@ public class AndroidAudio extends Plugin {
             }
         }
     }
-    
+
     private int getResourceId(String resourceName) {
         try {
             // Get the raw resource ID from the name
             int resId = getContext().getResources().getIdentifier(
-                resourceName, 
-                "raw", 
+                resourceName,
+                "raw",
                 getContext().getPackageName()
             );
-            
+
             Log.d(TAG, "Resource ID for " + resourceName + ": " + resId);
             return resId;
         } catch (Exception e) {
@@ -116,9 +117,22 @@ public class AndroidAudio extends Plugin {
             return 0;
         }
     }
-    
+
+    @PluginMethod
+    public void cancelNotification(PluginCall call) {
+      try {
+        PrayerNotificationRescheduler.callCancelMethod(getContext());
+        JSObject ret = new JSObject();
+        ret.put("success", true);
+        call.resolve(ret);
+      } catch (Exception e) {
+        Log.e(TAG, "Error cancelling notifications: " + e.getMessage());
+        call.reject("Error cancelling notifications: " + e.getMessage(), e);
+      }
+    }
+
     @Override
     protected void handleOnDestroy() {
         stopCurrentSound();
     }
-} 
+}

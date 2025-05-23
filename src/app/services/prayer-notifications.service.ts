@@ -21,6 +21,7 @@ export interface PrayerNotificationSettings {
 interface AndroidAudioPlugin {
   playSound(resourceName: string): void;
   stopSound(): void;
+  cancelNotification(): void;
 }
 
 // Extend Window interface to include our custom plugin
@@ -735,6 +736,7 @@ export class PrayerNotificationsService {
 
       // Cancel any existing scheduled notifications
       await this.cancelAllNotifications();
+      await AndroidAudio.cancelNotification();
 
       // Get notification settings
       const settings = await this.getNotificationSettings();
