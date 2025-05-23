@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.util.Log;
@@ -31,11 +33,42 @@ public class MainActivity extends BridgeActivity {
     DailyNotificationScheduling.scheduleDailyCheck(this);
 //    PreferenceLogger.logAllPreferences(this);
 
-    // Just open the app normally when notification is clicked
-    if (getIntent() != null && getIntent().hasExtra("openPage")) {
-      Log.d(TAG, "App opened from notification");
+    // Handle deep link
+    Intent intent = getIntent();
+    if (intent != null && intent.hasExtra("deep_link")) {
+      String deepLink = intent.getStringExtra("deep_link");
+      Log.d(TAG, "Received deep link: " + deepLink);
+
+      // Wait for WebView to be ready
+      getBridge().getWebView().postDelayed(() -> {
+        String js = "setTimeout(function() { if (window.handleDeepLink) { window.handleDeepLink('" + deepLink + "'); } }, 1000);";
+        getBridge().getWebView().evaluateJavascript(js, null);
+      }, 1000); // Delay 1s to wait for WebView to finish loading
     }
   }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+
+    Intent intent = getIntent();
+    if (intent != null && intent.hasExtra("deep_link")) {
+      String route = intent.getStringExtra("deep_link");
+      Log.d("DeepLink", "Received deepLink route: " + route);
+
+      if (route != null) {
+        // Inject JS into the WebView
+        new Handler(Looper.getMainLooper()).post(() -> {
+          String jsCode = "window.handleDeepLink && window.handleDeepLink('" + route + "');";
+          getBridge().getWebView().evaluateJavascript(jsCode, null);
+        });
+
+        // Prevent repeating the action next time
+        intent.removeExtra("openPage");
+      }
+    }
+  }
+
 
   @Override
   public void onStart() {

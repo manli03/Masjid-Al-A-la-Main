@@ -27,6 +27,10 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private updateCheck: CheckUpdateService,
   ) {
+    (window as any).handleDeepLink = (path: string) => {
+      console.log('Native deep link received from constructor:', path);
+      this.router.navigateByUrl(path);
+    };
     this.initializeApp();
   }
 
@@ -146,7 +150,13 @@ export class AppComponent implements OnInit {
     if (Capacitor.isNativePlatform()) {
       App.addListener('appUrlOpen', (event) => {
         console.log('App opened with URL:', event.url);
-        this.handleOpenUrl(event.url);
+        const route = new URL(event.url).pathname;
+        console.log('Parsed route:', route);
+        if (route === '/tabs/prayerTimes') {
+          this.router.navigateByUrl(route);
+        } else {
+          this.handleOpenUrl(event.url);
+        }
       });
     }
   }
