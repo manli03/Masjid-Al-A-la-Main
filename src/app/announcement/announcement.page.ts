@@ -12,6 +12,7 @@ import { Subscription } from 'rxjs';
 import { AnnouncementService } from '../services/announcement.service';
 import { AuthService } from '../services/auth.service';
 import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { ImageViewerModalComponent } from '../component/image-viewer-modal/image-viewer-modal.component';
 
 // Define interface for the announcement item
@@ -729,18 +730,51 @@ export class announcementPage implements OnInit, OnDestroy {
 
     try {
       const shareUrl = `https://masjidala.web.app/announcement/${this.selectedArticle.id}`;
-      const shareText = `Lihat Pengumuman Penting Dari Masjid Al-A'la!\n\n"${this.selectedArticle.title
+      const title = this.selectedArticle.title
         .split(' ')
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(
-          ' ',
-        )}"\n\nSila log masuk ke aplikasi untuk melihat pengumuman ini.\n${shareUrl}`;
+        .join(' ');
+      // Compose the full announcement content
+      const content = this.selectedArticle.content;
+      let shareText = `Lihat Pengumuman Penting Dari Masjid Al-A'la!\n\n"${title}"`;
+      if (content) {
+        shareText += `\n\n${content}`;
+      }
+      shareText += `\n\nSila log masuk ke aplikasi untuk melihat pengumuman ini.\n${shareUrl}`;
 
-      const shareOptions = {
+      // If image is present, include it in the share options (if supported)
+      const shareOptions: any = {
         title: "Pengumuman Masjid Al-A'la",
         text: shareText,
         dialogTitle: 'Kongsi Pengumuman',
       };
+
+      if (this.selectedArticle.imageUrl) {
+        // If imageUrl is base64, save it to cache and share as a file
+        if (this.selectedArticle.imageUrl.startsWith('data:image/')) {
+          try {
+            // Generate a unique filename
+            const fileName = `announcement_${this.selectedArticle.id}_${Date.now()}.png`;
+            // Remove the prefix from base64 string
+            const base64Data = this.selectedArticle.imageUrl.split(',')[1];
+            // Write the file to cache
+            const savedFile = await Filesystem.writeFile({
+              path: fileName,
+              data: base64Data,
+              directory: Directory.Cache,
+              recursive: true
+            });
+            // Share using the files property
+            shareOptions.files = [savedFile.uri];
+          } catch (err) {
+            console.error('Gagal menyimpan imej untuk dikongsi:', err);
+            this.presentToast('Gagal menyimpan imej untuk dikongsi.');
+          }
+        } else {
+          // For remote URLs, fallback to url (may not preview on all platforms)
+          shareOptions.url = this.selectedArticle.imageUrl;
+        }
+      }
 
       await Share.share(shareOptions);
     } catch (error: any) {
