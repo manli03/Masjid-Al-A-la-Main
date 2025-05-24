@@ -120,15 +120,21 @@ public class AndroidAudio extends Plugin {
 
     @PluginMethod
     public void cancelNotification(PluginCall call) {
-      try {
-        PrayerNotificationRescheduler.callCancelMethod(getContext());
-        JSObject ret = new JSObject();
-        ret.put("success", true);
-        call.resolve(ret);
-      } catch (Exception e) {
-        Log.e(TAG, "Error cancelling notifications: " + e.getMessage());
-        call.reject("Error cancelling notifications: " + e.getMessage(), e);
-      }
+        Log.d(TAG, "cancelNotification called");
+        try {
+            Context context = this.getContext();
+            if (context == null) {
+                Log.e(TAG, "Context is null");
+                call.reject("Context is null");
+                return;
+            }
+            PrayerNotificationRescheduler.callCancelMethod(context);
+            call.resolve(); // Resolve the call after successful cancellation
+        } catch (Exception e) {
+            Log.e(TAG, "Error cancelling notifications: " + e.getMessage());
+            e.printStackTrace();
+            call.reject("Error cancelling notifications: " + e.getMessage(), e);
+        }
     }
 
     @Override

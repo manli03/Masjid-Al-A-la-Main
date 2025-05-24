@@ -24,6 +24,7 @@ public class PrayerNotificationRescheduler {
     private static final String PREFS_NAME = "CapacitorStorage";
     private static final String PREF_KEY_NOTIF = "prayer_notifications";
     private static final String PREF_KEY_TIMES = "yearlyPrayerTimes";
+    private static final String PREF_KEY_SCHEDULED = "scheduled_notifications";
 
     // Call this method when you need to reschedule
     public static void rescheduleAll(Context context) {
@@ -54,10 +55,10 @@ public class PrayerNotificationRescheduler {
             cancelAllScheduledAlarms(context);
 
             // Channel is assumed to already exist; do not recreate it.
-
             long now = System.currentTimeMillis();
             int requestCodeBase = 1000; // Arbitrary base for unique PendingIntent
             int scheduledCount = 0;
+            JSONArray scheduledNotifications = new JSONArray(); // Track scheduled notifications
 
             for (int i = 0; i < Objects.requireNonNull(enabledPrayers).length(); i++) {
                 String prayerName = enabledPrayers.getString(i);
@@ -73,12 +74,22 @@ public class PrayerNotificationRescheduler {
                         if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
                             usedChannelId = DEFAULT_PRAYER_CHANNEL_ID;
                         }
-                        schedulePrayerAlarm(context, prayerTimeMillis, requestCodeBase + scheduledCount, prayerName, usedChannelId);
+                        int requestCode = requestCodeBase + scheduledCount;
+                        schedulePrayerAlarm(context, prayerTimeMillis, requestCode, prayerName, usedChannelId);
+                        // Track the scheduled notification
+                        JSONObject notification = new JSONObject();
+                        notification.put("requestCode", requestCode);
+                        notification.put("prayerName", prayerName);
+                        notification.put("time", prayerTimeMillis);
+                        scheduledNotifications.put(notification);
                         scheduledCount++;
                         break; // Only schedule the next one for this prayer
                     }
                 }
             }
+
+            // Save the scheduled notifications for future cancellation
+            prefs.edit().putString(PREF_KEY_SCHEDULED, scheduledNotifications.toString()).apply();
 
             // Update lastScheduled timestamp
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
@@ -87,10 +98,7 @@ public class PrayerNotificationRescheduler {
 
             // Save the timestamp
             notifSettings.put("lastScheduled", isoTimestamp);
-
-            prefs.edit()
-            .putString(PREF_KEY_NOTIF, notifSettings.toString())
-            .apply();
+            prefs.edit().putString(PREF_KEY_NOTIF, notifSettings.toString()).apply();
 
             Log.i(TAG, "Rescheduled " + scheduledCount + " prayer notifications.");
         } catch (JSONException e) {
@@ -102,25 +110,33 @@ public class PrayerNotificationRescheduler {
     private static void cancelAllScheduledAlarms(Context context) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String notifJson = prefs.getString(PREF_KEY_NOTIF, null);
-        if (notifJson == null) return;
+        String scheduledJson = prefs.getString(PREF_KEY_SCHEDULED, null);
+        if (scheduledJson == null) {
+            Log.d(TAG, "No scheduled notifications found to cancel.");
+            return;
+        }
+
         try {
-            JSONObject notifSettings = new JSONObject(notifJson);
-            JSONArray enabledPrayers = notifSettings.optJSONArray("enabledPrayers");
-            if (enabledPrayers == null) return;
-            int requestCodeBase = 1000;
-            for (int i = 0; i < enabledPrayers.length(); i++) {
-                for (int k = 0; k < 10; k++) { // Cancel up to 10 future alarms per prayer
-                    int requestCode = requestCodeBase + i + k;
-                    PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                        context, requestCode, new Intent(context, PrayerAlarmReceiver.class),
-                        PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
-                    );
-                    if (pendingIntent != null && alarmManager != null) {
-                        alarmManager.cancel(pendingIntent);
-                    }
+            JSONArray scheduledNotifications = new JSONArray(scheduledJson);
+            int cancelCount = 0;
+
+            for (int i = 0; i < scheduledNotifications.length(); i++) {
+                JSONObject notification = scheduledNotifications.getJSONObject(i);
+                int requestCode = notification.getInt("requestCode");
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                    context, requestCode, new Intent(context, PrayerAlarmReceiver.class),
+                    PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+                );
+                if (pendingIntent != null && alarmManager != null) {
+                    alarmManager.cancel(pendingIntent);
+                    pendingIntent.cancel();
+                    cancelCount++;
                 }
             }
+
+            // Clear the scheduled notifications list
+            prefs.edit().remove(PREF_KEY_SCHEDULED).apply();
+            Log.d(TAG, "Cancelled " + cancelCount + " notifications.");
         } catch (JSONException e) {
             Log.e(TAG, "Error cancelling alarms: ", e);
         }
