@@ -8,7 +8,7 @@ import { lastValueFrom } from 'rxjs';
 })
 export class CheckUpdateService {
   private apkUrl =
-    'https://oc-manli.duckdns.org/masjidala/latest-masjidala.apk';
+    'https://bit.ly/AppMasjidAla';
   private updateJsonUrl = 'https://oc-manli.duckdns.org/masjidala/update.json';
   private localUpdatePath = 'assets/update.json';
   private embeddedModified: string | null = null;
