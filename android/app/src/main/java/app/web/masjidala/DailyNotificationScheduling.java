@@ -61,11 +61,11 @@ public class DailyNotificationScheduling {
             // 🔥 Cancel any existing alarm
             alarmManager.cancel(pendingIntent);
 
-            // Schedule for 00:05 AM
+            // Schedule for 00:00 AM
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.HOUR_OF_DAY, 0); // Midnight
-            calendar.set(Calendar.MINUTE, 5);      // 5 minutes after midnight
-            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MINUTE, 0);      // 0 minutes
+            calendar.set(Calendar.SECOND, 0);      // 0 seconds
 
             // If time has already passed today, set for tomorrow
             if (calendar.getTimeInMillis() < System.currentTimeMillis()) {

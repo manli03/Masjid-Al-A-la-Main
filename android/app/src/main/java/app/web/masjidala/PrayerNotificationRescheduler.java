@@ -92,13 +92,13 @@ public class PrayerNotificationRescheduler {
             prefs.edit().putString(PREF_KEY_SCHEDULED, scheduledNotifications.toString()).apply();
 
             // Update lastScheduled timestamp
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
-            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            String isoTimestamp = sdf.format(new Date());
-
-            // Save the timestamp
-            notifSettings.put("lastScheduled", isoTimestamp);
-            prefs.edit().putString(PREF_KEY_NOTIF, notifSettings.toString()).apply();
+//            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
+//            sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+//            String isoTimestamp = sdf.format(new Date());
+//
+//            // Save the timestamp
+//            notifSettings.put("lastScheduled", isoTimestamp);
+//            prefs.edit().putString(PREF_KEY_NOTIF, notifSettings.toString()).apply();
 
             Log.i(TAG, "Rescheduled " + scheduledCount + " prayer notifications.");
         } catch (JSONException e) {
