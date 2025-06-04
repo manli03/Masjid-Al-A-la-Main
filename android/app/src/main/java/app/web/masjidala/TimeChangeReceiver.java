@@ -10,12 +10,13 @@ public class TimeChangeReceiver extends BroadcastReceiver {
   public void onReceive(Context context, Intent intent) {
     String action = intent.getAction();
     if (Intent.ACTION_TIME_CHANGED.equals(action) || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
-      // TODO: Reschedule next prayer time alarm here
-      Log.d("TimeChangeReceiver", "Time/Timezone changed, rescheduling prayer notification...");
+      Log.d("TimeChangeReceiver", "Time/Timezone changed, triggering full rescheduling.");
 
-      // Call alarm scheduling
+      // Full reschedule on time/timezone changes
       PrayerNotificationRescheduler.rescheduleAll(context);
-      Log.d("TimeChangeReceiver", "Prayer notification rescheduled");
+      DailyNotificationScheduling.scheduleDailyCheck(context); // Also reset the daily 12 AM check
+
+      Log.d("TimeChangeReceiver", "All notifications and daily check rescheduled.");
     }
   }
 }

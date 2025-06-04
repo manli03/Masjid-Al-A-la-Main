@@ -17,7 +17,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
       PowerManager.PARTIAL_WAKE_LOCK,
       "MasjidAla::PrayerAlarmWakeLock"
     );
-    wakeLock.acquire(3 * 60 * 1000L); // 3 minutes max, enough to post notification
+    wakeLock.acquire(30 * 1000L); // 30 seconds max, enough to post notification
 
     try {
       String channelId = intent.getStringExtra("channel_id");

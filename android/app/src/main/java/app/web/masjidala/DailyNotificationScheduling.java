@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
-import android.provider.Settings;
 import android.util.Log;
 
 import java.util.Calendar;
@@ -34,16 +33,11 @@ public class DailyNotificationScheduling {
             }
 
             // Check if the app can schedule exact alarms
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                if (!alarmManager.canScheduleExactAlarms()) {
-                    // Permission is not granted, request it
-                    Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    context.startActivity(intent);
-                    return; // Exit if permission is not granted
-                } else {
-                    Log.d(TAG, "Exact alarms permission is granted");
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                Log.w(TAG, "Exact alarms permission NOT granted. Daily check might be delayed by the OS.");
+              // We will proceed with setAndAllowWhileIdle, but warn the developer.
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                Log.d(TAG, "Exact alarms permission IS granted. Daily check should be punctual.");
             }
 
             // Create intent for notification check
@@ -53,7 +47,7 @@ public class DailyNotificationScheduling {
             // Create pending intent
             PendingIntent pendingIntent = PendingIntent.getBroadcast(
                     context,
-                    0,
+                    0, // Using 0 as request code for this single daily check
                     intent,
               PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
@@ -66,21 +60,21 @@ public class DailyNotificationScheduling {
             calendar.set(Calendar.HOUR_OF_DAY, 0); // Midnight
             calendar.set(Calendar.MINUTE, 0);      // 0 minutes
             calendar.set(Calendar.SECOND, 0);      // 0 seconds
+            calendar.set(Calendar.MILLISECOND, 0); // Precise midnight
 
             // If time has already passed today, set for tomorrow
             if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
                 calendar.add(Calendar.DAY_OF_YEAR, 1);
             }
 
-            Log.d(TAG, "Setting alarm for " + calendar.getTime().toString());
+            Log.d(TAG, "Setting daily check alarm for " + calendar.getTime().toString());
 
-            // Use setExactAndAllowWhileIdle for newer Android versions
-            alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    pendingIntent
-            );
-            Log.d(TAG, "Set exact and allow while idle alarm");
+            // Use setExactIfPossible logic, but without attempting to request permission here
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+              alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            } else {
+              alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            }
 
             // Save the scheduled time
             SharedPreferences preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);

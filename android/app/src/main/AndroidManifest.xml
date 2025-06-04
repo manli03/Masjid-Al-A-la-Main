@@ -7,7 +7,7 @@
   <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
   <uses-feature android:name="android.hardware.location.gps"
     android:required="false" />
-  <uses-permission android:maxSdkVersion="32" android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -60,6 +60,8 @@
           android:enabled="true">
           <intent-filter>
               <action android:name="android.intent.action.BOOT_COMPLETED" />
+              <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+              <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
           </intent-filter>
       </receiver>
 
@@ -72,7 +74,9 @@
           </intent-filter>
       </receiver>
 
-    <receiver android:name=".PrayerAlarmReceiver" android:exported="false"/>
+    <receiver android:name=".PrayerAlarmReceiver"
+      android:exported="false"
+      android:directBootAware="true" /> <!-- directBootAware helps for alarms before user unlock -->
 
       <!-- reschedule the next alarm with updated times-->
 <!--      <receiver-->

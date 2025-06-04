@@ -1,6 +1,7 @@
 package app.web.masjidala;
 
 import android.annotation.SuppressLint;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
@@ -78,6 +79,7 @@ public class MainActivity extends BridgeActivity {
 
   private void showStartupDialogs() {
     maybeShowAutostartSettingsOnce();
+    maybeRequestExactAlarmPermissionOnce();
   }
 
   private void maybeShowAutostartSettingsOnce() {
@@ -187,6 +189,46 @@ public class MainActivity extends BridgeActivity {
         .show();
     } else {
       Log.d(TAG, "App is already exempted from battery optimization");
+    }
+  }
+
+  private void maybeRequestExactAlarmPermissionOnce() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // For Android 12 (S) and above
+      AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+      if (alarmManager == null) {
+        Log.e(TAG, "AlarmManager service not available.");
+        return;
+      }
+
+      SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+
+      if (!alarmManager.canScheduleExactAlarms()) {
+        Log.d(TAG, "Exact alarm permission not granted. Prompting user.");
+        new AlertDialog.Builder(this)
+          .setTitle("Ketepatan Notifikasi Azan")
+          .setMessage("Untuk memastikan notifikasi azan dihantar tepat pada waktunya, sila benarkan aplikasi ini untuk menjadualkan penggera yang tepat. Ini membantu notifikasi tidak lewat.")
+          .setPositiveButton("Buka Setting", (dialog, which) -> {
+            try {
+              Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+              intent.setData(Uri.parse("package:" + getPackageName()));
+              intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+              startActivity(intent);
+            } catch (Exception e) {
+              Log.e(TAG, "Unable to open exact alarm settings: " + e.getMessage());
+              startActivity(new Intent(Settings.ACTION_SETTINGS)); // Fallback
+            }
+          })
+          .setNegativeButton("Abaikan", (dialog, which) -> {
+          })
+          .setCancelable(false)
+          .show();
+      } else if (alarmManager.canScheduleExactAlarms()) {
+        Log.d(TAG, "Exact alarm permission already granted.");
+      } else {
+        Log.d(TAG, "Exact alarm permission prompt already shown.");
+      }
+    } else {
+      Log.d(TAG, "Exact alarm permission not applicable for this Android version (<S).");
     }
   }
 }
