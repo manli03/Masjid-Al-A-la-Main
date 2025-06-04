@@ -442,38 +442,4 @@ export class AuthService {
       throw error;
     }
   }
-
-  /**
-   * Logs out the user by removing their data from storage
-   */
-  // async logout(): Promise<boolean> {
-  //   try {
-  //     // Get user email before clearing storage
-  //     const userData = await this.storageService.get('user');
-  //     const userEmail = userData ? userData.email : null;
-
-  //     // Clear all stored data
-  //     await this.storageService.clearAllStorage();
-
-  //     // Clear FCM token on logout if possible
-  //     if (userEmail) {
-  //       try {
-  //         await this.http
-  //           .post(`${this.apiUrl}/auth.php`, {
-  //             action: 'logout_clear_token',
-  //             email: userEmail,
-  //           })
-  //           .toPromise();
-  //       } catch (error) {
-  //         console.warn('Error clearing FCM token on logout:', error);
-  //         // Continue logout process even if token clear fails
-  //       }
-  //     }
-
-  //     return true;
-  //   } catch (error) {
-  //     console.error('Error during logout:', error);
-  //     return false;
-  //   }
-  // }
 }

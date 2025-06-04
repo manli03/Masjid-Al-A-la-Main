@@ -15,582 +15,250 @@
 </ion-header>
 
 <ion-content>
-  <!-- Loading indicator -->
-  <div class="loading-container" *ngIf="isInitialLoad || isLoading">
-    <ion-spinner></ion-spinner>
-    <p>Memuatkan...</p>
-  </div>
-  
-  <!-- Content container -->
-  <div [class.ion-hide]="isInitialLoad || isLoading">
-    <!-- Only show list for non-admin users -->
-    <ng-container *ngIf="!isAdmin && !selectedArticle">
-      <!-- Only show loading container initially -->
-      <div class="loading-container" *ngIf="isCheckingAdmin || isLoading">
-        <ion-spinner></ion-spinner>
-        <p>Memuatkan...</p>
-      </div>
-  
-      <!-- Only show content after admin check is complete -->
-      <div [class.ion-hide]="isCheckingAdmin">
-        <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-          <ion-refresher-content></ion-refresher-content>
-        </ion-refresher>
-    
-        <!-- Navigation Bar (Tabs) -->
-        <ion-segment *ngIf="!selectedArticle && !isLoading" value="all" class="nav-tabs" scrollable
-          (ionChange)="segmentChanged($event)">
-          <ion-segment-button value="all">
-            <ion-icon name="list"></ion-icon>
-            <ion-label>Semua</ion-label>
-          </ion-segment-button>
-          <ion-segment-button value="unread">
-            <ion-icon [name]="allRead ? 'mail' : 'mail-unread'"></ion-icon>
-            <ion-label>Belum Dibaca</ion-label>
-          </ion-segment-button>
+  <!-- Apply user-select: text to make all content selectable -->
+  <div style="user-select: text;">
+    <!-- Loading indicator -->
+    <div class="loading-container" *ngIf="isInitialLoad || isLoading">
+      <ion-spinner></ion-spinner>
+      <p>Memuatkan...</p>
+    </div>
+
+    <!-- Content container -->
+    <div [class.ion-hide]="isInitialLoad || isLoading">
+      <!-- Only show list for non-admin users -->
+      <ng-container *ngIf="!isAdmin && !selectedArticle">
+        <!-- Only show loading container initially -->
+        <div class="loading-container" *ngIf="isCheckingAdmin">
+          <!-- isCheckingAdmin is already handled by the main container hide/show -->
+          <!-- Keeping this here for clarity but its display might be redundant -->
+          <ion-spinner></ion-spinner>
+          <p>Memuatkan...</p>
+        </div>
+
+        <!-- Only show content after admin check is complete -->
+        <div [class.ion-hide]="isCheckingAdmin">
+          <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+            <ion-refresher-content></ion-refresher-content>
+          </ion-refresher>
+
+          <!-- Navigation Bar (Tabs) -->
+          <!-- FIX: Bind the value attribute to the currentSegment variable -->
+          <ion-segment *ngIf="!selectedArticle && !isLoading" [value]="currentSegment" class="nav-tabs" scrollable
+            (ionChange)="segmentChanged($event)">
+            <ion-segment-button value="all">
+              <ion-icon name="list"></ion-icon>
+              <ion-label>Semua</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="unread">
+              <ion-icon [name]="allRead ? 'mail' : 'mail-unread'"></ion-icon>
+              <ion-label>Belum Dibaca</ion-label>
+            </ion-segment-button>
           </ion-segment>
-          
+
           <!-- News Articles List -->
-        <ion-list *ngIf="!selectedArticle && !isLoading">
-          <ion-item class="news-item" lines="none" *ngFor="let item of displayedNewsItems" (click)="selectArticle(item)">
-            <ion-grid>
-              <ion-row>
-                <ion-col size="8">
-                  <div class="news-title">
-                    {{ item.title }}
-                  </div>
-                  <div class="news-author">
-                    {{ item.author }}
-                  </div>
-                  <div class="news-date">
-                    {{ formatDate(item.date) }}
-                  </div>
-                </ion-col>
-                <ion-col size="4" class="image-container">
-                  <img *ngIf="item.imageUrl" alt="News Image" [src]="item.imageUrl" (error)="handleImageError($event, item)"
-                    (click)="openImageViewer(item.imageUrl)" class="clickable-image" />
-                  <div *ngIf="!item.imageUrl" class="image-placeholder">
-                    <ion-icon name="image-outline"></ion-icon>
-                  </div>
-                </ion-col>
+          <ion-list *ngIf="!selectedArticle && !isLoading">
+            <ion-item class="news-item" lines="none" *ngFor="let item of displayedNewsItems"
+              (click)="selectArticle(item)">
+              <ion-grid>
+                <ion-row>
+                  <ion-col size="8">
+                    <div class="news-title">
+                      {{ item.title }}
+                    </div>
+                    <div class="news-author">
+                      {{ item.author }}
+                    </div>
+                    <div class="news-date">
+                      {{ formatDate(item.date) }}
+                    </div>
+                  </ion-col>
+                  <ion-col size="4" class="image-container">
+                    <img *ngIf="item.imageUrl" alt="News Image" [src]="item.imageUrl"
+                      (error)="handleImageError($event, item)" />
+                    <div *ngIf="!item.imageUrl" class="image-placeholder">
+                      <ion-icon name="image-outline"></ion-icon>
+                    </div>
+                  </ion-col>
                 </ion-row>
                 <hr>
-                </ion-grid>
-                </ion-item>
-          <!-- No items message -->
-          <div class="no-items" *ngIf="newsItems.length === 0">
-            <ion-icon name="newspaper-outline"></ion-icon>
-            <p>Tiada pengumuman buat masa sekarang</p>
-          </div>
-          
-          <!-- All announcements read message (only shows in unread segment) -->
-          <div class="all-read-message"
-            *ngIf="currentSegment === 'unread' && displayedNewsItems.length === 0 && newsItems.length > 0">
-            <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
-            <h4>Hebat!</h4>
-            <p>Anda telah membaca semua pengumuman</p>
-          </div>
-        </ion-list>
-        </div>
-        </ng-container>
-
-    <!-- Show article content -->
-    <div *ngIf="selectedArticle" class="article-container">
-      <div class="article-title">
-        {{ selectedArticle.title }}
-      </div>
-      <div class="article-image">
-        <img *ngIf="selectedArticle.imageUrl" [src]="selectedArticle.imageUrl"
-          (error)="handleImageError($event, selectedArticle)" (click)="openImageViewer(selectedArticle.imageUrl)"
-          alt="Article Image" class="clickable-image" />
-        <div *ngIf="!selectedArticle.imageUrl" class="image-placeholder">
-          <ion-icon name="image-outline"></ion-icon>
-          <p>Tiada imej tersedia</p>
-        </div>
-        </div>
-        <div class="article-content preserve-whitespace">
-          {{ selectedArticle.content }}
-        </div>
-
-      <!-- Author and Stats (moved under article content) -->
-      <div class="article-footer">
-        <div class="author">
-          <p><strong>Oleh {{ selectedArticle.author }} </strong><br /> {{ formatDate(selectedArticle.date) }}</p>
-        </div>
-        <div class="stats" style="font-size: 24px;">
-          <ion-icon name="chatbubble-ellipses-outline"></ion-icon> {{ selectedArticle.commentsCount }}
-          <ion-icon [name]="selectedArticle.userLiked ? 'heart' : 'heart-outline'"
-            [color]="selectedArticle.userLiked ? 'danger' : ''" (click)="toggleLike($event)"></ion-icon> {{
-          selectedArticle.likes
-          }}
-          </div>
-          </div>
-
-      <!-- Comment Section -->
-      <div class="comments-section">
-        <h4>Komen ({{ selectedArticle.commentsCount }})</h4>
-        <div class="comment-input-container">
-          <ion-input [(ngModel)]="newComment" placeholder="Tambah komen..." type="text"></ion-input>
-          <ion-button (click)="addComment()" color="primary" class="add-comment-btn">Tambah Komen</ion-button>
-        </div>
-
-        <div *ngFor="let comment of selectedArticle.comments; let i = index" class="comment-card">
-          <div class="comment-user">
-            <div class="avatar-container">
-              <img *ngIf="comment.imageUrl" [src]="comment.imageUrl" (error)="handleUserImageError($event)" alt="user avatar"
-                class="avatar" />
-              <ion-icon *ngIf="!comment.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
+              </ion-grid>
+            </ion-item>
+            <!-- No items message -->
+            <div class="no-items" *ngIf="newsItems.length === 0 && !isLoading">
+              <ion-icon name="newspaper-outline"></ion-icon>
+              <p>Tiada pengumuman buat masa sekarang</p>
             </div>
-            <div class="comment-info">
-              <p class="comment-username">{{ comment.user }} <small>{{ formatDate(comment?.created_at ?? '') }}</small></p>
-              <!-- Display comment text or edit form based on if we're editing -->
-              <p class="comment-text" *ngIf="editingCommentId !== comment.id">
-                {{ comment.text }}
-                <span *ngIf="comment.is_edited" class="edited-tag">(edited)</span>
-              </p>
-              <div *ngIf="editingCommentId === comment.id" class="edit-comment-container">
-                <ion-textarea [(ngModel)]="editCommentText" placeholder="Edit komen anda..." autoGrow="true"
-                  class="edit-input"></ion-textarea>
-                <div class="edit-buttons">
-                  <ion-button (click)="saveEditedComment(comment)" color="success" size="small">Simpan</ion-button>
-                  <ion-button (click)="cancelEditComment()" color="medium" size="small">Batal</ion-button>
-                </div>
-              </div>
-              </div>
-              <div class="comment-actions">
-                <!-- Edit button (only for owner) -->
-                <ion-button *ngIf="currentUser && currentUser.email === comment.email && editingCommentId !== comment.id" fill="clear"
-                  color="primary" size="small" (click)="editComment(comment)">
-                  <ion-icon name="pencil-outline"></ion-icon>
-                </ion-button>
-                <!-- Delete button (for admin or owner) -->
-                <ion-button *ngIf="isAdmin || (currentUser && currentUser.email === comment.email)" fill="clear" color="danger"
-                  size="small" (click)="deleteComment(comment.id)">
-                  <ion-icon name="trash-outline"></ion-icon>
-                </ion-button>
-              </div>
-              </div>
 
-          <ion-button (click)="showReplyInput(i)" color="light" class="reply-btn" *ngIf="editingCommentId !== comment.id">
-            <ion-icon name="return-down-back-outline" slot="start"></ion-icon>
-            Balas
-          </ion-button>
+            <!-- All announcements read message (only shows in unread segment) -->
+            <div class="all-read-message"
+              *ngIf="currentSegment === 'unread' && displayedNewsItems.length === 0 && newsItems.length > 0 && !isLoading">
+              <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+              <h4>Hebat!</h4>
+              <p>Anda telah membaca semua pengumuman</p>
+            </div>
+          </ion-list>
+        </div>
+      </ng-container>
 
-          <div *ngIf="selectedCommentIndex === i" class="reply-container">
-            <ion-input [(ngModel)]="newReply" placeholder="Balas komen..." type="text"></ion-input>
-            <ion-button (click)="addReply(i)" color="secondary" class="send-reply-btn">Kirim Balasan</ion-button>
+      <!-- Show article content -->
+      <div *ngIf="selectedArticle" class="article-container">
+        <div class="article-title">
+          {{ selectedArticle.title }}
+        </div>
+        <div class="article-image">
+          <img *ngIf="selectedArticle.imageUrl" [src]="selectedArticle.imageUrl"
+            (error)="handleImageError($event, selectedArticle)" (click)="openImageViewer(selectedArticle.imageUrl)"
+            alt="Article Image" class="clickable-image" />
+          <div *ngIf="!selectedArticle.imageUrl" class="image-placeholder">
+            <ion-icon name="image-outline"></ion-icon>
+            <p>Tiada imej tersedia</p>
+          </div>
+        </div>
+        <!-- Apply the linkify pipe and innerHTML for clickable links -->
+        <div class="article-content preserve-whitespace" [innerHTML]="selectedArticle.content | linkify">
+        </div>
+
+        <!-- Author and Stats (moved under article content) -->
+        <div class="article-footer">
+          <div class="author">
+            <p><strong>Oleh {{ selectedArticle.author }} </strong><br /> {{ formatDate(selectedArticle.date) }}</p>
+          </div>
+          <div class="stats" style="font-size: 24px;">
+            <ion-icon name="chatbubble-ellipses-outline"></ion-icon> {{ selectedArticle.commentsCount }}
+            <ion-icon [name]="selectedArticle.userLiked ? 'heart' : 'heart-outline'"
+              [color]="selectedArticle.userLiked ? 'danger' : ''" (click)="toggleLike($event)"></ion-icon> {{
+            selectedArticle.likes
+            }}
+          </div>
+        </div>
+
+        <!-- Comment Section -->
+        <div class="comments-section">
+          <h4>Komen ({{ selectedArticle.commentsCount }})</h4>
+          <div class="comment-input-container">
+            <ion-input [(ngModel)]="newComment" placeholder="Tambah komen..." type="text"></ion-input>
+            <ion-button (click)="addComment()" color="primary" class="add-comment-btn">Tambah Komen</ion-button>
           </div>
 
-          <div *ngFor="let reply of comment.replies" class="reply-card">
+          <div *ngFor="let comment of selectedArticle.comments; let i = index" class="comment-card">
             <div class="comment-user">
               <div class="avatar-container">
-                <img *ngIf="reply.imageUrl" [src]="reply.imageUrl" (error)="handleUserImageError($event)" alt="user avatar"
-                  class="avatar" />
-                <ion-icon *ngIf="!reply.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
+                <img *ngIf="comment.imageUrl" [src]="comment.imageUrl" (error)="handleUserImageError($event)"
+                  alt="user avatar" class="avatar" />
+                <ion-icon *ngIf="!comment.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
               </div>
+              <!-- comment-info takes available space -->
               <div class="comment-info">
-                <p class="comment-username">{{ reply.user }} <small>{{ formatDate(reply?.created_at ?? '') }}</small></p>
-                <!-- Display reply text or edit form based on if we're editing -->
-                <p class="comment-text" *ngIf="editingCommentId !== reply.id">
-                  {{ reply.text }}
-                  <span *ngIf="reply.is_edited" class="edited-tag">(edited)</span>
+                <p class="comment-username">
+                  {{ comment.user }}
+                  <!-- Admin Tag -->
+                  <!-- This logic is already correct if comment.isAdmin is provided by backend -->
+                  <span *ngIf="comment.isAdmin" class="admin-tag">Admin</span>
+                  <br>
+                  <small>{{ formatDate(comment?.created_at ?? '') }}</small>
                 </p>
-                <div *ngIf="editingCommentId === reply.id" class="edit-comment-container">
-                  <ion-textarea [(ngModel)]="editCommentText" placeholder="Edit balasan anda..." autoGrow="true"
+                <!-- Display comment text or edit form based on if we're editing -->
+                <p class="comment-text" *ngIf="editingCommentId !== comment.id">
+                  {{ comment.text }}
+                  <span *ngIf="comment.is_edited" class="edited-tag">(edited)</span>
+                </p>
+                <div *ngIf="editingCommentId === comment.id" class="edit-comment-container">
+                  <ion-textarea [(ngModel)]="editCommentText" placeholder="Edit komen anda..." autoGrow="true"
                     class="edit-input"></ion-textarea>
                   <div class="edit-buttons">
-                    <ion-button (click)="saveEditedComment(reply)" color="success" size="small">Simpan</ion-button>
+                    <ion-button (click)="saveEditedComment(comment)" color="success" size="small">Simpan</ion-button>
                     <ion-button (click)="cancelEditComment()" color="medium" size="small">Batal</ion-button>
                   </div>
                 </div>
+              </div>
+              <!-- comment-actions are now outside comment-info but inside comment-user -->
+              <div class="comment-actions">
+                <!-- Edit button (only for owner) -->
+                <ion-button
+                  *ngIf="currentUser && currentUser.email === comment.email && editingCommentId !== comment.id"
+                  fill="clear" color="primary" size="small" (click)="editComment(comment)">
+                  <ion-icon name="pencil-outline"></ion-icon>
+                </ion-button>
+                <!-- Delete button (for admin or owner) -->
+                <!-- This logic is already correct if comment.isAdmin is provided by backend -->
+                <ion-button *ngIf="isAdmin || (currentUser && currentUser.email === comment.email)" fill="clear"
+                  color="danger" size="small" (click)="deleteComment(comment.id)">
+                  <ion-icon name="trash-outline"></ion-icon>
+                </ion-button>
+              </div>
+            </div>
+
+            <ion-button (click)="showReplyInput(i)" color="light" class="reply-btn"
+              *ngIf="editingCommentId !== comment.id">
+              <ion-icon name="return-down-back-outline" slot="start"></ion-icon>
+              Balas
+            </ion-button>
+
+            <div *ngIf="selectedCommentIndex === i" class="reply-container">
+              <ion-input [(ngModel)]="newReply" placeholder="Balas komen..." type="text"></ion-input>
+              <ion-button (click)="addReply(i)" color="secondary" class="send-reply-btn">Kirim Balasan</ion-button>
+            </div>
+
+            <div *ngFor="let reply of comment.replies" class="reply-card">
+              <div class="comment-user">
+                <div class="avatar-container">
+                  <img *ngIf="reply.imageUrl" [src]="reply.imageUrl" (error)="handleUserImageError($event)"
+                    alt="user avatar" class="avatar" />
+                  <ion-icon *ngIf="!reply.imageUrl" name="person-circle" class="avatar-icon"></ion-icon>
                 </div>
+                <!-- comment-info takes available space -->
+                <div class="comment-info">
+                  <p class="comment-username">
+                    {{ reply.user }}
+                    <!-- Admin Tag -->
+                    <!-- This logic is already correct if reply.isAdmin is provided by backend -->
+                    <span *ngIf="reply.isAdmin" class="admin-tag">Admin</span>
+                    <br>
+                    <small>{{ formatDate(reply?.created_at ?? '') }}</small>
+                  </p>
+                  <!-- Display reply text or edit form based on if we're editing -->
+                  <p class="comment-text" *ngIf="editingCommentId !== reply.id">
+                    {{ reply.text }}
+                    <span *ngIf="reply.is_edited" class="edited-tag">(edited)</span>
+                  </p>
+                  <div *ngIf="editingCommentId === reply.id" class="edit-comment-container">
+                    <ion-textarea [(ngModel)]="editCommentText" placeholder="Edit balasan anda..." autoGrow="true"
+                      class="edit-input"></ion-textarea>
+                    <div class="edit-buttons">
+                      <ion-button (click)="saveEditedComment(reply)" color="success" size="small">Simpan</ion-button>
+                      <ion-button (click)="cancelEditComment()" color="medium" size="small">Batal</ion-button>
+                    </div>
+                  </div>
+                </div>
+                <!-- comment-actions are now outside comment-info but inside comment-user -->
                 <div class="comment-actions">
                   <!-- Edit button (only for owner) -->
-                  <ion-button *ngIf="currentUser && currentUser.email === reply.email && editingCommentId !== reply.id" fill="clear"
-                    color="primary" size="small" (click)="editComment(reply)">
+                  <ion-button *ngIf="currentUser && currentUser.email === reply.email && editingCommentId !== reply.id"
+                    fill="clear" color="primary" size="small" (click)="editComment(reply)">
                     <ion-icon name="pencil-outline"></ion-icon>
                   </ion-button>
                   <!-- Delete button (for admin or owner) -->
-                  <ion-button *ngIf="isAdmin || (currentUser && currentUser.email === reply.email)" fill="clear" color="danger"
-                    size="small" (click)="deleteComment(reply.id)">
+                  <!-- This logic is already correct if reply.isAdmin is provided by backend -->
+                  <ion-button *ngIf="isAdmin || (currentUser && currentUser.email === reply.email)" fill="clear"
+                    color="danger" size="small" (click)="deleteComment(reply.id)">
                     <ion-icon name="trash-outline"></ion-icon>
                   </ion-button>
                 </div>
+              </div>
             </div>
           </div>
-        </div>
-        <!-- No comments message -->
-        <div *ngIf="selectedArticle.comments.length === 0" class="no-comments">
-          <ion-icon name="chatbubble-outline"></ion-icon>
-          <p>Tiada komen. Sila tambah komen pertama.</p>
-        </div>
+          <!-- No comments message -->
+          <div *ngIf="selectedArticle.comments.length === 0" class="no-comments">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <p>Tiada komen. Sila tambah komen pertama.</p>
+          </div>
         </div>
 
-      <ion-button (click)="deselectArticle()">
-        <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
-        {{ isAdmin ? 'Kembali ke Pengurusan' : 'Kembali ke Senarai' }}
-      </ion-button>
+        <ion-button (click)="deselectArticle()">
+          <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+          {{ isAdmin ? 'Kembali ke Pengurusan' : 'Kembali ke Senarai' }}
+        </ion-button>
       </div>
+    </div>
   </div>
 </ion-content>
-
-<style>
-  .loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 0;
-  }
-
-  .image-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 80px;
-    overflow: hidden;
-    border-radius: 8px;
-    background-color: #f5f5f5;
-  }
-
-  .image-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .image-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    color: #888;
-  }
-
-  .image-placeholder ion-icon {
-    font-size: 24px;
-  }
-
-  .article-image {
-    width: 100%;
-    height: 200px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 10px 0 20px;
-    background-color: #f5f5f5;
-    border-radius: 8px;
-  }
-
-  .article-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .article-image .image-placeholder {
-    height: 100%;
-  }
-
-  .article-image .image-placeholder ion-icon {
-    font-size: 48px;
-    margin-bottom: 8px;
-  }
-
-  .no-items {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    color: #888;
-    text-align: center;
-  }
-
-  .no-items ion-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-  }
-
-  .avatar-container {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f5f5f5;
-    margin-right: 12px;
-    flex-shrink: 0;
-    position: relative;
-  }
-
-  .avatar {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
-
-  .avatar-icon {
-    font-size: 40px;
-    color: #888;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    margin: 0;
-  }
-
-  .preserve-whitespace {
-    white-space: pre-line;
-  }
-
-  /* Updated and new styles for comments */
-  .comments-section {
-    margin-top: 20px;
-    border-top: 1px solid #eee;
-    padding-top: 20px;
-  }
-
-  .comments-section h4 {
-    margin-bottom: 15px;
-    font-weight: 500;
-  }
-
-  .comment-input-container {
-    display: flex;
-    margin-bottom: 20px;
-    border: 1px solid #ddd;
-    border-radius: 24px;
-    overflow: hidden;
-    background: #f9f9f9;
-  }
-
-  .comment-input-container ion-input {
-    flex: 1;
-    --padding-start: 15px;
-    --padding-end: 15px;
-    --padding-top: 10px;
-    --padding-bottom: 10px;
-  }
-
-  .add-comment-btn {
-    margin: 0;
-    --border-radius: 0;
-  }
-
-  .comment-card {
-    margin-bottom: 20px;
-    padding: 15px;
-    border-radius: 12px;
-    background: #f9f9f9;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  .comment-user {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 10px;
-  }
-
-  .avatar-container {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #f5f5f5;
-    margin-right: 12px;
-    flex-shrink: 0;
-    position: relative;
-  }
-
-  .comment-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .comment-username {
-    font-weight: 500;
-    margin: 0 0 5px 0;
-  }
-
-  .comment-username small {
-    font-weight: normal;
-    color: #888;
-    margin-left: 8px;
-  }
-
-  .comment-text {
-    margin: 0;
-    word-break: break-word;
-    white-space: pre-wrap;
-  }
-
-  .comment-actions {
-    display: flex;
-    align-items: center;
-  }
-
-  .reply-btn {
-    margin-left: 52px;
-    margin-bottom: 10px;
-    font-size: 12px;
-    --padding-start: 10px;
-    --padding-end: 10px;
-  }
-
-  .reply-container {
-    margin-left: 52px;
-    margin-bottom: 15px;
-    display: flex;
-    border: 1px solid #ddd;
-    border-radius: 24px;
-    overflow: hidden;
-    background: #fff;
-  }
-
-  .reply-container ion-input {
-    flex: 1;
-    --padding-start: 15px;
-    --padding-end: 15px;
-    --padding-top: 8px;
-    --padding-bottom: 8px;
-  }
-
-  .send-reply-btn {
-    margin: 0;
-    --border-radius: 0;
-    font-size: 12px;
-    --padding-start: 12px;
-    --padding-end: 12px;
-  }
-
-  .reply-card {
-    margin-left: 52px;
-    margin-bottom: 10px;
-    padding: 12px;
-    border-radius: 8px;
-    background: #f0f0f0;
-  }
-
-  .edit-comment-container {
-    margin-top: 5px;
-  }
-
-  .edit-input {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 5px;
-    background: white;
-    margin-bottom: 8px;
-  }
-
-  .edit-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 5px;
-  }
-
-  .edited-tag {
-    font-size: 0.8em;
-    color: #888;
-    font-style: italic;
-    margin-left: 5px;
-  }
-
-  .no-comments {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 30px;
-    color: #888;
-    text-align: center;
-  }
-
-  .no-comments ion-icon {
-    font-size: 40px;
-    margin-bottom: 10px;
-  }
-
-  /* Style for the "all announcements read" message */
-  .all-read-message {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 200px;
-    text-align: center;
-    padding: 20px;
-  }
-
-  .all-read-message ion-icon {
-    font-size: 70px;
-    margin-bottom: 10px;
-  }
-
-  .all-read-message h4 {
-    margin: 0 0 10px;
-    font-weight: bold;
-    color: var(--ion-color-success);
-  }
-
-  .all-read-message p {
-    margin: 0;
-    color: #666;
-  }
-
-  /* Dark Mode */
-  @media (prefers-color-scheme: dark) {
-
-    .image-container,
-    .article-image,
-    .avatar-container {
-      background-color: #222;
-    }
-
-    .image-placeholder,
-    .no-items,
-    .avatar-icon {
-      color: #aaa;
-    }
-
-    .all-read-message p {
-      color: #aaa;
-    }
-
-    .comment-card {
-      background: #1e1e1e;
-    }
-
-    .reply-card {
-      background: #2a2a2a;
-    }
-
-    .comment-input-container,
-    .reply-container {
-      background: #2a2a2a;
-      border-color: #444;
-    }
-
-    .edit-input {
-      background: #2a2a2a;
-      border-color: #444;
-    }
-
-    .comment-username small {
-      color: #aaa;
-    }
-  }
-
-  ion-icon {
-    font-size: 24px;
-  }
-</style>

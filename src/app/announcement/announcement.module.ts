@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { announcementPageRoutingModule } from './announcement-routing.module';
 import { announcementPage } from './announcement.page';
 import { ImageViewerModalComponent } from '../component/image-viewer-modal/image-viewer-modal.component';
+import { LinkifyPipe } from '../services/linkify.pipe';
 
 @NgModule({
   imports: [
@@ -14,6 +15,6 @@ import { ImageViewerModalComponent } from '../component/image-viewer-modal/image
     announcementPageRoutingModule,
     ImageViewerModalComponent,
   ],
-  declarations: [announcementPage],
+  declarations: [announcementPage, LinkifyPipe],
 })
 export class announcementPageModule {}
