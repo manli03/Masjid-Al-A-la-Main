@@ -668,11 +668,11 @@ export class PrayerNotificationsService {
     const now = new Date();
     const lastScheduleDate = new Date(lastScheduled);
 
-    // If the last schedule was more than 12 hours ago, reschedule
-    const hoursSinceLastSchedule =
-      (now.getTime() - lastScheduleDate.getTime()) / (1000 * 60 * 60);
+    // If the last schedule was more than 10 minutes ago, reschedule
+    const minutesSinceLastSchedule =
+      (now.getTime() - lastScheduleDate.getTime()) / (1000 * 60);
 
-    if (hoursSinceLastSchedule > 12) {
+    if (minutesSinceLastSchedule > 10) {
       return true;
     }
 
@@ -736,7 +736,10 @@ export class PrayerNotificationsService {
 
       // Cancel any existing scheduled notifications
       await this.cancelAllNotifications();
-      await AndroidAudio.cancelNotification();
+      if (Capacitor.getPlatform() === 'android') {
+        await AndroidAudio.cancelNotification();
+
+      }
 
       // Get notification settings
       const settings = await this.getNotificationSettings();

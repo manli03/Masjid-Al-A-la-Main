@@ -126,8 +126,8 @@ export class LoadingComponent implements OnInit, OnChanges {
   shouldHide = false;
   static isLoaded = false;
   startTime: number = 0;
-  minDisplayTime = 5000; // 5 seconds minimum for home page
-  nonHomeDisplayTime = 3000; // 3 seconds fixed for non-home pages
+  minDisplayTime = 3000; // 3 seconds minimum for home page
+  nonHomeDisplayTime = 2000; // 1 seconds fixed for non-home pages
 
   constructor() {}
 
