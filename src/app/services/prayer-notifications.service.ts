@@ -15,6 +15,7 @@ export interface PrayerNotificationSettings {
   selectedAzanSound: string;
   notificationAdvance: number;
   currentChannelId?: string;
+  currentDefaultChannelId: string;
 }
 
 // Define interface for custom AndroidAudio plugin
@@ -55,10 +56,11 @@ export class PrayerNotificationsService {
   // Max days to schedule ahead
   private readonly MAX_DAYS_AHEAD = 1;
 
-  // Notification channel ID
+  // Notification channel IDs
   private readonly CHANNEL_ID_PREFIX = 'prayer_times_';
-  private readonly DEFAULT_PRAYER_CHANNEL_ID = 'default_prayer_channel';
+  private readonly DEFAULT_CHANNEL_PREFIX = 'default_prayer_';
   private currentChannelId: string = '';
+  private currentDefaultChannelId: string = '';
 
   // Track if notification operations are in progress to prevent double-clicking
   private isProcessing = false;
@@ -142,12 +144,19 @@ export class PrayerNotificationsService {
     this.setupNotificationListeners();
 
     // Initialize with a new channel ID
-    this.currentChannelId = this.generateNewChannelId();
+    this.refreshChannelIds();
   }
 
-  private generateNewChannelId(): string {
+  private refreshChannelIds(): void {
+    this.currentChannelId = this.generateNewChannelId(this.CHANNEL_ID_PREFIX);
+    this.currentDefaultChannelId = this.generateNewChannelId(
+      this.DEFAULT_CHANNEL_PREFIX,
+    );
+  }
+
+  private generateNewChannelId(prefix: string): string {
     const timestamp = new Date().getTime();
-    return `${this.CHANNEL_ID_PREFIX}${timestamp}`;
+    return `${prefix}${timestamp}`;
   }
 
   /**
@@ -390,6 +399,7 @@ export class PrayerNotificationsService {
         selectedAzanSound: 'none',
         notificationAdvance: 0,
         currentChannelId: this.currentChannelId,
+        currentDefaultChannelId: this.currentDefaultChannelId,
       };
 
       // Update settings observable
@@ -409,6 +419,8 @@ export class PrayerNotificationsService {
       notificationAdvance: parsedSettings.notificationAdvance || 0,
       currentChannelId:
         parsedSettings.currentChannelId || this.currentChannelId,
+      currentDefaultChannelId:
+        parsedSettings.currentDefaultChannelId || this.currentDefaultChannelId,
     };
 
     // Update settings observable
@@ -432,6 +444,10 @@ export class PrayerNotificationsService {
 
     try {
       this.isSavingSettings = true;
+
+      // Make sure both channel IDs are set
+      settings.currentChannelId = this.currentChannelId;
+      settings.currentDefaultChannelId = this.currentDefaultChannelId;
 
       // Save settings to storage first
       await Preferences.set({
@@ -476,7 +492,6 @@ export class PrayerNotificationsService {
   private async recreateNotificationChannel(
     settings: PrayerNotificationSettings,
   ): Promise<void> {
-    // Only needed for Android
     if (Capacitor.getPlatform() !== 'android') {
       return;
     }
@@ -486,36 +501,25 @@ export class PrayerNotificationsService {
       const channels = await LocalNotifications.listChannels();
       console.log('Current channels before deletion:', channels.channels);
 
-      // Delete all channels except post notification channel and default prayer notification channel
+      // Delete all channels except post notification
       for (const channel of channels.channels) {
-        if (
-          channel.id !== this.POST_NOTIFICATION_CHANNEL_ID &&
-          channel.id !== this.DEFAULT_PRAYER_CHANNEL_ID
-        ) {
+        if (channel.id !== this.POST_NOTIFICATION_CHANNEL_ID) {
           console.log(`Deleting channel: ${channel.id}`);
           await LocalNotifications.deleteChannel({ id: channel.id });
         }
       }
 
-      // Wait a moment to ensure channels are fully deleted
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Generate new channel IDs
+      this.refreshChannelIds();
 
-      // Generate a new channel ID
-      this.currentChannelId = this.generateNewChannelId();
-      console.log(
-        'Creating new notification channel with ID:',
-        this.currentChannelId,
-      );
-
-      // Set sound to the channel
+      // Set sound for main prayer channel
       let sound: string | undefined = undefined;
       if (settings.selectedAzanSound && settings.selectedAzanSound !== 'none') {
         sound = settings.selectedAzanSound;
-        console.log('Setting notification sound to:', sound);
       }
 
-      // Create new channel with updated settings
-      const channelConfig: Channel = {
+      // Create main prayer channel
+      const mainChannelConfig: Channel = {
         id: this.currentChannelId,
         name: 'Waktu Solat',
         description: 'Notifikasi waktu solat',
@@ -526,29 +530,64 @@ export class PrayerNotificationsService {
         lights: true,
       };
 
-      await LocalNotifications.createChannel(channelConfig);
-      console.log('Notification channel created with config:', channelConfig);
+      await LocalNotifications.createChannel(mainChannelConfig);
+      console.log(
+        'Main prayer channel created with config:',
+        mainChannelConfig,
+      );
 
-      // Save the new channel ID to preferences
+      // Create default prayer channel for morning prayers
+      const defaultChannelConfig: Channel = {
+        id: this.currentDefaultChannelId,
+        name: 'Notifikasi Waktu Biasa',
+        description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
+        importance: 3,
+        visibility: 1,
+        vibration: true,
+        lights: true,
+        sound: settings.selectedAzanSound !== 'none' ? 'zikir_pagi' : undefined,
+      };
+
+      await LocalNotifications.createChannel(defaultChannelConfig);
+      console.log(
+        'Morning prayers channel created with config:',
+        defaultChannelConfig,
+      );
+
+      // Update settings with new channel IDs
+      const updatedSettings = {
+        ...settings,
+        lastScheduled: new Date().toISOString(),
+        currentChannelId: this.currentChannelId,
+        currentDefaultChannelId: this.currentDefaultChannelId,
+      };
+
+      // Save the new channel IDs to preferences
       await Preferences.set({
         key: this.PREFERENCES_KEY,
-        value: JSON.stringify({
-          ...settings,
-          lastScheduled: new Date().toISOString(),
-          currentChannelId: this.currentChannelId,
-        }),
+        value: JSON.stringify(updatedSettings),
       });
-      console.log('Notification settings updated with new channel ID');
 
-      // Verify channel was created with correct settings
+      // Update settings in memory
+      this.settingsSubject.next(updatedSettings);
+
+      console.log('Notification settings updated with new channel IDs');
+
+      // Verify channels were created with correct settings
       const updatedChannels = await LocalNotifications.listChannels();
       console.log('Channels after recreation:', updatedChannels.channels);
-      const createdChannel = updatedChannels.channels.find(
+
+      const mainChannel = updatedChannels.channels.find(
         (c) => c.id === this.currentChannelId,
       );
-      console.log('Created channel settings:', createdChannel);
+      const defaultChannel = updatedChannels.channels.find(
+        (c) => c.id === this.currentDefaultChannelId,
+      );
+
+      console.log('Created main channel settings:', mainChannel);
+      console.log('Created default channel settings:', defaultChannel);
     } catch (error) {
-      console.error('Error creating notification channel:', error);
+      console.error('Error creating notification channels:', error);
       throw error;
     }
   }
@@ -561,19 +600,25 @@ export class PrayerNotificationsService {
     try {
       const channels = await LocalNotifications.listChannels();
       if (
-        !channels.channels.some((c) => c.id === this.DEFAULT_PRAYER_CHANNEL_ID)
+        !channels.channels.some((c) => c.id === this.currentDefaultChannelId)
       ) {
+        const settings = await this.getNotificationSettings();
+        const useZikirSound = settings.selectedAzanSound !== 'none';
+
         await LocalNotifications.createChannel({
-          id: this.DEFAULT_PRAYER_CHANNEL_ID,
+          id: this.currentDefaultChannelId,
           name: 'Notifikasi Waktu Biasa',
           description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
           importance: 3,
           visibility: 1,
           vibration: true,
           lights: true,
-          // No custom sound: use default
+          sound: useZikirSound ? 'zikir_pagi' : undefined,
         });
-        console.log('Default prayer notification channel created');
+        console.log(
+          'Default prayer channel created with sound:',
+          useZikirSound ? 'zikir_pagi' : 'default',
+        );
       }
     } catch (error) {
       console.error('Error creating default prayer channel:', error);
@@ -738,7 +783,6 @@ export class PrayerNotificationsService {
       await this.cancelAllNotifications();
       if (Capacitor.getPlatform() === 'android') {
         await AndroidAudio.cancelNotification();
-
       }
 
       // Get notification settings
@@ -849,7 +893,7 @@ export class PrayerNotificationsService {
               prayerName === 'Syuruk' ||
               prayerName === 'Dhuha'
             ) {
-              channelId = this.DEFAULT_PRAYER_CHANNEL_ID;
+              channelId = this.currentDefaultChannelId;
             }
 
             // Prepare notification options based on settings
