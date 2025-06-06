@@ -2,8 +2,10 @@ import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
-import { AlertController, Platform } from '@ionic/angular'; // Import AlertController
+import { AlertController, Platform } from '@ionic/angular';
 import { Router } from '@angular/router';
+// Import Capacitor Haptics
+import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 // Define an interface for the Hadith data structure (optional, but good practice)
 interface Hadith {
@@ -78,8 +80,7 @@ export class HadithSupplicationPage implements OnInit {
   selectedBook: string = 'Sahih Bukhari'; // Default book
   selectedChapter: string = '1'; // Default chapter
   hadithBookSlug: string = 'bukhari';
-
-  bookAuthor: string = ''; // Add this line
+  bookAuthor: string = '';
 
   BOOKS: BookDictionary = {
     'Sahih Bukhari': 'bukhari',
@@ -98,6 +99,17 @@ export class HadithSupplicationPage implements OnInit {
 
   //Segment Properties
   selectedSegment: string = 'hadith';
+
+  // Tasbih Properties
+  tasbihCount: number = 0;
+  totalTasbihCount: number = 0;
+  tasbihLimit: number = 33;
+  private zikirs: string[] = ['Subhanallah', 'Alhamdulillah', 'Allahu Akbar'];
+  private currentZikirIndex: number = 0;
+
+  get currentZikir(): string {
+    return this.zikirs[this.currentZikirIndex];
+  }
 
   @ViewChild('hadithContent', { static: false }) hadithContent!: ElementRef;
   connected: boolean = false;
@@ -374,7 +386,6 @@ export class HadithSupplicationPage implements OnInit {
   }
 
   segmentChanged(ev: any) {
-    // console.log('Segment changed', ev);
     this.selectedSegment = ev.detail.value;
   }
 
@@ -392,5 +403,46 @@ export class HadithSupplicationPage implements OnInit {
     }
     const currentIndex = this.hadiths.indexOf(this.selectedHadith);
     return currentIndex < this.hadiths.length - 1;
+  }
+
+  // --- Tasbih Methods ---
+  async incrementTasbih() {
+    if (!this.tasbihLimit || this.tasbihLimit <= 0) {
+      return;
+    }
+
+    this.tasbihCount++;
+    this.totalTasbihCount++;
+
+    if (this.tasbihCount >= this.tasbihLimit) {
+      await Haptics.vibrate(); // Vibrate heavily to signify round completion
+      this.tasbihCount = 0;
+      this.currentZikirIndex =
+        (this.currentZikirIndex + 1) % this.zikirs.length;
+    } else {
+      await Haptics.impact({ style: ImpactStyle.Light }); // Light vibration for a regular tap
+    }
+  }
+
+  async resetTasbih() {
+    // Heavy vibrate for a reset action
+    await Haptics.vibrate();
+    this.tasbihCount = 0;
+    this.totalTasbihCount = 0;
+    this.currentZikirIndex = 0;
+  }
+
+  // Method to increment the zikir limit
+  async incrementLimit() {
+    await Haptics.impact({ style: ImpactStyle.Light }); // Simple vibration for spinner controls
+    this.tasbihLimit++;
+  }
+
+  // Method to decrement the zikir limit, with a minimum of 1
+  async decrementLimit() {
+    if (this.tasbihLimit > 1) {
+      await Haptics.impact({ style: ImpactStyle.Light }); // Simple vibration for spinner controls
+      this.tasbihLimit--;
+    }
   }
 }

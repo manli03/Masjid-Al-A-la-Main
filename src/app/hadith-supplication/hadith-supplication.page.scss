@@ -74,8 +74,10 @@ ion-icon {
   border-radius: 0 0 20px 20px;
   padding: 17px 21px;
   margin-top: 0;
-  position: relative; /*add this to create a stacking context*/
-  z-index: 20; /*Ensure this value bigger than .hadith-title z-index*/
+  position: relative;
+  /*add this to create a stacking context*/
+  z-index: 20;
+  /*Ensure this value bigger than .hadith-title z-index*/
 }
 
 .hadith-title {
@@ -83,7 +85,8 @@ ion-icon {
   padding: 5px 10px;
   margin-bottom: 10px;
   border-radius: 20px 20px 0 0;
-  position: -webkit-sticky; /* Add this */
+  position: -webkit-sticky;
+  /* Add this */
   position: sticky;
   top: 0;
   z-index: 10;
@@ -92,8 +95,10 @@ ion-icon {
 .hadith-chooser-sticky {
   position: sticky;
   top: 0;
-  background-color: var(--ion-background-color); /* Use the default background color */
-  z-index: 10; /* Ensure it's above other content */
+  background-color: var(--ion-background-color);
+  /* Use the default background color */
+  z-index: 10;
+  /* Ensure it's above other content */
   padding-top: 10px;
 }
 
@@ -132,4 +137,156 @@ ion-segment-content {
   flex-direction: column;
   height: 100%;
   overflow: auto;
+}
+
+
+/* --- Tasbih Styles --- */
+.tasbih-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; // This pushes the areas apart
+  align-items: center;
+  height: 100%;
+  padding: 16px;
+  text-align: center;
+}
+
+.tasbih-top-area,
+.tasbih-counter-area,
+.tasbih-settings-area {
+  width: 100%;
+}
+
+.zikir-display {
+  margin-bottom: 5px;
+}
+
+.zikir-display p {
+  margin-bottom: 5px;
+  font-size: 1rem;
+  color: #bbbbbb;
+}
+
+.zikir-display h2 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0;
+  color: var(--ion-color-primary);
+}
+
+.tasbih-counter-area {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tasbih-bead {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--ion-color-light);
+  border: 5px solid var(--ion-color-primary-tint);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s ease-out, box-shadow 0.2s ease-in-out;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1), inset 0 -4px 10px rgba(0, 0, 0, 0.15);
+
+  &:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 5px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.tasbih-count-main {
+  font-size: 4.5rem;
+  font-weight: bold;
+  line-height: 1;
+  color: var(--ion-color-dark-shade);
+}
+
+.tasbih-count-limit {
+  font-size: 1.5rem;
+  color: #bbbbbb;
+}
+
+.tasbih-info {
+  font-size: 1.1rem;
+  color: #bbbbbb;
+}
+
+.tasbih-settings-area {
+  max-width: 350px;
+
+  ion-card {
+    --background: var(--ion-color-light-tint);
+    box-shadow: none;
+    border-radius: 16px;
+    margin: 0;
+  }
+}
+
+.settings-label {
+  color: #bbbbbb;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ion-color-medium-tint);
+  border-radius: 8px;
+  padding: 4px;
+  background-color: var(--ion-background-color);
+}
+
+.spinner-button {
+  --padding-start: 0;
+  --padding-end: 0;
+  height: 40px;
+  width: 40px;
+  min-width: 40px;
+  font-size: 1.5rem;
+  color: var(--ion-color-primary);
+}
+
+.zikir-limit-input {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--ion-color-dark-shade);
+}
+
+/* Dark mode adjustments for Tasbih */
+@media (prefers-color-scheme: dark) {
+  .tasbih-bead {
+    background: #2c2c2e;
+    border-color: var(--ion-color-primary-shade);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3), inset 0 -4px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  .tasbih-count-main {
+    color: var(--ion-color-light-shade);
+  }
+  
+  .tasbih-settings-area ion-card {
+    --background: rgba(44, 44, 46, 0.8);
+  }
+
+  .spinner-container {
+    border-color: var(--ion-color-step-400);
+    background-color: var(--ion-color-step-150);
+  }
+
+  .zikir-limit-input {
+    color: var(--ion-color-light-shade);
+  }
 }
