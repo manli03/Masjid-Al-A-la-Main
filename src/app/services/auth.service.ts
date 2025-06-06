@@ -13,6 +13,10 @@ export class AuthService {
   private apiUrl = environment.apiUrl;
   // Set to true to display detailed error messages during development
   private devMode = false;
+  private adminStatusCache: { isAdmin: boolean; timestamp: number } | null =
+    null;
+  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+  private profileCompletionCache: boolean | null = null;
 
   constructor(
     private platform: Platform,
@@ -28,6 +32,34 @@ export class AuthService {
     try {
       console.log('Initializing Google Auth...');
       await GoogleAuth.initialize();
+
+      // Initialize profile completion status
+      const user = await this.storageService.get('user');
+      if (user && user.email) {
+        try {
+          const response = await firstValueFrom(
+            this.http.post<any>(`${this.apiUrl}/auth.php`, {
+              action: 'verify_token',
+              email: user.email,
+            }),
+          );
+
+          this.profileCompletionCache =
+            response.success &&
+            response.user &&
+            !!response.user.phone &&
+            !!response.user.birthdate &&
+            !!user.name;
+
+          console.log(
+            'Profile completion status cached:',
+            this.profileCompletionCache,
+          );
+        } catch (error) {
+          console.error('Error initializing profile completion status:', error);
+          this.profileCompletionCache = null;
+        }
+      }
     } catch (error) {
       console.error('Error during Google Auth initialization:', error);
     }
@@ -158,42 +190,6 @@ export class AuthService {
   }
 
   /**
-   * Verify user status with backend
-   */
-  async verifyUserStatus(email: string): Promise<boolean> {
-    try {
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, {
-          action: 'verify_token',
-          email: email,
-        }),
-      );
-
-      if (response.success) {
-        // Update user data in storage
-        const user = await this.storageService.get('user');
-        if (user) {
-          // Only update non-status properties
-          user.phone = response.user.phone;
-          user.birthdate = response.user.birthdate;
-          user.membershipNumber = response.user.membershipNumber;
-          await this.storageService.set('user', user);
-        }
-        return true;
-      } else {
-        if (this.devMode && response.dev_message) {
-          await this.showDevelopmentErrorToast(response);
-        }
-        return false;
-      }
-    } catch (error) {
-      console.error('Error verifying user status:', error);
-      await this.handleHttpError(error);
-      return false;
-    }
-  }
-
-  /**
    * Sign out the user and clear all stored data
    */
   async signOut(): Promise<void> {
@@ -220,6 +216,10 @@ export class AuthService {
           // Continue logout process even if token clear fails
         }
       }
+
+      // Clear all caches
+      this.adminStatusCache = null;
+      this.profileCompletionCache = false;
 
       // Clear all stored data
       await this.storageService.clearAllStorage();
@@ -338,6 +338,9 @@ export class AuthService {
           // Don't store status properties locally
         });
 
+        // Reset profile completion cache since profile was updated
+        this.profileCompletionCache = null;
+
         return response.user;
       } else {
         throw new Error(response.error || 'Failed to update profile');
@@ -350,14 +353,25 @@ export class AuthService {
   }
 
   /**
-   * Check if the user's profile is complete - directly from the database
+   * Check if the user's profile is complete - uses cached value from app initialization
    */
   async isProfileComplete(): Promise<boolean> {
     const user = await this.storageService.get('user');
     if (!user || !user.email) {
+      this.profileCompletionCache = false;
       return false;
     }
 
+    // Return cached value if available
+    if (typeof this.profileCompletionCache === 'boolean') {
+      console.log(
+        'Using cached profile completion status:',
+        this.profileCompletionCache,
+      );
+      return this.profileCompletionCache;
+    }
+
+    // If cache is null (not yet initialized), check from database
     try {
       const response = await firstValueFrom(
         this.http.post<any>(`${this.apiUrl}/auth.php`, {
@@ -366,26 +380,40 @@ export class AuthService {
         }),
       );
 
-      return (
+      const isComplete = !!(
         response.success &&
         response.user &&
-        !!response.user.phone &&
-        !!response.user.birthdate &&
-        !!user.name
+        response.user.phone &&
+        response.user.birthdate &&
+        user.name
       );
+
+      this.profileCompletionCache = isComplete;
+      return isComplete;
     } catch (error) {
       console.error('Error checking profile completion:', error);
-      return true; // Assume complete if there's a network error
+      this.profileCompletionCache = true; // Assume complete if there's a network error
+      return true;
     }
   }
 
   /**
-   * Check if user is admin - directly from the database
+   * Check if user is admin - cached for 30 minutes
    */
   async isAdmin(): Promise<boolean> {
     const user = await this.storageService.get('user');
     if (!user || !user.email) {
+      this.adminStatusCache = null;
       return false;
+    }
+
+    // Check if we have a valid cache
+    if (
+      this.adminStatusCache &&
+      Date.now() - this.adminStatusCache.timestamp < this.CACHE_DURATION
+    ) {
+      console.log('Using cached admin status');
+      return this.adminStatusCache.isAdmin;
     }
 
     try {
@@ -396,11 +424,19 @@ export class AuthService {
         }),
       );
 
-      return (
-        response.success && response.user && response.user.isAdmin === true
-      );
+      const isAdmin =
+        response.success && response.user && response.user.isAdmin === true;
+
+      // Cache the result
+      this.adminStatusCache = {
+        isAdmin,
+        timestamp: Date.now(),
+      };
+
+      return isAdmin;
     } catch (error) {
       console.error('Error checking admin status:', error);
+      this.adminStatusCache = null;
       return false;
     }
   }
