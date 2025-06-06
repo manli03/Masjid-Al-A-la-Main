@@ -114,6 +114,14 @@ export class AuthService {
               googleUser.authentication.idToken,
             );
 
+            // Set profile completion status
+            this.profileCompletionCache =
+              response.user && response.user.name && response.user.phone && response.user.birthdate;
+            console.log(
+              'Profile completion status set:',
+              this.profileCompletionCache,
+            );
+
             return googleUser;
           } else {
             console.error('Backend authentication failed', response.error);
