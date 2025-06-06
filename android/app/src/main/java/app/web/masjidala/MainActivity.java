@@ -126,7 +126,6 @@ public class MainActivity extends BridgeActivity {
         startActivity(intent);
 
       } else if (manufacturer.equalsIgnoreCase("oppo")) {
-        intent.setClassName("com.coloros.oppoguardelf", "com.coloros.powermanager.fuelgaue.PowerConsumptionActivity");
         intent.setComponent(new ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"));
         startActivity(intent);
 
@@ -159,6 +158,8 @@ public class MainActivity extends BridgeActivity {
         startActivity(new Intent(Settings.ACTION_SETTINGS));
       }
     } catch (Exception e) {
+      Log.e(TAG, "Unable to open AutoStart settings on manufacturer: " + manufacturer);
+
       Log.e(TAG, "Unable to open AutoStart settings: " + e.getMessage());
       startActivity(new Intent(Settings.ACTION_SETTINGS));
     }
