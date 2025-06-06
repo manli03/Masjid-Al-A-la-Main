@@ -25,7 +25,6 @@ public class PrayerNotificationRescheduler {
   private static final String PREFS_NAME = "CapacitorStorage";
   private static final String PREF_KEY_NOTIF = "prayer_notifications";
   private static final String PREF_KEY_SCHEDULED = "scheduled_notifications"; // To track for cancellation
-  private static final String DEFAULT_PRAYER_CHANNEL_ID = "default_prayer_channel";
 
   // Call this method when you need to reschedule (e.g., on boot, daily check, time change)
   public static void rescheduleAll(Context context) {
@@ -43,6 +42,7 @@ public class PrayerNotificationRescheduler {
       JSONArray enabledPrayers = notifSettings.optJSONArray("enabledPrayers");
       int advanceMinutes = notifSettings.optInt("notificationAdvance", 0);
       String mainChannelId = notifSettings.optString("currentChannelId", null);
+      String normalChannelId = notifSettings.optString("currentDefaultChannelId", null);
 
       if (mainChannelId == null || mainChannelId.isEmpty()) {
         Log.w(TAG, "No currentChannelId found in preferences. Prayer notifications will not be scheduled.");
@@ -69,8 +69,9 @@ public class PrayerNotificationRescheduler {
           String usedChannelId = mainChannelId;
           // Use default channel for Imsak, Syuruk, Dhuha as per your existing logic
           if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
-            usedChannelId = DEFAULT_PRAYER_CHANNEL_ID;
+            usedChannelId = normalChannelId;
           }
+          Log.d(TAG, "Scheduling prayer: " + prayerName + " at " + new Date(nextTriggerMillis).toString() + " with channelId: " + usedChannelId);
 
           // Use a unique request code for each prayer type (e.g., hash of prayer name)
           // This is still important for targeted cancellation/update.
