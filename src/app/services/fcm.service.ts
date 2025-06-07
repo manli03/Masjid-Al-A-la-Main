@@ -23,6 +23,17 @@ export class FcmService {
     }
   }
 
+  // Public method to initialize FCM after sign in
+  async setFcmToken() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await this.addListeners();
+      } catch (error) {
+        console.error('Error initializing FCM:', error);
+      }
+    }
+  }
+
   private async initializePushNotifications() {
     await this.registerNotifications();
     this.addListeners();

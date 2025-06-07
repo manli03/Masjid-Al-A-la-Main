@@ -5,6 +5,7 @@ import { StorageService } from './storage.service';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
+import { FcmService } from './fcm.service';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +24,7 @@ export class AuthService {
     private storageService: StorageService,
     private http: HttpClient,
     private toastController: ToastController,
+    private fcmService: FcmService,
   ) {
     this.initializeAuth();
   }
@@ -116,11 +118,21 @@ export class AuthService {
 
             // Set profile completion status
             this.profileCompletionCache =
-              response.user && response.user.name && response.user.phone && response.user.birthdate;
+              response.user &&
+              response.user.name &&
+              response.user.phone &&
+              response.user.birthdate;
             console.log(
               'Profile completion status set:',
               this.profileCompletionCache,
             );
+
+            // Set fcm token
+            try {
+              await this.fcmService.setFcmToken();
+            } catch (error) {
+              console.warn('Failed to initialize FCM:', error);
+            }
 
             return googleUser;
           } else {
