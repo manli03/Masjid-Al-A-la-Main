@@ -213,6 +213,7 @@ export class ManageAnnouncementPage implements ViewWillEnter {
         {
           text: 'Hapus',
           handler: async () => {
+            await alert.dismiss();
             await this.showLoading('Menghapus pengumuman...');
             try {
               const response = await firstValueFrom(
