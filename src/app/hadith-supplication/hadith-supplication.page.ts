@@ -70,7 +70,8 @@ const DUA_STORAGE_KEY = 'my_duas'; // Key to store the duas in Preferences
   styleUrls: ['./hadith-supplication.page.scss'],
 })
 export class HadithSupplicationPage implements OnInit {
-  isLoading: boolean = false; // Added loading state
+  isHadithDetailLoading: boolean = false; // For the single hadith view loader
+  isListLoading: boolean = false; // For the skeleton loaders on Hadith and Doa lists
 
   //Hadith Properties
   searchText: string = '';
@@ -121,7 +122,7 @@ export class HadithSupplicationPage implements OnInit {
     private alertController: AlertController,
     private platform: Platform,
     private router: Router,
-  ) {} //Inject AlertController
+  ) {}
 
   async ngOnInit() {
     await this.checkNetworkConnection(); // Check network status on component initialization
@@ -223,31 +224,31 @@ export class HadithSupplicationPage implements OnInit {
 
   // Load Hadiths based on the selected book and chapter
   loadHadiths() {
-    this.isLoading = true; // Set loading to true when fetching data
+    this.isListLoading = true;
     const bookSlug = this.BOOKS[this.selectedBook];
     const hadithUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/hadiths/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
 
     this.http.get<Hadith[]>(hadithUrl).subscribe(
       (data) => {
         if (data) {
-          this.hadiths = data; // Assign the data directly as it's already an array of Hadith
-          this.isLoading = false; // Set loading to false when data is loaded
+          this.hadiths = data;
         } else {
-          this.isLoading = false; // Set loading to false when data is loaded
           console.error('Error loading hadiths: Invalid data format');
-          this.hadiths = []; // Clear existing hadiths to avoid displaying old data
+          this.hadiths = [];
         }
+        this.isListLoading = false;
       },
       (error) => {
         console.error('Error loading hadiths:', error);
-        this.hadiths = []; // Clear existing hadiths
-        this.isLoading = false; // Set loading to false on error
+        this.hadiths = [];
+        this.isListLoading = false;
       },
     );
   }
 
   //Load Duas from API and save to storage
   async loadDuas() {
+    this.isListLoading = true;
     try {
       const response = await this.http
         .get<
@@ -263,7 +264,8 @@ export class HadithSupplicationPage implements OnInit {
       }
     } catch (error) {
       console.error('Error loading duas:', error);
-      // Optionally, display a user-friendly error message
+    } finally {
+      this.isListLoading = false;
     }
   }
 
@@ -277,8 +279,8 @@ export class HadithSupplicationPage implements OnInit {
         this.duas = JSON.parse(storedDuas);
         console.log('Duas loaded from cache.');
       } else {
-        this.loadDuas(); // Load duas from the API if not found in cache
-        console.log('No duas found in cache.');
+        await this.loadDuas();
+        console.log('No duas found in cache, fetching from API.');
       }
     } catch (error) {
       console.error('Error loading duas from cache:', error);
@@ -374,19 +376,16 @@ export class HadithSupplicationPage implements OnInit {
     }
   }
 
-  async handleRefresh(event: CustomEvent) {
-    if (this.selectedSegment === 'hadith') {
-      this.loadHadiths(); // Reload Hadiths from the API
-    } else if (this.selectedSegment === 'doa') {
-      await this.loadDuas(); // Reload Duas from the API and refresh cache
-    }
-    setTimeout(() => {
-      (event.target as HTMLIonRefresherElement).complete();
-    }, 1000);
-  }
-
   segmentChanged(ev: any) {
     this.selectedSegment = ev.detail.value;
+    // If we switch to 'doa' and the list is empty, trigger a load
+    if (this.selectedSegment === 'doa' && this.duas.length === 0) {
+      this.loadCachedDuas();
+    }
+    // If we switch to 'hadith' and list is empty, trigger load
+    if (this.selectedSegment === 'hadith' && this.hadiths.length === 0) {
+      this.loadHadiths();
+    }
   }
 
   hasPreviousHadith(): boolean {

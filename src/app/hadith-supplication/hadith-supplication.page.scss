@@ -265,6 +265,41 @@ ion-segment-content {
   color: var(--ion-color-dark-shade);
 }
 
+/* --- Media Query for very short screens (e.g., landscape phones) --- */
+@media (max-height: 685px) {
+  .tasbih-container {
+    padding: 8px;
+  }
+
+  .tasbih-bead {
+    width: 160px;
+    height: 160px;
+  }
+
+  .tasbih-count-main {
+    font-size: 3.5rem;
+  }
+
+  .zikir-display h2 {
+    font-size: 2rem;
+    margin: 5px 0;
+  }
+
+  .settings-label {
+    margin-bottom: 4px;
+  }
+
+  .spinner-button {
+    height: 32px;
+    width: 32px;
+    min-width: 32px;
+  }
+
+  .zikir-limit-input {
+    font-size: 1.5rem;
+  }
+}
+
 /* Dark mode adjustments for Tasbih */
 @media (prefers-color-scheme: dark) {
   .tasbih-bead {
