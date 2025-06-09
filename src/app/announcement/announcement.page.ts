@@ -273,7 +273,7 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch (error) {
       console.error('Error during ionViewWillEnter initialization:', error);
-      this.presentToast('Error loading page. Please try again.');
+      this.presentToast('Ralat memuat pengumuman. Sila cuba lagi.');
       // Ensure loading indicators are hidden even on error
     } finally {
       // Hide general loading indicator only when all *async* operations triggered by ionViewWillEnter are conceptually done
