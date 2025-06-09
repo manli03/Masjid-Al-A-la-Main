@@ -62,6 +62,18 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
+/* MODIFICATION: Re-added style for prayer icon and name alignment */
+.prayer-name-container {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Consistent spacing between icon and text */
+}
+
+.prayer-name-container img {
+  flex-shrink: 0; /* Prevents icon from shrinking */
+}
+
+
 .table-container table {
   width: 100%;
 }
@@ -87,6 +99,7 @@ button.btn-reminder {
   border-radius: 4px;
   font-size: 14px;
   transition: all 0.3s ease;
+  white-space: nowrap; // Prevent text inside button from wrapping
 }
 
 button.btn-reminder ion-icon {
@@ -116,6 +129,58 @@ thead.fixed-header {
   z-index: 1;
 }
 
+
+/* ======================================================== */
+/* == MODIFIED STYLES for Daily Prayer Table               == */
+/* ======================================================== */
+.daily-prayer-table {
+  table-layout: fixed; /* Enforce column widths */
+  
+  th {
+    border-right: 1px solid #f0f0f0;
+  }
+  th:last-child {
+    border-right: none;
+  }
+  
+  /* MODIFICATION: Adjusted column widths to fit icons */
+  .prayer-name-cell { width: 45%; }
+  .prayer-time-cell { width: 30%; }
+  .prayer-action-cell { width: 25%; text-align: right; }
+
+  td {
+    vertical-align: middle;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    white-space: nowrap; // PREVENT TEXT WRAP
+  }
+  
+  tbody tr {
+    border-bottom: 1px solid #f0f0f0; // Add separator for light mode
+  }
+  
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  /* Style for the icon-only button */
+  .btn-reminder.icon-only {
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    min-width: 36px; /* Override any other min-width */
+    border-radius: 50%; /* Make it circular */
+    display: inline-flex; /* Helps with alignment in the cell */
+
+    ion-icon {
+      margin-right: 0; /* Remove margin from icon */
+      font-size: 20px;
+    }
+  }
+}
+/* ======================================================== */
+
+
 /* Styling for highlighting the current day and clicked row */
 .current-day, .clicked-row {
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -138,7 +203,7 @@ thead.fixed-header {
 }
 
 ion-spinner {
-  --color: : rgb(0, 172, 95);
+  --color: rgb(0, 172, 95);
 }
 
 .loading-overlay {
@@ -158,22 +223,15 @@ ion-spinner {
 @media (prefers-color-scheme: dark) {
   .header {
     background-color: rgb(0, 100, 55);
-    color: white;
   }
 
   .date-container {
     background-color: #1e1e1e;
-    color: white;
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
 
-  .date-container h2 {
-    color: lightgray; /* Text color for dark mode */
-  }
-
-  .date-container p {
-    color: gray; /* Text color for dark mode */
-  }
+  .date-container h2 { color: lightgray; }
+  .date-container p { color: gray; }
 
   .table-container {
     background-color: #1e1e1e;
@@ -189,6 +247,14 @@ ion-spinner {
     background-color: #1e1e1e;
     color: white;
   }
+  
+  /* MODIFICATION: Update divider colors for dark mode */
+  .daily-prayer-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .daily-prayer-table th {
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+  }
 
   .current-day {
     background-color: rgb(0, 100, 55) !important;
@@ -203,23 +269,15 @@ ion-spinner {
   button.btn-reminder {
     background-color: rgb(0, 100, 55);
     border-color: rgb(0, 100, 55);
-    color: white;
   }
   
   button.btn-reminder.active {
     background-color: #00773d;
     border-color: #00773d;
-    font-weight: bold;
   }
 
-  ion-spinner {
-    --color: rgb(0, 100, 55);
-  }
-
-  .loading-overlay {
-    background: rgba(255, 255, 255, 0.5);
-    color: black;
-  }
+  ion-spinner { --color: rgb(0, 100, 55); }
+  .loading-overlay { background: rgba(255, 255, 255, 0.5); color: black; }
 }
 
 .notification-settings-modal {
@@ -227,4 +285,26 @@ ion-spinner {
   --width: 90%;
   --border-radius: 16px;
   --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+}
+
+/* Yearly view fix */
+.yearly-view-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.yearly-view-wrapper .header { flex-shrink: 0; }
+.yearly-view-wrapper .container {
+  flex-grow: 1;
+  overflow: hidden; 
+  display: flex;
+}
+.yearly-view-wrapper .table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+.yearly-view-wrapper thead.fixed-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }

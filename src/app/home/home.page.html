@@ -28,23 +28,21 @@
     </div>
   </div>
 
-  <!-- Prayer Header Section -->
+  <!-- Prayer Header Section (This structure supports the multi-line fix) -->
   <div class="prayer-header" (click)="navigateToPrayerTimes()">
-    <ion-row>
-      <div style="display: flex; justify-content: center; align-items: center;">
-        <img src="../../assets/icon/heart.svg" alt="Heart Icon"
-          style="width: 24px; height: 24px; margin: -3px 10px 0 0;" />
-      </div>
-      <span *ngIf="loaded; else skeletonPrayerHeader">{{ getPrayerHeaderText() }}</span>
+    <!-- This div groups the icon and the text -->
+    <div class="prayer-header-content">
+      <img src="../../assets/icon/heart.svg" alt="Heart Icon" class="heart-icon" />
+      <span class="prayer-header-text" *ngIf="loaded; else skeletonPrayerHeader">{{ getPrayerHeaderText() }}</span>
       <ng-template #skeletonPrayerHeader>
-        <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 200px; height: 20px;"></ion-skeleton-text>
+        <ion-skeleton-text [animated]="true" style="width: 150px; height: 20px; margin-top: 5px;"></ion-skeleton-text>
       </ng-template>
-      <ion-col class="text-end d-flex align-items-center">
-        <div class="circle-button">
-          <ion-icon name="chevron-forward-outline"></ion-icon>
-        </div>
-      </ion-col>
-    </ion-row>
+    </div>
+    <!-- This is the arrow button, a direct flex child -->
+    <div class="circle-button">
+      <ion-icon name="chevron-forward-outline"></ion-icon>
+    </div>
   </div>
 
   <!-- Current Time Section -->
