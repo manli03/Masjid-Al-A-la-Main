@@ -396,7 +396,7 @@ export class PrayerNotificationsService {
       const defaultSettings: PrayerNotificationSettings = {
         enabledPrayers: [],
         lastScheduled: null,
-        selectedAzanSound: 'none',
+        selectedAzanSound: 'azan7', // Default sound
         notificationAdvance: 0,
         currentChannelId: this.currentChannelId,
         currentDefaultChannelId: this.currentDefaultChannelId,
