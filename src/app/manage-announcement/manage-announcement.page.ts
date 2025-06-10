@@ -21,7 +21,8 @@ interface Announcement {
   title: string;
   author: string;
   content: string;
-  imageUrl?: string;
+  imageUrl?: string; // This will hold the first image URL for the thumbnail
+  imageUrls?: string[]; // This will hold the full array of images
   date: string;
   commentsCount: number;
   likes: number;

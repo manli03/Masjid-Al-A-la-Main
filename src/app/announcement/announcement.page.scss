@@ -1,143 +1,146 @@
-// Start of styles from original SCSS (mostly news list and article structure)
-
+// All styles for news-item, article-container, image-gallery etc. are unchanged
 .news-item {
   padding: 15px;
   margin-bottom: 10px;
   border-radius: 5px;
 }
-
-.news-item img {
-  width: 100%;
-  height: auto; // Keep auto height for list item images
-  border-radius: 5px;
-}
-
 .news-title {
   font-size: 18px;
   font-weight: bold;
 }
-
 .news-author {
-  color: rgb(0, 172, 95);
+  color: var(--ion-color-primary-shade);
   font-weight: 600;
 }
-
 .news-date {
   color: #a9a9a9;
 }
-
 .article-container {
   background-color: #fff;
   border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); // Keep the box shadow from SCSS
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   padding: 20px;
   max-width: 600px;
   margin: auto;
 }
-
-.article-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .article-title {
   font-size: 20px;
   font-weight: bold;
   margin-top: 20px;
 }
-
 .article-content {
-  margin-top: 10px; // Keep this margin from original SCSS
+  margin-top: 10px;
 }
-
-.article-image {
-  width: 100%;
-  height: 200px; // Use fixed height from CSS
-  overflow: hidden;
+.image-gallery-grid {
   display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #e0e0e0;
+  .grid-item {
+    position: relative;
+    background-color: #f0f0f0;
+  }
+  .image-wrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .more-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+  }
+}
+.layout-for-1 {
+  height: 350px;
+  .grid-item {
+    width: 100%;
+  }
+}
+.layout-for-2 {
+  height: 250px;
+  .grid-item {
+    width: calc(50% - 1px);
+  }
+}
+.layout-for-3 {
+  height: 400px;
+  .grid-item {
+    &:nth-child(1) {
+      width: 100%;
+      height: calc(66.66% - 1px);
+    }
+    &:nth-child(2),
+    &:nth-child(3) {
+      width: calc(50% - 1px);
+      height: 33.33%;
+    }
+  }
+}
+.layout-for-4 {
+  height: 400px;
+  .grid-item {
+    width: calc(50% - 1px);
+    height: calc(50% - 1px);
+  }
+}
+.image-placeholder-full {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 10px 0 20px; // Use margin from CSS
-  background-color: #f5f5f5; // Use background from CSS
-  border-radius: 8px; // Use border-radius from CSS
-  position: relative; // Needed for the ::after pseudo-element
-}
-
-.article-image img {
   width: 100%;
-  height: 100%; // Use 100% height for object-fit from CSS
-  object-fit: cover; // Use object-fit from CSS
-  border-radius: 8px; // Keep border-radius from original SCSS (or align with parent)
+  color: #888;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  margin: 15px 0;
 }
-
-.article-image::after {
-  content: '';
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-  background-image: url('../../assets/icon/expand.svg');
-  background-size: contain;
-  background-repeat: no-repeat;
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-// Styles for article image placeholder (from HTML style block)
-.article-image .image-placeholder {
-  height: 100%;
-  display: flex; // Ensure flex properties are here
-  flex-direction: column; // Ensure flex properties are here
-  align-items: center; // Ensure flex properties are here
-  justify-content: center; // Ensure flex properties are here
-  width: 100%; // Ensure flex properties are here
-  color: #888; // Ensure color is here
-}
-
-.article-image .image-placeholder ion-icon {
+.image-placeholder-full ion-icon {
   font-size: 48px;
   margin-bottom: 8px;
 }
-
-
 .article-footer {
   margin-top: 20px;
   padding-top: 10px;
   border-top: 1px solid #ddd;
   display: flex;
-  flex-direction: column; // Keep flex direction
-  gap: 10px; // Keep gap
+  flex-direction: column;
+  gap: 10px;
 }
-
 .author {
   font-size: 14px;
   color: #555;
 }
-
 .stats {
   display: flex;
   gap: 10px;
-  font-size: 14px; // Adjusted from original SCSS (was 24px, too big) - keeping 14px as seen in HTML inline style
+  font-size: 14px;
   color: #777;
 }
-
-.stats ion-icon { // Corrected from 'stats i'
-  font-size: 24px; // Explicitly set icon size
+.stats ion-icon {
+  font-size: 24px;
 }
-
-.clickable-image {
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.clickable-image:hover {
-  transform: scale(1.02);
-}
-
-// Start of styles from HTML style block (mostly utility and comments)
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -145,7 +148,6 @@
   justify-content: center;
   padding: 40px 0;
 }
-
 .image-container {
   display: flex;
   align-items: center;
@@ -155,13 +157,11 @@
   border-radius: 8px;
   background-color: #f5f5f5;
 }
-
 .image-container img {
   width: 100%;
-  height: 100%; // Use 100% height for object-fit in list
+  height: 100%;
   object-fit: cover;
 }
-
 .image-placeholder {
   display: flex;
   flex-direction: column;
@@ -171,13 +171,11 @@
   height: 100%;
   color: #888;
 }
-
 .image-placeholder ion-icon {
   font-size: 24px;
 }
-
-
-.no-items {
+.no-items,
+.all-read-message {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -186,34 +184,35 @@
   color: #888;
   text-align: center;
 }
-
-.no-items ion-icon {
-  font-size: 48px;
+.no-items ion-icon,
+.all-read-message ion-icon {
+  font-size: 64px;
   margin-bottom: 16px;
 }
-
-// Avatar styles (combined and refined)
+.all-read-message h4 {
+  margin: 0 0 10px;
+  font-weight: bold;
+  color: var(--ion-color-success);
+}
+.all-read-message p {
+  margin: 0;
+  color: #666;
+}
 .avatar-container {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background-color: #f5f5f5;
   margin-right: 12px;
-  flex-shrink: 0; // Prevent shrinking
+  flex-shrink: 0;
   position: relative;
 }
-
 .avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
 }
-
 .avatar-icon {
   font-size: 40px;
   color: #888;
@@ -221,178 +220,182 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  margin: 0;
 }
-
 .preserve-whitespace {
   white-space: pre-line;
 }
-
-/* Updated and new styles for comments (from HTML style block + previous step fixes) */
 .comments-section {
   margin-top: 20px;
   border-top: 1px solid #eee;
   padding-top: 20px;
 }
-
 .comments-section h4 {
   margin-bottom: 15px;
   font-weight: 500;
 }
-
-.comment-input-container {
+.new-comment-area {
   display: flex;
-  margin-bottom: 20px;
-  border: 1px solid #ddd;
-  border-radius: 24px;
-  overflow: hidden;
-  background: #f9f9f9;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 24px;
+  .avatar-container {
+    margin-right: 0;
+  }
+  .new-comment-textarea {
+    flex: 1;
+    border: 1px solid #ddd;
+    --background: #f9f9f9;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --padding-top: 8px;
+    --padding-bottom: 8px;
+  }
+  .send-comment-btn {
+    --box-shadow: none;
+    align-self: flex-end;
+  }
 }
-
-.comment-input-container ion-input {
-  flex: 1;
-  --padding-start: 15px;
-  --padding-end: 15px;
-  --padding-top: 10px;
-  --padding-bottom: 10px;
+.comment-thread {
+  position: relative;
 }
-
-.add-comment-btn {
-  margin: 0;
-  --border-radius: 0;
-}
-
 .comment-card {
-  margin-bottom: 20px;
-  padding: 15px;
-  border-radius: 12px;
-  background: #f9f9f9;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); // Keep the box shadow
+  margin-bottom: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 10px 0;
 }
-
 .comment-user {
   display: flex;
-  align-items: flex-start; /* Align items to the top */
+  align-items: flex-start;
   margin-bottom: 10px;
-  width: 100%; // Ensure flex containment
 }
-
-
 .comment-info {
-  flex: 1; // Takes up available space
-  min-width: 0; // Allows it to shrink below content size
-  margin-right: 8px; // Add space between text and actions
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
 }
-
 .comment-username {
   font-weight: 500;
   margin: 0 0 5px 0;
-  display: flex; /* Use flex to align username and tag */
-  align-items: baseline;
-  flex-wrap: wrap; /* Allow wrapping if name + tag is long */
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 8px;
 }
-
 .comment-username small {
   font-weight: normal;
   color: #888;
-   margin-left: auto; // Push date to the right if not wrapping, or start on new line
-  width: 100%; // Ensure small date takes full width below name
+  width: 100%;
+  margin-top: 2px;
 }
-
+.replying-to-tag {
+  display: inline-flex;
+  align-items: center;
+  font-weight: normal;
+  color: var(--ion-color-medium-shade);
+  font-size: 0.9em;
+  ion-icon {
+    font-size: 1em;
+    margin-right: 2px;
+  }
+}
 .comment-text {
   margin: 0;
   word-break: break-word;
 }
-
 .comment-actions {
   display: flex;
   align-items: center;
-  flex-shrink: 0; // Prevent shrinking
-  margin-left: auto; // Push actions to the right
-  gap: 0; // Remove potential gaps between buttons
+  flex-shrink: 0;
+  margin-left: auto;
 }
-
 .comment-actions ion-button {
-  height: 24px; // Make buttons smaller
-  width: 24px; // Make buttons smaller
+  height: 24px;
+  width: 24px;
   --padding-start: 0;
   --padding-end: 0;
-  --padding-top: 0;
-  --padding-bottom: 0;
 }
-
-.reply-btn {
+.thread-reply-btn {
+  --padding-start: 0;
   margin-left: 52px;
-  margin-bottom: 10px;
   font-size: 12px;
-  --padding-start: 10px;
-  --padding-end: 10px;
+  height: 24px;
+  color: #555;
+  --color-activated: var(--ion-color-primary);
+  display: inline-flex;
+  align-items: center;
 }
-
-.reply-container {
-  margin-left: 50px;
-  margin-bottom: 15px;
+.replies-wrapper {
+  position: relative;
+  margin-left: 52px;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -12px;
+    width: 2px;
+    background-color: #eee;
+  }
+}
+.reply-card,
+.reply-input-card {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 20px;
+    left: -12px;
+    width: 8px;
+    height: 2px;
+    background-color: #eee;
+  }
+}
+.reply-input-card {
   display: flex;
-  border: 1px solid #ddd;
-  border-radius: 24px;
-  overflow: hidden;
-  background: #fff;
+  align-items: flex-start;
+  padding: 10px 0;
+  .comment-info {
+    flex: 1;
+    min-width: 0;
+  }
 }
-
-.reply-container ion-input {
-  flex: 1;
-  --padding-start: 15px;
-  --padding-end: 15px;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-}
-
-.send-reply-btn {
-  margin: 0;
-  --border-radius: 0;
-  font-size: 12px;
+.reply-textarea {
+  --background: #f9f9f9;
   --padding-start: 12px;
   --padding-end: 12px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
 }
-
-.reply-card {
-  margin-left: 52px;
-  margin-bottom: 10px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f0f0f0;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.1); // Keep the box shadow
+.reply-input-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
-
-.reply-card .comment-user {
-   margin-bottom: 0; // Less margin for replies
-}
-
 .edit-comment-container {
   margin-top: 5px;
 }
-
 .edit-input {
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 5px;
-  background: white;
   margin-bottom: 8px;
+  --padding-start: 12px;
+  --padding-end: 12px;
 }
-
 .edit-buttons {
   display: flex;
   justify-content: flex-end;
   gap: 5px;
 }
-
 .edited-tag {
   font-size: 0.8em;
   color: #888;
   font-style: italic;
   margin-left: 5px;
 }
-
 .no-comments {
   display: flex;
   flex-direction: column;
@@ -401,149 +404,123 @@
   color: #888;
   text-align: center;
 }
-
 .no-comments ion-icon {
   font-size: 40px;
   margin-bottom: 10px;
 }
-
-/* Style for the "all announcements read" message */
-.all-read-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  text-align: center;
-  padding: 20px;
-}
-
-.all-read-message ion-icon {
-  font-size: 70px;
-  margin-bottom: 10px;
-}
-
-.all-read-message h4 {
-  margin: 0 0 10px;
-  font-weight: bold;
-  color: var(--ion-color-success);
-}
-
-.all-read-message p {
-  margin: 0;
-  color: #666;
-}
-
-/* Admin Tag Style (from previous step) */
 .admin-tag {
-  font-size: 0.8em; // Slightly smaller than username
+  font-size: 0.8em;
   font-weight: bold;
-  color: var(--ion-color-success, #28a745); // Green color, fallback included
-  margin-left: 8px; // Space after username
-  padding: 2px 6px; // Small padding
-  border: 1px solid var(--ion-color-success, #28a745); // Border
-  border-radius: 12px; // Rounded corners
-  background-color: rgba(40, 167, 69, 0.1); // Light green background
-  white-space: nowrap; // Prevent wrapping within the tag
-  display: inline-block; // Proper spacing
-  flex-shrink: 0; // Prevent shrinking
+  color: var(--ion-color-success, #28a745);
+  padding: 2px 6px;
+  border: 1px solid var(--ion-color-success, #28a745);
+  border-radius: 12px;
+  background-color: rgba(40, 167, 69, 0.1);
 }
 
-
-/* Dark Mode */
+// ======================================================
+// Corrected & Comprehensive Dark Mode Adjustments
+// ======================================================
 @media (prefers-color-scheme: dark) {
-
-  body {
-    background-color: #121212; /* Dark background for the body */
-    color: #fff; /* Light text color for the body */
-  }
-
-  .news-item {
-    color: #fff;
-  }
-
-  .news-author {
-    color: rgb(147, 245, 195);
-  }
-
-  .news-date {
-    color: #ddd;
-  }
-
+  // --- Main container and text colors ---
   .article-container {
-    background-color: #333;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background-color: #333; // Your color
+    color: #fff; // Your color
   }
 
-   .image-container,
-    .article-image,
-    .avatar-container {
-      background-color: #222;
-    }
-
-    .image-placeholder,
-    .no-items,
-    .avatar-icon {
-      color: #aaa;
-    }
-
-    .all-read-message p {
-      color: #aaa;
-    }
-
-
-  .article-footer {
-    border-top: 1px solid #555;
+  // Titles
+  .news-title,
+  .article-title,
+  .comments-section h4 {
+    color: #fff; // Fix: Titles were black
   }
 
-  .author {
-    color: #ccc;
-  }
-
-  .stats {
-    color: #aaa;
-  }
-
-  .comment-card {
-    background-color: #444;
-    color: #fff;
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.1); // Keep box shadow
-  }
-
+  // Body and secondary text
+  .article-content,
+  .author,
   .comment-text {
-    color: #ddd;
+    color: #ccc; // Your color
+  }
+  .news-author {
+    color: var(--ion-color-primary-tint); // Use a tint for dark mode
+  }
+  .news-date,
+  .stats,
+  .comment-username small,
+  .edited-tag {
+    color: #aaa; // Your color
   }
 
-  .reply-card {
-    background-color: #555;
-    color: #fff;
-    box-shadow: 0 0 3px rgba(255, 255, 255, 0.1); // Keep box shadow
+  // --- Placeholders and containers ---
+  .image-gallery-grid {
+    background-color: #333; // Fix: Was light gray
+  }
+  .image-container,
+  .avatar-container,
+  .image-placeholder-full,
+  .image-gallery-grid .grid-item {
+    background-color: #222; // Your color
+  }
+  .image-placeholder,
+  .no-items,
+  .avatar-icon,
+  .no-items p,
+  .all-read-message p {
+    color: #aaa; // Your color
   }
 
-   .comment-input-container,
-    .reply-container {
-      background: #2a2a2a;
-      border-color: #444;
+  // --- Borders and separators ---
+  .article-footer,
+  .comments-section {
+    border-top-color: #555; // Your color
+  }
+  hr {
+    border-color: #555; // Fix: was light
+  }
+
+  // --- Input Fields ---
+  .new-comment-area {
+    .new-comment-textarea {
+      --background: #2a2a2a; // Your color
+      border-color: #444; // Your color
+      color: #e0e0e0; // Your color
+      &::placeholder {
+        color: #aaa; // Fix: Placeholder was dark
+      }
     }
-
-    .edit-input {
-      background: #2a2a2a;
-      border-color: #444;
+  }
+  .reply-textarea,
+  .edit-input {
+    --background: #2a2a2a; // Your color
+    border-color: #444; // Your color
+    color: #e0e0e0; // Your color
+    &::placeholder {
+      color: #aaa; // Fix: Placeholder was dark
     }
-
-
-  .comment-username small {
-    color: #aaa;
   }
 
+  // --- Comment Section Specifics ---
+  .replying-to-tag {
+    color: var(--ion-color-medium-tint); // Your color
+  }
+  .thread-reply-btn {
+    color: #aaa; // Your color
+  }
+  .replies-wrapper::before,
+  .reply-card::before,
+  .reply-input-card::before {
+    background-color: #444; // Your color
+  }
+
+  // Admin tag in dark mode
   .admin-tag {
-     color: var(--ion-color-success-shade, #228b22); // Darker green for contrast in dark mode
-     border-color: var(--ion-color-success-shade, #228b22);
-     background-color: rgba(40, 167, 69, 0.2); // Slightly more opaque background
+    background-color: rgba(
+      40,
+      167,
+      69,
+      0.2
+    ); // A better background for dark mode
+    border-color: var(--ion-color-success-tint); // A lighter border
+    color: var(--ion-color-success-tint); // A lighter text color
   }
-}
-
-ion-icon {
-  font-size: 24px; // Keep the base icon size
 }

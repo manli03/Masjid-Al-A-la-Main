@@ -1,0 +1,13 @@
+<ion-list lines="none">
+    <!-- Show Edit option only if the user is the owner -->
+    <ion-item button="true" detail="false" *ngIf="isOwner" (click)="selectOption('edit')">
+        <ion-icon name="pencil-outline" slot="start" color="primary"></ion-icon>
+        <ion-label>Edit</ion-label>
+    </ion-item>
+
+    <!-- Show Delete option if the user is the owner OR an admin -->
+    <ion-item button="true" detail="false" *ngIf="isOwner || isAdmin" (click)="selectOption('delete')">
+        <ion-icon name="trash-outline" slot="start" color="danger"></ion-icon>
+        <ion-label>Hapus</ion-label>
+    </ion-item>
+</ion-list>

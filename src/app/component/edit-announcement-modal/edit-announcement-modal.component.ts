@@ -1,5 +1,9 @@
-import { Component, Input } from '@angular/core';
-import { ModalController, AlertController } from '@ionic/angular';
+import { Component, Input, OnInit } from '@angular/core';
+import {
+  ModalController,
+  AlertController,
+  LoadingController,
+} from '@ionic/angular';
 
 @Component({
   selector: 'app-edit-announcement-modal',
@@ -15,14 +19,13 @@ import { ModalController, AlertController } from '@ionic/angular';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="ion-padding">
       <ion-item>
         <ion-label position="stacked">Tajuk</ion-label>
         <ion-textarea
           [(ngModel)]="editAnnouncement.title"
           placeholder="Masukkan Tajuk"
           [autoGrow]="true"
-          (ngModelChange)="checkFormValidity()"
         ></ion-textarea>
       </ion-item>
       <ion-item>
@@ -31,46 +34,66 @@ import { ModalController, AlertController } from '@ionic/angular';
           [(ngModel)]="editAnnouncement.content"
           placeholder="Masukkan Pengumuman"
           [autoGrow]="true"
-          (ngModelChange)="checkFormValidity()"
         ></ion-textarea>
       </ion-item>
-      <ion-item>
+
+      <ion-item lines="none">
         <ion-label position="stacked">Gambar</ion-label>
+      </ion-item>
+      <div class="ion-padding-start ion-padding-end">
         <div class="image-size-tip">
           <ion-icon name="information-circle-outline"></ion-icon>
-          Saiz gambar yang disyorkan: 600x400 px, maksimum 5MB
+          Saiz gambar yang disyorkan: 600x400 px, maksimum 5MB setiap satu.
         </div>
-        <img
-          *ngIf="editAnnouncement.imageUrl"
-          [src]="editAnnouncement.imageUrl"
-          alt="Gambar"
-          style="max-width: 100%; margin: 10px 0; border-radius: 5px;"
-        />
+
+        <!-- Image Previews -->
+        <div
+          class="preview-container"
+          *ngIf="
+            editAnnouncement.imageUrls && editAnnouncement.imageUrls.length > 0
+          "
+        >
+          <div
+            *ngFor="let url of editAnnouncement.imageUrls; let i = index"
+            class="image-preview-wrapper"
+          >
+            <img [src]="url" alt="Selected Image Preview" />
+            <ion-button
+              (click)="removeImage(i)"
+              color="danger"
+              size="small"
+              class="remove-btn"
+            >
+              <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+
         <ion-button
           expand="block"
           color="light"
           (click)="fileInput.click()"
-          style="margin: 20px 0;"
+          style="margin-top: 10px;"
         >
-          <span [style.text-transform]="imageName ? 'none' : null">
-            {{ imageName ? imageName : 'Tukar Gambar' }}
-          </span>
+          <ion-icon name="images-outline" slot="start"></ion-icon>
+          Tambah / Tukar Gambar
         </ion-button>
         <input
           type="file"
           (change)="onImageSelected($event)"
           accept="image/*"
-          id="choose-file"
           #fileInput
           style="display: none;"
+          multiple
         />
-      </ion-item>
-      <div class="ion-text-end">
+      </div>
+
+      <div class="ion-padding ion-text-end">
         <ion-button (click)="dismiss()" color="light">Batal</ion-button>
         <ion-button
           (click)="confirmSave()"
           color="primary"
-          [disabled]="!formIsValid || !isContentChanged()"
+          [disabled]="!isFormValid() || !isContentChanged()"
           >Simpan</ion-button
         >
       </div>
@@ -85,31 +108,65 @@ import { ModalController, AlertController } from '@ionic/angular';
         margin-top: 5px;
         display: flex;
         align-items: center;
+        margin-bottom: 10px;
       }
       .image-size-tip ion-icon {
         margin-right: 5px;
         font-size: 16px;
       }
+      .preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .image-preview-wrapper {
+        position: relative;
+        width: 100px;
+        height: 100px;
+      }
+      .image-preview-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
+      .remove-btn {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        --padding-start: 0;
+        --padding-end: 0;
+        height: 24px;
+        width: 24px;
+      }
     `,
   ],
 })
-export class EditAnnouncementModalComponent {
+export class EditAnnouncementModalComponent implements OnInit {
   @Input() news: any;
-  editAnnouncement: any;
+  editAnnouncement: any = { imageUrls: [] };
   originalAnnouncement: any;
-  formIsValid = false;
-
-  imageName: string = '';
+  isUploading = false;
 
   constructor(
     private modalController: ModalController,
     private alertController: AlertController,
+    private loadingController: LoadingController,
   ) {}
 
   ngOnInit() {
-    this.editAnnouncement = { ...this.news };
-    this.originalAnnouncement = { ...this.news };
-    this.checkFormValidity();
+    this.editAnnouncement = JSON.parse(JSON.stringify(this.news));
+    // Backwards compatibility: if imageUrls doesn't exist but imageUrl does, create the array
+    if (!Array.isArray(this.editAnnouncement.imageUrls)) {
+      this.editAnnouncement.imageUrls = this.editAnnouncement.imageUrl
+        ? [this.editAnnouncement.imageUrl]
+        : [];
+    }
+    this.originalAnnouncement = JSON.parse(
+      JSON.stringify(this.editAnnouncement),
+    );
   }
 
   dismiss() {
@@ -121,116 +178,113 @@ export class EditAnnouncementModalComponent {
       header: 'Simpan perubahan?',
       message: 'Pastikan data yang dimasukkan adalah betul.',
       buttons: [
-        {
-          text: 'Batal',
-          role: 'cancel',
-          cssClass: 'secondary',
-        },
-        {
-          text: 'Simpan',
-          handler: () => {
-            this.save();
-          },
-        },
+        { text: 'Batal', role: 'cancel' },
+        { text: 'Simpan', handler: () => this.save() },
       ],
     });
-
     await alert.present();
   }
 
   save() {
+    // Remove the old single `imageUrl` property before saving if it exists
+    delete this.editAnnouncement.imageUrl;
     this.modalController.dismiss(this.editAnnouncement);
   }
 
-  onImageSelected(event: any) {
-    const file = event.target.files[0];
-    this.imageName = file ? file.name : '';
+  async onImageSelected(event: any) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    // Check file size first (raw file)
-    const fileSizeMB = file.size / (1024 * 1024);
-    if (fileSizeMB > 5) {
-      // 5MB limit for raw images
+    this.isUploading = true;
+    const loading = await this.loadingController.create({
+      message: `Memproses ${files.length} gambar...`,
+    });
+    await loading.present();
+
+    let oversizedFiles: string[] = [];
+    const processingPromises = Array.from(files).map((file: any) => {
+      const fileSizeMB = file.size / (1024 * 1024);
+      if (fileSizeMB > 5) {
+        oversizedFiles.push(`${file.name} (${fileSizeMB.toFixed(2)}MB)`);
+        return Promise.resolve();
+      }
+      return this.compressImage(file, 800, 0.7);
+    });
+
+    await Promise.all(processingPromises);
+
+    this.isUploading = false;
+    await loading.dismiss();
+
+    if (oversizedFiles.length > 0) {
       this.alertController
         .create({
-          header: 'Image Too Large',
-          message: `Selected image is ${fileSizeMB.toFixed(2)}MB. Please select an image smaller than 5MB.`,
+          header: 'Gambar Terlalu Besar',
+          message: `Gambar berikut melebihi had 5MB: <br><ul>${oversizedFiles.map((f) => `<li>${f}</li>`).join('')}</ul>`,
           buttons: ['OK'],
         })
         .then((alert) => alert.present());
-      return;
     }
 
-    // Compress and resize the image before converting to base64
-    this.compressImage(file, 600, 0.7); // max width 600px, quality 70%
+    event.target.value = null;
   }
 
-  // Compress and resize image before converting to base64
-  compressImage(file: File, maxWidth: number, quality: number) {
-    const reader = new FileReader();
-    reader.onload = (event: any) => {
-      const img = new Image();
-      img.src = event.target.result;
+  compressImage(file: File, maxWidth: number, quality: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
 
-      img.onload = () => {
-        // Create canvas for resizing
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-
-        // Calculate new dimensions if needed
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw and compress image
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          console.error('Could not get 2D context from canvas');
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to base64 with reduced quality
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-        // Update component state
-        this.editAnnouncement.imageUrl = compressedDataUrl;
-
-        // Check final size of base64 string to ensure it's under limits
-        const base64Size = (compressedDataUrl.length * 3) / 4 / (1024 * 1024);
-        if (base64Size > 1) {
-          // If still too large, compress further or warn user
-          console.warn(
-            `Compressed image is still large: ${base64Size.toFixed(2)}MB`,
-          );
-
-          // For very large images, compress again with lower quality
-          if (base64Size > 2) {
-            this.compressImage(file, 600, 0.5);
-            return;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
           }
-        }
 
-        this.checkFormValidity();
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject('Could not get 2D context');
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+
+          if (!this.editAnnouncement.imageUrls) {
+            this.editAnnouncement.imageUrls = [];
+          }
+          this.editAnnouncement.imageUrls.push(compressedDataUrl);
+          resolve();
+        };
+        img.onerror = (err) => reject(err);
       };
-    };
-    reader.readAsDataURL(file);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
   }
 
-  checkFormValidity() {
-    this.formIsValid =
-      this.editAnnouncement.title && this.editAnnouncement.content;
+  removeImage(index: number) {
+    if (index > -1 && index < this.editAnnouncement.imageUrls.length) {
+      this.editAnnouncement.imageUrls.splice(index, 1);
+    }
   }
 
-  isContentChanged() {
+  isFormValid(): boolean {
+    return (
+      !!this.editAnnouncement.title?.trim() &&
+      !!this.editAnnouncement.content?.trim() &&
+      this.editAnnouncement.imageUrls?.length > 0 &&
+      !this.isUploading
+    );
+  }
+
+  isContentChanged(): boolean {
     return (
       JSON.stringify(this.editAnnouncement) !==
       JSON.stringify(this.originalAnnouncement)
     );
   }
 }
-

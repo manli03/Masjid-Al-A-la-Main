@@ -5,6 +5,7 @@ import { IonicModule } from '@ionic/angular';
 import { announcementPageRoutingModule } from './announcement-routing.module';
 import { announcementPage } from './announcement.page';
 import { ImageViewerModalComponent } from '../component/image-viewer-modal/image-viewer-modal.component';
+import { CommentOptionsPopoverComponent } from '../component/comment-options-popover/comment-options-popover.component';
 import { LinkifyPipe } from '../services/linkify.pipe';
 
 @NgModule({
@@ -15,6 +16,6 @@ import { LinkifyPipe } from '../services/linkify.pipe';
     announcementPageRoutingModule,
     ImageViewerModalComponent,
   ],
-  declarations: [announcementPage, LinkifyPipe],
+  declarations: [announcementPage, LinkifyPipe, CommentOptionsPopoverComponent],
 })
 export class announcementPageModule {}

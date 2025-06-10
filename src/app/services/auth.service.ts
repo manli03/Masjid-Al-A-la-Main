@@ -498,4 +498,15 @@ export class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Checks if the user is currently authenticated.
+   * This is determined by the presence of user data in storage.
+   * @returns A Promise that resolves to true if authenticated, false otherwise.
+   */
+  async isAuthenticated(): Promise<boolean> {
+    const user = await this.storageService.get('user');
+    // The user is considered authenticated if the 'user' object is not null.
+    return user !== null;
+  }
 }
