@@ -188,6 +188,7 @@ export class AnnouncementService {
         announcementId,
         email: user.email,
         comment,
+        action: 'add',
       };
 
       if (parentCommentId) {
