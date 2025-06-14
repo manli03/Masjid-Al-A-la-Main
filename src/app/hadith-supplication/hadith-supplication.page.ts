@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 // Import Capacitor Haptics
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
-// Define an interface for the Hadith data structure (optional, but good practice)
+// Define all interfaces used in the component
 interface Hadith {
   id: number;
   hadith_number: string;
@@ -62,7 +62,16 @@ interface Dua {
   artinya: string;
 }
 
+interface Zikir {
+  id: number;
+  arabic: string;
+  latin: string;
+  translation: string;
+}
+
 const DUA_STORAGE_KEY = 'my_duas'; // Key to store the duas in Preferences
+const ZIKIR_LIST_STORAGE_KEY = 'zikir_list';
+const SELECTED_ZIKIR_ID_KEY = 'selected_zikir_id';
 
 @Component({
   selector: 'app-hadith-supplication',
@@ -105,11 +114,12 @@ export class HadithSupplicationPage implements OnInit {
   tasbihCount: number = 0;
   totalTasbihCount: number = 0;
   tasbihLimit: number = 33;
-  private zikirs: string[] = ['Subhanallah', 'Alhamdulillah', 'Allahu Akbar'];
-  private currentZikirIndex: number = 0;
+  allZikirs: Zikir[] = [];
+  selectedZikir: Zikir | null = null;
+  zikirRounds: number = 0; // Track how many rounds completed for current zikir
 
   get currentZikir(): string {
-    return this.zikirs[this.currentZikirIndex];
+    return this.selectedZikir?.arabic || 'Pilih Zikir';
   }
 
   @ViewChild('hadithContent', { static: false }) hadithContent!: ElementRef;
@@ -133,12 +143,14 @@ export class HadithSupplicationPage implements OnInit {
         this.loadChapters();
         this.loadHadiths();
         this.loadCachedDuas();
+        this.loadZikirs();
       }
     });
 
     this.loadChapters();
     this.loadHadiths(); // Load initial Hadiths on page load
     await this.loadCachedDuas(); // Load from cache first
+    await this.loadZikirs(); // Load Zikirs from cache or API
   }
 
   ionViewWillEnter() {
@@ -248,43 +260,49 @@ export class HadithSupplicationPage implements OnInit {
 
   //Load Duas from API and save to storage
   async loadDuas() {
-    this.isListLoading = true;
     try {
-      const response = await this.http
-        .get<
-          Dua[]
-        >('https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json')
-        .toPromise();
-
-      if (response) {
-        this.duas = response;
-        await this.cacheDuas(response); // Save to Preferences
-      } else {
-        console.error('No duas received from API.');
+      // 1. Check network status
+      const status = await Network.getStatus();
+      let fetched = false;
+      if (status.connected) {
+        // 2. Try to fetch from API if online
+        const doaUrl = 'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json';
+        try {
+          const response = await this.http.get<Dua[]>(doaUrl).toPromise();
+          if (response) {
+            this.duas = response;
+            // Always update the cache with latest from API
+            await Preferences.set({
+              key: DUA_STORAGE_KEY,
+              value: JSON.stringify(response),
+            });
+            console.log('Duas fetched from API and cached.');
+            fetched = true;
+          }
+        } catch (apiError) {
+          console.error('Error fetching duas from API:', apiError);
+        }
+      }
+      if (!fetched) {
+        // 3. Fallback: Try to load from cache
+        const cached = await Preferences.get({ key: DUA_STORAGE_KEY });
+        if (cached.value) {
+          this.duas = JSON.parse(cached.value);
+          console.log('Duas loaded from cache.');
+        } else {
+          this.duas = [];
+          console.warn('No duas found in cache.');
+        }
       }
     } catch (error) {
       console.error('Error loading duas:', error);
-    } finally {
-      this.isListLoading = false;
+      this.duas = [];
     }
   }
 
   // Load Duas from Capacitor Preferences (local storage)
   async loadCachedDuas() {
-    try {
-      const ret = await Preferences.get({ key: DUA_STORAGE_KEY });
-      const storedDuas = ret.value;
-
-      if (storedDuas) {
-        this.duas = JSON.parse(storedDuas);
-        console.log('Duas loaded from cache.');
-      } else {
-        await this.loadDuas();
-        console.log('No duas found in cache, fetching from API.');
-      }
-    } catch (error) {
-      console.error('Error loading duas from cache:', error);
-    }
+    await this.loadDuas();
   }
 
   // Save Duas to Capacitor Preferences
@@ -404,9 +422,88 @@ export class HadithSupplicationPage implements OnInit {
     return currentIndex < this.hadiths.length - 1;
   }
 
+  // Method to load Zikirs (from cache or API)
+  async loadZikirs() {
+    try {
+      // 1. Check network status
+      const status = await Network.getStatus();
+      let fetched = false;
+      if (status.connected) {
+        // 2. Try to fetch from API if online
+        const zikirUrl =
+          'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/zikir.json';
+        try {
+          const response = await this.http.get<Zikir[]>(zikirUrl).toPromise();
+          if (response) {
+            this.allZikirs = response;
+            // Always update the cache with latest from API
+            await Preferences.set({
+              key: ZIKIR_LIST_STORAGE_KEY,
+              value: JSON.stringify(response),
+            });
+            console.log('Zikirs fetched from API and cached.');
+            fetched = true;
+          }
+        } catch (apiError) {
+          console.error('Error fetching zikirs from API:', apiError);
+        }
+      }
+      if (!fetched) {
+        // 3. Fallback: Try to load from cache
+        const cached = await Preferences.get({ key: ZIKIR_LIST_STORAGE_KEY });
+        if (cached.value) {
+          this.allZikirs = JSON.parse(cached.value);
+          console.log('Zikirs loaded from cache.');
+        } else {
+          this.allZikirs = [];
+          console.warn('No zikirs found in cache.');
+        }
+      }
+      // 4. Set the selected Zikir
+      await this.loadSelectedZikirPreference();
+    } catch (error) {
+      console.error('Error loading zikirs:', error);
+      this.allZikirs = []; // Ensure it's an empty array on error
+    }
+  }
+
+  // Method to load the user's last selected Zikir from Preferences
+  async loadSelectedZikirPreference() {
+    const { value } = await Preferences.get({ key: SELECTED_ZIKIR_ID_KEY });
+    const selectedId = value ? parseInt(value, 10) : null;
+
+    if (selectedId) {
+      this.selectedZikir =
+        this.allZikirs.find((z) => z.id === selectedId) || null;
+    }
+
+    // If no preference is found or the saved one is invalid, default to the first zikir in the list
+    if (!this.selectedZikir && this.allZikirs.length > 0) {
+      this.selectedZikir = this.allZikirs[0];
+    }
+  }
+
+  // Method to handle when the user selects a new Zikir
+  async onZikirChange(event: any) {
+    const newZikirId = event.detail.value;
+    const newZikir = this.allZikirs.find((z) => z.id === newZikirId);
+
+    if (newZikir) {
+      this.selectedZikir = newZikir;
+      this.tasbihCount = 0; // Reset counter when zikir changes
+      this.zikirRounds = 0; // Reset rounds when zikir changes
+      // Save the user's choice to preferences
+      await Preferences.set({
+        key: SELECTED_ZIKIR_ID_KEY,
+        value: newZikirId.toString(),
+      });
+      await Haptics.impact({ style: ImpactStyle.Light });
+    }
+  }
+
   // --- Tasbih Methods ---
   async incrementTasbih() {
-    if (!this.tasbihLimit || this.tasbihLimit <= 0) {
+    if (!this.tasbihLimit || this.tasbihLimit <= 0 || !this.selectedZikir) {
       return;
     }
 
@@ -416,8 +513,7 @@ export class HadithSupplicationPage implements OnInit {
     if (this.tasbihCount >= this.tasbihLimit) {
       await Haptics.vibrate(); // Vibrate heavily to signify round completion
       this.tasbihCount = 0;
-      this.currentZikirIndex =
-        (this.currentZikirIndex + 1) % this.zikirs.length;
+      this.zikirRounds++; // Increment round count
     } else {
       await Haptics.impact({ style: ImpactStyle.Light }); // Light vibration for a regular tap
     }
@@ -428,7 +524,7 @@ export class HadithSupplicationPage implements OnInit {
     await Haptics.vibrate();
     this.tasbihCount = 0;
     this.totalTasbihCount = 0;
-    this.currentZikirIndex = 0;
+    this.zikirRounds = 0; // Reset rounds on reset
   }
 
   // Method to increment the zikir limit

@@ -132,16 +132,21 @@
       <div class="tasbih-container">
         <!-- Top Area: Zikir and total count -->
         <div class="tasbih-top-area">
+          <!-- MODIFIED: Zikir Display Area -->
           <div class="zikir-display">
             <p>Bacaan Zikir:</p>
-            <h2>{{ currentZikir }}</h2>
+            <!-- The 'currentZikir' getter will now provide the Arabic text -->
+            <h2 class="arabic-zikir">{{ currentZikir }}</h2>
+            <!-- NEW: Show the translation of the selected zikir -->
+            <p class="zikir-translation" *ngIf="selectedZikir">{{ selectedZikir.translation }}</p>
           </div>
           <div class="tasbih-info">
             <p>Jumlah Keseluruhan: {{ totalTasbihCount }}</p>
+            <p class="tasbih-rounds-info">Jumlah Ulangan: {{ zikirRounds }}</p>
           </div>
         </div>
 
-        <!-- Middle Area: Main Counter Button -->
+        <!-- Middle Area: Main Counter Button (Unchanged) -->
         <div class="tasbih-counter-area">
           <div class="tasbih-bead" (click)="incrementTasbih()">
             <span class="tasbih-count-main">{{ tasbihCount }}</span>
@@ -153,8 +158,20 @@
         <div class="tasbih-settings-area">
           <ion-card>
             <ion-card-content>
-              <!-- NEW: Custom Spinner Control -->
-              <p class="settings-label">Had Zikir</p>
+              <!-- NEW: Zikir Selector Dropdown -->
+              <p class="settings-label">Pilih Zikir</p>
+              <ion-item class="zikir-selector-item" lines="none">
+                <!-- Bind to the ID of the selected zikir object -->
+                <ion-select [value]="selectedZikir?.id" (ionChange)="onZikirChange($event)" placeholder="Pilih satu">
+                  <!-- Loop through all available zikirs -->
+                  <ion-select-option *ngFor="let zikir of allZikirs" [value]="zikir.id">
+                    {{ zikir.latin }}
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+
+              <!-- Limit Spinner Control (Unchanged) -->
+              <p class="settings-label ion-margin-top">Had Zikir</p>
               <div class="spinner-container">
                 <ion-button fill="clear" shape="round" (click)="decrementLimit()" class="spinner-button">
                   <ion-icon slot="icon-only" name="remove-outline"></ion-icon>
@@ -165,6 +182,7 @@
                 </ion-button>
               </div>
 
+              <!-- Reset Button (Unchanged) -->
               <ion-button expand="block" (click)="resetTasbih()" color="danger" class="ion-margin-top">
                 <ion-icon name="refresh-outline" slot="start"></ion-icon>
                 Set Semula

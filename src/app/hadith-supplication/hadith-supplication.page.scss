@@ -174,6 +174,21 @@ ion-segment-content {
   color: var(--ion-color-primary);
 }
 
+.zikir-display .arabic-zikir {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin: 0;
+  color: var(--ion-color-primary);
+  line-height: 1.5; // Better line height for Arabic
+}
+
+.zikir-translation {
+  font-size: 1rem;
+  font-style: italic;
+  color: #888888;
+  margin-top: 4px !important;
+}
+
 .tasbih-counter-area {
   flex-grow: 1;
   display: flex;
@@ -199,6 +214,7 @@ ion-segment-content {
   &:active {
     transform: scale(0.95);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 0 5px rgba(0, 0, 0, 0.2);
+    border-width: 10px;
   }
 }
 
@@ -227,6 +243,22 @@ ion-segment-content {
     box-shadow: none;
     border-radius: 16px;
     margin: 0;
+  }
+}
+
+.zikir-selector-item {
+  --background: var(--ion-background-color);
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  --border-radius: 8px;
+  border: 1px solid var(--ion-color-medium-tint);
+  margin-bottom: 8px;
+
+  ion-select {
+    width: 100%;
+    --padding-start: 16px;
+    --padding-end: 16px;
+    font-size: 1.1rem;
   }
 }
 
@@ -285,6 +317,11 @@ ion-segment-content {
     margin: 5px 0;
   }
 
+  .zikir-display .arabic-zikir {
+    font-size: 2rem;
+    margin: 5px 0;
+  }
+
   .settings-label {
     margin-bottom: 4px;
   }
@@ -324,4 +361,13 @@ ion-segment-content {
   .zikir-limit-input {
     color: var(--ion-color-light-shade);
   }
+
+  .zikir-translation {
+    color: #a0a0a0;
+  }
+
+  .zikir-selector-item {
+    --background: var(--ion-color-step-150);
+    border-color: var(--ion-color-step-400);
+ }
 }
