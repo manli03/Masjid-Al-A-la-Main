@@ -11,6 +11,7 @@ import { CheckUpdateService } from './services/check-update.service';
 import { SafeArea } from 'capacitor-plugin-safe-area';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Device } from '@capacitor/device';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 @Component({
   selector: 'app-root',
@@ -113,6 +114,7 @@ export class AppComponent implements OnInit {
 
         // Set up App URL listener for deep links
         this.setupAppUrlListener();
+        this.setupPushNotificationListener();
       } catch (error) {
         console.error('Error during app initialization', error);
         this.isAppLoaded = true; // Ensure loading screen is hidden if there's an error
@@ -189,6 +191,43 @@ export class AppComponent implements OnInit {
           this.router.navigateByUrl('/tabs/announcement-loading');
         }
       }
+    }
+  }
+
+  private setupPushNotificationListener() {
+    if (Capacitor.isNativePlatform()) {
+      // This listener is triggered when a user taps on a notification.
+      PushNotifications.addListener(
+        'pushNotificationActionPerformed',
+        (notification) => {
+          console.log(
+            'Push notification action performed:',
+            JSON.stringify(notification),
+          );
+
+          // The data object contains our custom payload, including the announcementId.
+          const data = notification.notification.data;
+
+          if (data && data.announcementId) {
+            console.log(
+              'Navigating to announcement with ID:',
+              data.announcementId,
+            );
+            const navigationExtras: NavigationExtras = {
+              queryParams: { id: data.announcementId },
+            };
+            this.router.navigate(
+              ['/tabs/announcement-loading'],
+              navigationExtras,
+            );
+          } else {
+            console.log(
+              'No announcementId in notification data, navigating to default announcement page.',
+            );
+            this.router.navigateByUrl('/tabs/announcement-loading');
+          }
+        },
+      );
     }
   }
 }
