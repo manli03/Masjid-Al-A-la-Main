@@ -72,7 +72,7 @@
   }
 }
 .layout-for-1 {
-  height: 350px;
+  height: 250px;
   .grid-item {
     width: 100%;
   }
@@ -84,7 +84,7 @@
   }
 }
 .layout-for-3 {
-  height: 400px;
+  height: 250px;
   .grid-item {
     &:nth-child(1) {
       width: 100%;
@@ -98,7 +98,7 @@
   }
 }
 .layout-for-4 {
-  height: 400px;
+  height: 250px;
   .grid-item {
     width: calc(50% - 1px);
     height: calc(50% - 1px);
