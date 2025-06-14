@@ -40,7 +40,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error fetching announcements:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       return [];
     }
   }
@@ -89,7 +89,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -101,8 +101,9 @@ export class AnnouncementService {
         throw new Error('User not authenticated');
       }
 
-      // Add user email to the data
-      data.email = user.email;
+      // The data parameter is now expected to be a FormData object.
+      // The email should be appended to the FormData in the component.
+      // data.email = user.email; // This is now done in the component
 
       const response = await firstValueFrom(
         this.http.post<any>(`${this.apiUrl}/announcements.php`, data),
@@ -114,7 +115,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error creating announcement:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -126,15 +127,14 @@ export class AnnouncementService {
         throw new Error('User not authenticated');
       }
 
-      // Add user email to the data
-      data.email = user.email;
-      data.id = id;
+      // The data parameter is now expected to be a FormData object.
+      // The email and id should be appended to the FormData in the component.
+      // data.email = user.email;
+      // data.id = id;
 
       const response = await firstValueFrom(
-        this.http.post<any>(
-          `${this.apiUrl}/announcements.php?action=update`,
-          data,
-        ),
+        // The endpoint for update is now just the base URL, differentiated by POST data.
+        this.http.post<any>(`${this.apiUrl}/announcements.php`, data),
       );
       if (response.success) {
         return response;
@@ -143,7 +143,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error updating announcement:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -156,7 +156,8 @@ export class AnnouncementService {
       }
 
       const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/announcements.php?action=delete`, {
+        this.http.post<any>(`${this.apiUrl}/announcements.php`, {
+          action: 'delete',
           id,
           email: user.email,
         }),
@@ -168,7 +169,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -205,7 +206,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -233,7 +234,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -262,7 +263,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error updating comment:', error);
-      await this.handleHttpError(error);
+      // await this.handleHttpError(error);
       throw error;
     }
   }

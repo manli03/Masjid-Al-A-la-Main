@@ -16,9 +16,11 @@ import {
   Platform,
   PopoverController,
   IonTextarea,
+  LoadingController,
 } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { Share } from '@capacitor/share';
+import { Directory, Filesystem } from '@capacitor/filesystem';
 
 // Services
 import { StorageService } from '../services/storage.service';
@@ -28,7 +30,6 @@ import { AuthService } from '../services/auth.service';
 // Custom Components
 import { ImageViewerModalComponent } from '../component/image-viewer-modal/image-viewer-modal.component';
 import { CommentOptionsPopoverComponent } from '../component/comment-options-popover/comment-options-popover.component';
-import { Directory, Filesystem } from '@capacitor/filesystem';
 
 // --- Interfaces for Data Structuring ---
 
@@ -105,6 +106,7 @@ export class announcementPage implements OnInit, OnDestroy {
   // Subscriptions
   private userChangeSubscription: Subscription | null = null;
   private backButtonSubscription: any;
+  private loading: HTMLIonLoadingElement | null = null;
 
   constructor(
     private router: Router,
@@ -117,6 +119,7 @@ export class announcementPage implements OnInit, OnDestroy {
     private modalController: ModalController,
     private platform: Platform,
     private popoverController: PopoverController,
+    private loadingController: LoadingController,
   ) {}
 
   // --- 1. Lifecycle Hooks ---
@@ -437,6 +440,7 @@ export class announcementPage implements OnInit, OnDestroy {
    */
   async addComment() {
     if (!this.newComment.trim() || !this.selectedArticle) return;
+    await this.showLoading('Menambah komen...');
     try {
       const response = await this.announcementService.addComment(
         this.selectedArticle.id,
@@ -450,6 +454,8 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch {
       this.presentToast('Gagal menambah komen.');
+    } finally {
+      await this.hideLoading();
     }
   }
 
@@ -458,6 +464,7 @@ export class announcementPage implements OnInit, OnDestroy {
    */
   async addReply(parentCommentId: number) {
     if (!this.newReply.trim() || !this.selectedArticle) return;
+    await this.showLoading('Menambah balasan...');
     try {
       const response = await this.announcementService.addComment(
         this.selectedArticle.id,
@@ -476,6 +483,8 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch {
       this.presentToast('Gagal menambah balasan.');
+    } finally {
+      await this.hideLoading();
     }
   }
 
@@ -557,6 +566,7 @@ export class announcementPage implements OnInit, OnDestroy {
    */
   async saveEditedComment(comment: Comment) {
     if (!this.editCommentText.trim()) return;
+    await this.showLoading('Menyimpan komen...');
     try {
       const response = await this.announcementService.updateComment(
         comment.id,
@@ -570,6 +580,8 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch {
       this.presentToast('Gagal mengemaskini komen.');
+    } finally {
+      await this.hideLoading();
     }
   }
 
@@ -582,10 +594,16 @@ export class announcementPage implements OnInit, OnDestroy {
       message: 'Adakah anda pasti mahu memadamkan komen ini?',
       buttons: [
         { text: 'Batal', role: 'cancel' },
-        { text: 'Padam', handler: () => this.deleteComment(commentId) },
+        { text: 'Padam', role: 'confirm' },
       ],
     });
     await alert.present();
+
+    const { role } = await alert.onDidDismiss();
+    if (role === 'confirm') {
+      await this.showLoading('Memadam komen...');
+      await this.deleteComment(commentId);
+    }
   }
 
   /**
@@ -612,6 +630,8 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch {
       this.presentToast('Gagal memadam komen.');
+    } finally {
+      await this.hideLoading();
     }
   }
 
@@ -651,54 +671,67 @@ export class announcementPage implements OnInit, OnDestroy {
     }
 
     try {
-      // 1. Construct the deep link to the announcement in your web app.
       const shareUrl = `https://masjidala.web.app/announcement/${this.selectedArticle.id}`;
-
-      // 2. Prepare the main text content for sharing.
       const title = this.selectedArticle.title;
-      const content = this.selectedArticle.content;
-      const shareText = `*${title}*\n\n${content}\n\nBaca pengumuman penuh di aplikasi Masjid Al-A'la:`;
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = this.selectedArticle.content;
+      const plainContent =
+        tempDiv.textContent || tempDiv.innerText || 'Sila lihat imej';
+      const shareText = `*${title}*\n\n${plainContent}\n\nBaca pengumuman penuh di aplikasi Masjid Al-A'la:`;
 
-      // 3. Set up the initial share options object.
       const shareOptions: any = {
         title: "Pengumuman Masjid Al-A'la",
         text: shareText,
-        url: shareUrl, // Always include the URL as a fallback.
+        url: shareUrl,
         dialogTitle: 'Kongsi Pengumuman',
       };
 
-      // 4. Check if there are images and get the first one.
       const firstImageUrl = this.selectedArticle.imageUrls?.[0];
 
-      // 5. If the first image is a base64 string, process it.
-      if (firstImageUrl && firstImageUrl.startsWith('data:image/')) {
+      if (firstImageUrl) {
         try {
-          // Generate a unique filename to avoid caching issues.
-          const fileName = `announcement_${this.selectedArticle.id}_${Date.now()}.png`;
+          const fileName = `announcement_${this.selectedArticle.id}_${Date.now()}.jpeg`;
 
-          // Remove the "data:image/png;base64," prefix.
-          const base64Data = firstImageUrl.split(',')[1];
+          // Use the native-layer downloader for mobile, which bypasses webview CORS issues.
+          if (this.platform.is('capacitor')) {
+            // Step 1: Download the file to the device's cache directory.
+            await Filesystem.downloadFile({
+              url: firstImageUrl,
+              path: fileName,
+              directory: Directory.Cache,
+            });
 
-          // Write the image data to a temporary file in the device's cache directory.
-          const savedFile = await Filesystem.writeFile({
-            path: fileName,
-            data: base64Data,
-            directory: Directory.Cache,
-          });
+            // Step 2: Get the correct, shareable URI for the downloaded file.
+            const { uri } = await Filesystem.getUri({
+              path: fileName,
+              directory: Directory.Cache,
+            });
 
-          // Add the URI of the saved file to the share options.
-          // This allows apps like WhatsApp to attach the image directly.
-          shareOptions.files = [savedFile.uri];
+            if (uri) {
+              shareOptions.files = [uri];
+            }
+          } else {
+            // For web (PWA), use the fetch method, which now works due to server CORS headers.
+            const response = await fetch(firstImageUrl);
+            const blob = await response.blob();
+            const base64Data = await this.blobToBase64(blob);
+
+            const savedFile = await Filesystem.writeFile({
+              path: fileName,
+              data: base64Data,
+              directory: Directory.Cache,
+            });
+            // The '.uri' property is what's needed for web-based sharing.
+            shareOptions.files = [savedFile.uri];
+          }
         } catch (err) {
-          console.error('Gagal menyimpan imej base64 untuk dikongsi:', err);
-          // If saving fails, we simply proceed without the file. The URL is still in shareOptions.
+          console.error('Gagal memproses imej untuk dikongsi:', err);
+          this.presentToast('Gagal memuat-turun imej untuk dikongsi.');
         }
       }
 
-      // 6. Call the Capacitor Share plugin with the prepared options.
       await Share.share(shareOptions);
     } catch (error: any) {
-      // The 'Share canceled' message is not a real error, just the user closing the dialog.
       if (error.message !== 'Share canceled') {
         console.error('Ralat semasa berkongsi:', error);
         this.presentToast('Ralat berkongsi pengumuman. Sila cuba lagi.');
@@ -707,6 +740,41 @@ export class announcementPage implements OnInit, OnDestroy {
   }
 
   // --- 7. Utility & Private Helpers ---
+
+  private async showLoading(message: string) {
+    if (this.loading) {
+      await this.hideLoading();
+    }
+    this.loading = await this.loadingController.create({
+      message,
+    });
+    await this.loading.present();
+  }
+
+  private async hideLoading() {
+    if (this.loading) {
+      await this.loading.dismiss();
+      this.loading = null;
+    }
+  }
+
+  /**
+   * Converts a Blob object to a Base64 string (data part only).
+   */
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        // The result includes the full data URL prefix (e.g., "data:image/png;base64,").
+        // We only need the data part after the comma.
+        const dataUrl = reader.result as string;
+        const base64Data = dataUrl.split(',', 2)[1];
+        resolve(base64Data);
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
 
   /**
    * Handles the pull-to-refresh action.

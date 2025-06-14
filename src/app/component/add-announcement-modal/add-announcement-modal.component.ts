@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import {
   ModalController,
   AlertController,
@@ -141,14 +141,13 @@ import {
     `,
   ],
 })
-export class AddAnnouncementModalComponent {
+export class AddAnnouncementModalComponent implements OnDestroy {
   newAnnouncement = {
     title: '',
     content: '',
-    imageUrls: [] as string[], // Use an array for multiple images
-    commentsCount: 0,
-    likes: 0,
+    imageUrls: [] as string[], // Holds object URLs for preview
   };
+  selectedImageFiles: File[] = []; // Holds the actual File objects
 
   isUploading = false;
 
@@ -157,6 +156,11 @@ export class AddAnnouncementModalComponent {
     private alertController: AlertController,
     private loadingController: LoadingController,
   ) {}
+
+  ngOnDestroy() {
+    // Revoke all object URLs to avoid memory leaks
+    this.newAnnouncement.imageUrls.forEach((url) => URL.revokeObjectURL(url));
+  }
 
   dismiss() {
     this.modalController.dismiss();
@@ -183,7 +187,12 @@ export class AddAnnouncementModalComponent {
   }
 
   save() {
-    this.modalController.dismiss(this.newAnnouncement);
+    // Pass the raw data and File objects back to the parent component
+    this.modalController.dismiss({
+      title: this.newAnnouncement.title,
+      content: this.newAnnouncement.content,
+      files: this.selectedImageFiles,
+    });
   }
 
   async onImageSelected(event: any) {
@@ -205,7 +214,17 @@ export class AddAnnouncementModalComponent {
         oversizedFiles.push(`${file.name} (${fileSizeMB.toFixed(2)}MB)`);
         return Promise.resolve();
       }
-      return this.compressImage(file, 800, 0.7);
+      // Return the promise from compressImage
+      return this.compressImage(file as File, 800, 0.7).then(
+        (compressedFile) => {
+          if (compressedFile) {
+            this.selectedImageFiles.push(compressedFile);
+            this.newAnnouncement.imageUrls.push(
+              URL.createObjectURL(compressedFile),
+            );
+          }
+        },
+      );
     });
 
     await Promise.all(processingPromises);
@@ -226,7 +245,11 @@ export class AddAnnouncementModalComponent {
     event.target.value = null;
   }
 
-  compressImage(file: File, maxWidth: number, quality: number): Promise<void> {
+  compressImage(
+    file: File,
+    maxWidth: number,
+    quality: number,
+  ): Promise<File | null> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event: any) => {
@@ -249,29 +272,45 @@ export class AddAnnouncementModalComponent {
             return reject('Could not get 2D context from canvas');
           }
           ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
 
-          this.newAnnouncement.imageUrls.push(compressedDataUrl);
-          resolve();
+          // Get the compressed image as a blob
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // Create a new File object from the blob
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(null);
+              }
+            },
+            'image/jpeg',
+            quality,
+          );
         };
-        img.onerror = (err) => reject(err);
+        img.onerror = (error) => reject(error);
       };
-      reader.onerror = (err) => reject(err);
+      reader.onerror = (error) => reject(error);
       reader.readAsDataURL(file);
     });
   }
 
   removeImage(index: number) {
-    if (index > -1 && index < this.newAnnouncement.imageUrls.length) {
-      this.newAnnouncement.imageUrls.splice(index, 1);
-    }
+    // Revoke the object URL before removing it
+    URL.revokeObjectURL(this.newAnnouncement.imageUrls[index]);
+    // Remove the preview URL and the file
+    this.newAnnouncement.imageUrls.splice(index, 1);
+    this.selectedImageFiles.splice(index, 1);
   }
 
   isFormValid(): boolean {
     return (
-      !!this.newAnnouncement.title.trim() &&
-      !!this.newAnnouncement.content.trim() &&
-      this.newAnnouncement.imageUrls.length > 0 &&
+      this.newAnnouncement.title.trim().length > 0 &&
+      this.newAnnouncement.content.trim().length > 0 &&
+      this.selectedImageFiles.length > 0 && // Ensure at least one image is selected
       !this.isUploading
     );
   }

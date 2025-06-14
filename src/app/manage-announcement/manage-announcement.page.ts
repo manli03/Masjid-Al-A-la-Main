@@ -11,9 +11,7 @@ import { EditAnnouncementModalComponent } from '../component/edit-announcement-m
 import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { AnnouncementService } from '../services/announcement.service';
 
 // Define interface for the announcement item
 interface Announcement {
@@ -34,7 +32,6 @@ interface Announcement {
   styleUrls: ['./manage-announcement.page.scss'],
 })
 export class ManageAnnouncementPage implements ViewWillEnter {
-  private apiUrl = environment.apiUrl;
   isAddModalOpen = false;
   isEditModalOpen = false;
   newsItems: Announcement[] = [];
@@ -49,7 +46,7 @@ export class ManageAnnouncementPage implements ViewWillEnter {
     private storageService: StorageService,
     private authService: AuthService,
     private router: Router,
-    private http: HttpClient,
+    private announcementService: AnnouncementService,
     private toastController: ToastController,
     private loadingController: LoadingController, // Inject LoadingController
   ) {}
@@ -117,14 +114,7 @@ export class ManageAnnouncementPage implements ViewWillEnter {
 
   async loadAnnouncements() {
     try {
-      const response = await firstValueFrom(
-        this.http.get<any>(`${this.apiUrl}/announcements.php`),
-      );
-      if (response.success) {
-        this.newsItems = response.announcements;
-      } else {
-        this.presentToast('Gagal memuatkan pengumuman');
-      }
+      this.newsItems = await this.announcementService.getAnnouncements();
     } catch (error) {
       console.error('Error loading announcements:', error);
       this.presentToast('Ralat memuatkan pengumuman. Sila cuba lagi.');
@@ -143,13 +133,22 @@ export class ManageAnnouncementPage implements ViewWillEnter {
         component: AddAnnouncementModalComponent,
       });
       modal.onDidDismiss().then(async (result) => {
-        if (result?.data) {
+        if (result?.data && result.data.files) {
           await this.showLoading('Menambah pengumuman...');
           try {
-            const payload = { ...result.data, email: this.currentUser.email };
-            const response = await firstValueFrom(
-              this.http.post<any>(`${this.apiUrl}/announcements.php`, payload),
-            );
+            const { title, content, files } = result.data;
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('content', content);
+            formData.append('email', this.currentUser.email);
+
+            files.forEach((file: File) => {
+              formData.append('images[]', file, file.name);
+            });
+
+            const response =
+              await this.announcementService.createAnnouncement(formData);
 
             if (response.success) {
               this.newsItems.unshift(response.announcement);
@@ -175,9 +174,27 @@ export class ManageAnnouncementPage implements ViewWillEnter {
         if (result?.data) {
           await this.showLoading('Mengemaskini pengumuman...');
           try {
-            const payload = { ...result.data, email: this.currentUser.email };
-            const response = await firstValueFrom(
-              this.http.put<any>(`${this.apiUrl}/announcements.php`, payload),
+            const { title, content, existingImages, newFiles } = result.data;
+            const formData = new FormData();
+
+            formData.append('id', news.id.toString());
+            formData.append('title', title);
+            formData.append('content', content);
+            formData.append('email', this.currentUser.email);
+
+            // Append existing images to keep
+            formData.append('existingImages', JSON.stringify(existingImages));
+
+            // Append new files to upload
+            if (newFiles && newFiles.length > 0) {
+              newFiles.forEach((file: File) => {
+                formData.append('images[]', file, file.name);
+              });
+            }
+
+            const response = await this.announcementService.updateAnnouncement(
+              news.id,
+              formData,
             );
 
             if (response.success) {
@@ -217,12 +234,8 @@ export class ManageAnnouncementPage implements ViewWillEnter {
             await alert.dismiss();
             await this.showLoading('Menghapus pengumuman...');
             try {
-              const response = await firstValueFrom(
-                this.http.delete<any>(
-                  `${this.apiUrl}/announcements.php?id=${news.id}`,
-                  { body: { email: this.currentUser.email } },
-                ),
-              );
+              const response =
+                await this.announcementService.deleteAnnouncement(news.id);
 
               if (response.success) {
                 const index = this.newsItems.findIndex(

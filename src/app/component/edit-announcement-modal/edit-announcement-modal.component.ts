@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import {
   ModalController,
   AlertController,
@@ -49,12 +49,10 @@ import {
         <!-- Image Previews -->
         <div
           class="preview-container"
-          *ngIf="
-            editAnnouncement.imageUrls && editAnnouncement.imageUrls.length > 0
-          "
+          *ngIf="previewUrls && previewUrls.length > 0"
         >
           <div
-            *ngFor="let url of editAnnouncement.imageUrls; let i = index"
+            *ngFor="let url of previewUrls; let i = index"
             class="image-preview-wrapper"
           >
             <img [src]="url" alt="Selected Image Preview" />
@@ -144,11 +142,31 @@ import {
     `,
   ],
 })
-export class EditAnnouncementModalComponent implements OnInit {
+export class EditAnnouncementModalComponent implements OnInit, OnDestroy {
   @Input() news: any;
-  editAnnouncement: any = { imageUrls: [] };
-  originalAnnouncement: any;
+
+  // Data for the form
+  editAnnouncement: { title: string; content: string } = {
+    title: '',
+    content: '',
+  };
+  originalAnnouncement: {
+    title: string;
+    content: string;
+    imageUrls: string[];
+  } = {
+    title: '',
+    content: '',
+    imageUrls: [],
+  };
+
+  // Image management state
+  previewUrls: string[] = []; // Mix of http and blob URLs for display
+  existingImagesToKeep: string[] = []; // Filenames of original images to keep
+  newlySelectedFiles: File[] = []; // New files to upload
+
   isUploading = false;
+  private newObjectUrls: string[] = []; // Keep track of new blob URLs for cleanup
 
   constructor(
     private modalController: ModalController,
@@ -157,16 +175,45 @@ export class EditAnnouncementModalComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.editAnnouncement = JSON.parse(JSON.stringify(this.news));
-    // Backwards compatibility: if imageUrls doesn't exist but imageUrl does, create the array
-    if (!Array.isArray(this.editAnnouncement.imageUrls)) {
-      this.editAnnouncement.imageUrls = this.editAnnouncement.imageUrl
-        ? [this.editAnnouncement.imageUrl]
+    // Deep copy for safe editing
+    this.editAnnouncement.title = this.news.title;
+    this.editAnnouncement.content = this.news.content;
+
+    // Ensure imageUrls is an array
+    const imageUrls = Array.isArray(this.news.imageUrls)
+      ? this.news.imageUrls
+      : this.news.imageUrl
+        ? [this.news.imageUrl]
         : [];
-    }
-    this.originalAnnouncement = JSON.parse(
-      JSON.stringify(this.editAnnouncement),
+
+    this.previewUrls = [...imageUrls];
+    this.existingImagesToKeep = imageUrls.map((url: string) =>
+      this.getFilenameFromUrl(url),
     );
+
+    // Store original state to check for changes
+    this.originalAnnouncement = {
+      title: this.news.title,
+      content: this.news.content,
+      imageUrls: [...imageUrls],
+    };
+  }
+
+  ngOnDestroy() {
+    // Revoke all newly created object URLs to prevent memory leaks
+    this.newObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+  }
+
+  private getFilenameFromUrl(url: string): string {
+    try {
+      const urlObject = new URL(url);
+      const pathSegments = urlObject.pathname.split('/');
+      return pathSegments.pop() || '';
+    } catch (e) {
+      // Fallback for invalid URLs, though unlikely
+      const parts = url.split('/');
+      return parts[parts.length - 1];
+    }
   }
 
   dismiss() {
@@ -186,9 +233,12 @@ export class EditAnnouncementModalComponent implements OnInit {
   }
 
   save() {
-    // Remove the old single `imageUrl` property before saving if it exists
-    delete this.editAnnouncement.imageUrl;
-    this.modalController.dismiss(this.editAnnouncement);
+    this.modalController.dismiss({
+      title: this.editAnnouncement.title,
+      content: this.editAnnouncement.content,
+      existingImages: this.existingImagesToKeep,
+      newFiles: this.newlySelectedFiles,
+    });
   }
 
   async onImageSelected(event: any) {
@@ -208,7 +258,16 @@ export class EditAnnouncementModalComponent implements OnInit {
         oversizedFiles.push(`${file.name} (${fileSizeMB.toFixed(2)}MB)`);
         return Promise.resolve();
       }
-      return this.compressImage(file, 800, 0.7);
+      return this.compressImage(file as File, 800, 0.7).then(
+        (compressedFile) => {
+          if (compressedFile) {
+            this.newlySelectedFiles.push(compressedFile);
+            const objectUrl = URL.createObjectURL(compressedFile);
+            this.previewUrls.push(objectUrl);
+            this.newObjectUrls.push(objectUrl); // Track for cleanup
+          }
+        },
+      );
     });
 
     await Promise.all(processingPromises);
@@ -229,7 +288,11 @@ export class EditAnnouncementModalComponent implements OnInit {
     event.target.value = null;
   }
 
-  compressImage(file: File, maxWidth: number, quality: number): Promise<void> {
+  compressImage(
+    file: File,
+    maxWidth: number,
+    quality: number,
+  ): Promise<File | null> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event: any) => {
@@ -248,43 +311,84 @@ export class EditAnnouncementModalComponent implements OnInit {
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
-          if (!ctx) return reject('Could not get 2D context');
-
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-
-          if (!this.editAnnouncement.imageUrls) {
-            this.editAnnouncement.imageUrls = [];
+          if (!ctx) {
+            return reject('Could not get 2D context from canvas');
           }
-          this.editAnnouncement.imageUrls.push(compressedDataUrl);
-          resolve();
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(null);
+              }
+            },
+            'image/jpeg',
+            quality,
+          );
         };
-        img.onerror = (err) => reject(err);
+        img.onerror = (error) => reject(error);
       };
-      reader.onerror = (err) => reject(err);
+      reader.onerror = (error) => reject(error);
       reader.readAsDataURL(file);
     });
   }
 
   removeImage(index: number) {
-    if (index > -1 && index < this.editAnnouncement.imageUrls.length) {
-      this.editAnnouncement.imageUrls.splice(index, 1);
+    const urlToRemove = this.previewUrls[index];
+
+    if (urlToRemove.startsWith('blob:')) {
+      // This is a new image (object URL)
+      const newUrlIndex = this.newObjectUrls.indexOf(urlToRemove);
+      if (newUrlIndex > -1) {
+        // Find the corresponding file and remove it
+        // This assumes the order is preserved, which it should be
+        const fileIndex = this.previewUrls
+          .slice(0, index)
+          .filter((u) => u.startsWith('blob:')).length;
+
+        this.newlySelectedFiles.splice(fileIndex, 1);
+        this.newObjectUrls.splice(newUrlIndex, 1);
+        URL.revokeObjectURL(urlToRemove);
+      }
+    } else {
+      // This is an existing image (http URL)
+      const filename = this.getFilenameFromUrl(urlToRemove);
+      const keepIndex = this.existingImagesToKeep.indexOf(filename);
+      if (keepIndex > -1) {
+        this.existingImagesToKeep.splice(keepIndex, 1);
+      }
     }
+
+    // Remove from the preview array
+    this.previewUrls.splice(index, 1);
   }
 
   isFormValid(): boolean {
     return (
-      !!this.editAnnouncement.title?.trim() &&
-      !!this.editAnnouncement.content?.trim() &&
-      this.editAnnouncement.imageUrls?.length > 0 &&
+      this.editAnnouncement.title.trim().length > 0 &&
+      this.editAnnouncement.content.trim().length > 0 &&
+      this.previewUrls.length > 0 && // Must have at least one image
       !this.isUploading
     );
   }
 
   isContentChanged(): boolean {
+    const imagesChanged =
+      this.originalAnnouncement.imageUrls.length !== this.previewUrls.length ||
+      this.originalAnnouncement.imageUrls.some(
+        (url, i) => url !== this.previewUrls[i],
+      );
+
     return (
-      JSON.stringify(this.editAnnouncement) !==
-      JSON.stringify(this.originalAnnouncement)
+      this.originalAnnouncement.title !== this.editAnnouncement.title ||
+      this.originalAnnouncement.content !== this.editAnnouncement.content ||
+      imagesChanged
     );
   }
 }
