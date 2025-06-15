@@ -40,7 +40,7 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error fetching announcements:', error);
-      // await this.handleHttpError(error);
+      await this.handleHttpError(error);
       return [];
     }
   }
@@ -337,7 +337,7 @@ export class AnnouncementService {
         }
       } else {
         await this.presentToast(
-          'Ralat rangkaian berlaku. Sila cuba lagi kemudian.',
+          'Ralat, sila semak rangkaian anda.',
           'danger',
         );
       }

@@ -234,7 +234,7 @@ export class announcementPage implements OnInit, OnDestroy {
           this.announcementService.markAsRead(announcementId).catch();
         }
       } else {
-        this.presentToast('Pengumuman tidak dijumpai.');
+        // this.presentToast('Pengumuman tidak dijumpai.');
         this.router.navigateByUrl('/tabs/announcement', { replaceUrl: true });
       }
     } catch (error) {
