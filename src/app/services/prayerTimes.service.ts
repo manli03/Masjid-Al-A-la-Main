@@ -14,7 +14,57 @@ export class PrayerTimesService {
   private userZoneApiUrl = 'https://mpt.i906.my/api/prayer'; // API URL to fetch the zone code
   private compassApiUrl = 'https://api.aladhan.com/v1/qibla'; // API URL to fetch the compass data
 
-  constructor(private http: HttpClient, private prayerNotificationsService: PrayerNotificationsService) { }
+  constructor(
+    private http: HttpClient,
+    private prayerNotificationsService: PrayerNotificationsService,
+  ) {}
+
+  // Method to initialize and update prayer times on app start
+  async initializePrayerTimes(): Promise<void> {
+    try {
+      // Get saved prayer times and zone
+      const savedData = await this.getSavedYearlyPrayerTimes();
+
+      if (!savedData) {
+        // If no data exists, fetch default prayer times
+        await this.getDefaultPrayerTimes();
+        return;
+      }
+
+      const now = new Date();
+      const savedTimestamp = new Date(savedData.timestamp);
+      const daysSinceLastUpdate = Math.floor(
+        (now.getTime() - savedTimestamp.getTime()) / (1000 * 60 * 60 * 24),
+      );
+
+      // Update if data is more than 7 days old or if we're in a new year
+      if (
+        daysSinceLastUpdate > 7 ||
+        now.getFullYear() !== savedTimestamp.getFullYear()
+      ) {
+        this.getPrayerTimes(savedData.zone, 'year').subscribe(
+          async (data) => {
+            if (data.status === 'OK!') {
+              await this.saveYearlyPrayerTimes(
+                savedData.zone,
+                data.prayerTime || [],
+              );
+              console.log('Prayer times updated successfully!');
+            } else {
+              console.error('Failed to update prayer times');
+            }
+          },
+          (error) => {
+            console.error('Error updating prayer times:', error);
+          },
+        );
+      }
+    } catch (error) {
+      console.error('Error initializing prayer times:', error);
+      // Fallback to default prayer times if there's an error
+      await this.getDefaultPrayerTimes();
+    }
+  }
 
   // Fetch prayer times for the whole year
   getPrayerTimes(zone: string, period: string): Observable<any> {
@@ -111,7 +161,7 @@ export class PrayerTimesService {
   // Save the fetched prayer times into Preferences
   async saveYearlyPrayerTimes(
     zone: string,
-    yearlyPrayers: any[]
+    yearlyPrayers: any[],
   ): Promise<void> {
     const data = {
       zone: zone,
@@ -144,7 +194,7 @@ export class PrayerTimesService {
         } else {
           return 291.52845530594317;
         }
-      })
+      }),
     );
   }
 

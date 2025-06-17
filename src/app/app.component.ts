@@ -12,6 +12,7 @@ import { SafeArea } from 'capacitor-plugin-safe-area';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { PrayerTimesService } from './services/prayerTimes.service';
 
 @Component({
   selector: 'app-root',
@@ -27,6 +28,7 @@ export class AppComponent implements OnInit {
     private router: Router,
     private platform: Platform,
     private updateCheck: CheckUpdateService,
+    private prayerTimesService: PrayerTimesService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
@@ -107,6 +109,10 @@ export class AppComponent implements OnInit {
       try {
         // Set loading state to false first
         this.isAppLoaded = false;
+
+        // Initialize prayer times
+        await this.prayerTimesService.initializePrayerTimes();
+        console.log('Prayer times initialized');
 
         // Hide the splash screen
         await SplashScreen.hide();
