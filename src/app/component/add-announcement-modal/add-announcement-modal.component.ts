@@ -233,13 +233,12 @@ export class AddAnnouncementModalComponent implements OnDestroy {
     await loading.dismiss();
 
     if (oversizedFiles.length > 0) {
-      this.alertController
-        .create({
-          header: 'Gambar Terlalu Besar',
-          message: `Gambar berikut melebihi had 5MB: <br><ul>${oversizedFiles.map((f) => `<li>${f}</li>`).join('')}</ul>`,
-          buttons: ['OK'],
-        })
-        .then((alert) => alert.present());
+      const alert = await this.alertController.create({
+        header: 'Gambar Terlalu Besar',
+        message: `Gambar berikut melebihi had 5MB:\n${oversizedFiles.join('\n')}`,
+        buttons: ['OK']
+      });
+      await alert.present();
     }
 
     event.target.value = null;

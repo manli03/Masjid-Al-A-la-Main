@@ -279,7 +279,7 @@ export class EditAnnouncementModalComponent implements OnInit, OnDestroy {
       this.alertController
         .create({
           header: 'Gambar Terlalu Besar',
-          message: `Gambar berikut melebihi had 5MB: <br><ul>${oversizedFiles.map((f) => `<li>${f}</li>`).join('')}</ul>`,
+          message: `Gambar berikut melebihi had 5MB:\n${oversizedFiles.join('\n')}`,
           buttons: ['OK'],
         })
         .then((alert) => alert.present());
