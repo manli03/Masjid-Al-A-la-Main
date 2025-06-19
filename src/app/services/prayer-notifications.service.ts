@@ -541,7 +541,7 @@ export class PrayerNotificationsService {
         id: this.currentDefaultChannelId,
         name: 'Notifikasi Waktu Biasa',
         description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-        importance: 3,
+        importance: 4,
         visibility: 1,
         vibration: true,
         lights: true,
