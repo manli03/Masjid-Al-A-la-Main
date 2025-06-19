@@ -599,27 +599,33 @@ export class PrayerNotificationsService {
     if (Capacitor.getPlatform() !== 'android') return;
     try {
       const channels = await LocalNotifications.listChannels();
-      if (
-        !channels.channels.some((c) => c.id === this.currentDefaultChannelId)
-      ) {
-        const settings = await this.getNotificationSettings();
-        const useZikirSound = settings.selectedAzanSound !== 'none';
-
-        await LocalNotifications.createChannel({
-          id: this.currentDefaultChannelId,
-          name: 'Notifikasi Waktu Biasa',
-          description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-          importance: 3,
-          visibility: 1,
-          vibration: true,
-          lights: true,
-          sound: useZikirSound ? 'zikir_pagi' : undefined,
-        });
-        console.log(
-          'Default prayer channel created with sound:',
-          useZikirSound ? 'zikir_pagi' : 'default',
-        );
+      // Find existing default channel with the prefix
+      const existingDefaultChannel = channels.channels.find((c) =>
+        c.id.startsWith(this.DEFAULT_CHANNEL_PREFIX),
+      );
+      if (existingDefaultChannel) {
+        // Use the existing channel's ID
+        this.currentDefaultChannelId = existingDefaultChannel.id;
+        return;
       }
+      // No existing default channel, create a new one
+      const settings = await this.getNotificationSettings();
+      const useZikirSound = settings.selectedAzanSound !== 'none';
+
+      await LocalNotifications.createChannel({
+        id: this.currentDefaultChannelId,
+        name: 'Notifikasi Waktu Biasa',
+        description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
+        importance: 4,
+        visibility: 1,
+        vibration: true,
+        lights: true,
+        sound: useZikirSound ? 'zikir_pagi' : undefined,
+      });
+      console.log(
+        'Default prayer channel created with sound:',
+        useZikirSound ? 'zikir_pagi' : 'default',
+      );
     } catch (error) {
       console.error('Error creating default prayer channel:', error);
     }
