@@ -392,10 +392,10 @@ export class PrayerNotificationsService {
   async getNotificationSettings(): Promise<PrayerNotificationSettings> {
     const { value } = await Preferences.get({ key: this.PREFERENCES_KEY });
     if (!value) {
-      // Default settings with new fields
+      // Default settings with all prayers enabled
       const defaultSettings: PrayerNotificationSettings = {
-        enabledPrayers: [],
-        lastScheduled: null,
+        enabledPrayers: [...this.PRAYER_NAMES],
+        lastScheduled: new Date().toISOString(),
         selectedAzanSound: 'azan7', // Default sound
         notificationAdvance: 0,
         currentChannelId: this.currentChannelId,
@@ -538,7 +538,7 @@ export class PrayerNotificationsService {
         mainChannelConfig,
       );
 
-      // Create default prayer channel for morning prayers
+      // Create default prayer channel for Imsak, Syuruk, Dhuha
       const defaultChannelConfig: Channel = {
         id: this.currentDefaultChannelId,
         name: 'Notifikasi Waktu Biasa',
