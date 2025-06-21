@@ -518,12 +518,14 @@ export class PrayerNotificationsService {
         sound = settings.selectedAzanSound;
       }
 
+      const useAzanSound = settings.selectedAzanSound !== 'none';
+
       // Create main prayer channel
       const mainChannelConfig: Channel = {
         id: this.currentChannelId,
         name: 'Waktu Solat',
         description: 'Notifikasi waktu solat',
-        importance: 3,
+        importance: useAzanSound ? 3 : 4,
         visibility: 1,
         sound: sound,
         vibration: true,
@@ -541,11 +543,11 @@ export class PrayerNotificationsService {
         id: this.currentDefaultChannelId,
         name: 'Notifikasi Waktu Biasa',
         description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-        importance: 4,
+        importance: useAzanSound ? 3 : 4,
         visibility: 1,
         vibration: true,
         lights: true,
-        sound: settings.selectedAzanSound !== 'none' ? 'zikir_pagi' : undefined,
+        sound: useAzanSound ? 'zikir_pagi' : undefined,
       };
 
       await LocalNotifications.createChannel(defaultChannelConfig);
@@ -616,7 +618,7 @@ export class PrayerNotificationsService {
         id: this.currentDefaultChannelId,
         name: 'Notifikasi Waktu Biasa',
         description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-        importance: 4,
+        importance: useZikirSound ? 3 : 4,
         visibility: 1,
         vibration: true,
         lights: true,
