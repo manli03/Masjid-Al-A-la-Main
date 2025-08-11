@@ -27,16 +27,22 @@ export class FcmService {
   async setFcmToken() {
     if (Capacitor.isNativePlatform()) {
       try {
-        await this.addListeners();
+        // The 'registration' event listener is already attached by the constructor.
+        // Calling register() will trigger the listener again with the current token,
+        // which is necessary if the initial registration happened before the user was logged in.
+        await PushNotifications.register();
       } catch (error) {
-        console.error('Error initializing FCM:', error);
+        console.error(
+          'Error re-registering for push notifications on sign-in:',
+          error,
+        );
       }
     }
   }
 
   private async initializePushNotifications() {
-    await this.registerNotifications();
     this.addListeners();
+    await this.registerNotifications();
   }
 
   private async addListeners() {
