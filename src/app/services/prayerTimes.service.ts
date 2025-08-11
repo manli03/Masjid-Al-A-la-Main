@@ -173,7 +173,7 @@ export class PrayerTimesService {
       value: JSON.stringify(data),
     });
     console.log('Choosen prayer times saved successfully!');
-    this.prayerNotificationsService.forceRescheduleNotifications();
+    this.prayerNotificationsService.forceRescheduleNotifications(true);
   }
 
   // Retrieve saved yearly prayer times from Preferences
@@ -215,7 +215,6 @@ export class PrayerTimesService {
           value: JSON.stringify(defaultData),
         });
         console.log('Default prayer times saved successfully!');
-        this.prayerNotificationsService.forceRescheduleNotifications();
       } else {
         console.log('Failed to fetch default prayer times!');
       }

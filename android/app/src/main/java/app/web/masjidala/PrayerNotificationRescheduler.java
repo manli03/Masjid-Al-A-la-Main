@@ -214,4 +214,8 @@ public class PrayerNotificationRescheduler {
   static void callCancelMethod(Context context) {
     cancelAllScheduledAlarms(context);
   }
+
+  static void callSetMethod(Context context) {
+    rescheduleAll(context);
+  }
 }

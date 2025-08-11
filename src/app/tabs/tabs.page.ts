@@ -5,7 +5,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Router, NavigationExtras } from '@angular/router';
 import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
-import { PrayerNotificationsService } from '../services/prayer-notifications.service';
+import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
 import { FcmService } from '../services/fcm.service';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { Subscription } from 'rxjs';
@@ -31,7 +31,7 @@ export class TabsPage implements OnInit, OnDestroy {
     public router: Router,
     private storageService: StorageService,
     private authService: AuthService, // Added AuthService
-    private prayerNotificationsService: PrayerNotificationsService,
+    private prayerCoordinatorService: PrayerCoordinatorService,
     private fcmService: FcmService, // Called in constructor,
   ) {
     this.darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -72,7 +72,7 @@ export class TabsPage implements OnInit, OnDestroy {
 
       // Initialize prayer notifications and check for scheduled notifications
       try {
-        await this.prayerNotificationsService.initialize();
+        await this.prayerCoordinatorService.initialize();
         console.log('Prayer notifications initialized');
       } catch (error) {
         console.error('Error initializing prayer notifications:', error);

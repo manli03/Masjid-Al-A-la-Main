@@ -137,6 +137,25 @@ public class AndroidAudio extends Plugin {
         }
     }
 
+    @PluginMethod
+    public void setNotification(PluginCall call) {
+      Log.d(TAG, "setNotification called");
+      try {
+        Context context = this.getContext();
+        if (context == null) {
+          Log.e(TAG, "Context is null");
+          call.reject("Context is null");
+          return;
+        }
+        PrayerNotificationRescheduler.callSetMethod(context);
+        call.resolve(); // Resolve the call after successful scheduling notifications
+      } catch (Exception e) {
+        Log.e(TAG, "Error scheduling notifications: " + e.getMessage());
+        e.printStackTrace();
+        call.reject("Error scheduling notifications: " + e.getMessage(), e);
+      }
+    }
+
     @Override
     protected void handleOnDestroy() {
         stopCurrentSound();

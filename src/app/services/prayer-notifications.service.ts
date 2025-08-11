@@ -23,6 +23,7 @@ interface AndroidAudioPlugin {
   playSound(resourceName: string): void;
   stopSound(): void;
   cancelNotification(): void;
+  setNotification(): void;
 }
 
 // Extend Window interface to include our custom plugin
@@ -38,6 +39,7 @@ declare global {
 export class PrayerNotificationsService {
   // Prayer names
   private readonly PRAYER_NAMES = [
+    'Imsak',
     'Subuh',
     'Syuruk',
     'Dhuha',
@@ -162,12 +164,12 @@ export class PrayerNotificationsService {
   /**
    * Initialize notifications service - request permissions and create channels
    */
-  async initialize(): Promise<boolean> {
+  async initializeNotifications(): Promise<boolean> {
     try {
       // Request permission first
       const permResult = await LocalNotifications.requestPermissions();
 
-      if (!permResult.display) {
+      if (permResult.display !== 'prompt' && permResult.display !== 'granted') {
         await this.showToast(
           'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
           'warning',
@@ -175,58 +177,58 @@ export class PrayerNotificationsService {
         return false;
       }
 
-      // For Android, only create channels if they don't exist yet
-      if (Capacitor.getPlatform() === 'android') {
-        const channels = await LocalNotifications.listChannels();
-
-        // Only create post notification channel if it doesn't exist
-        if (
-          !channels.channels.some(
-            (c) => c.id === this.POST_NOTIFICATION_CHANNEL_ID,
-          )
-        ) {
-          await this.createPostNotificationChannel();
-        }
-
-        // Only create prayer notification channel if none exist
-        if (
-          !channels.channels.some((c) =>
-            c.id.startsWith(this.CHANNEL_ID_PREFIX),
-          )
-        ) {
-          const settings = await this.getNotificationSettings();
-          await this.recreateNotificationChannel(settings);
-        } else {
-          // Set the current channel ID to the existing one
-          const existingChannel = channels.channels.find((c) =>
-            c.id.startsWith(this.CHANNEL_ID_PREFIX),
-          );
-          if (existingChannel) {
-            this.currentChannelId = existingChannel.id;
-          }
-        }
-
-        // Create default prayer channel
-        await this.createDefaultPrayerChannel();
-      }
-
-      // Check if we need to schedule/reschedule notifications
-      const settings = await this.getNotificationSettings();
-      if (this.shouldReschedule(settings.lastScheduled)) {
-        console.log(
-          'Notification schedule outdated, rescheduling at startup...',
-        );
-        await this.scheduleAllNotifications();
-      } else {
-        console.log(
-          'Notifications are up to date, no rescheduling needed at startup',
-        );
-      }
+      // Create all notification channels if not already created
+      await this.createAllNotificationChannels();
 
       return true;
     } catch (error) {
       console.error('Error initializing notifications:', error);
       return false;
+    }
+  }
+
+  async checkToScheduleNotifications(): Promise<void> {
+    // Check if we need to schedule/reschedule notifications
+    const settings = await this.getNotificationSettings();
+    if (this.shouldReschedule(settings.lastScheduled)) {
+      console.log('Notification schedule outdated, rescheduling at startup...');
+      await this.scheduleAllNotifications();
+    } else {
+      console.log(
+        'Notifications are up to date, no rescheduling needed at startup',
+      );
+    }
+  }
+
+  async createAllNotificationChannels(): Promise<void> {
+    // For Android, only create channels if they don't exist yet
+    if (Capacitor.getPlatform() === 'android') {
+      const channels = await LocalNotifications.listChannels();
+
+      // Only create post notification channel if it doesn't exist
+      if (
+        !channels.channels.some(
+          (c) => c.id === this.POST_NOTIFICATION_CHANNEL_ID,
+        )
+      ) {
+        await this.createPostNotificationChannel();
+      }
+
+      // Only create prayer notification main and default channel if none exist
+      if (
+        !channels.channels.some((c) => c.id.startsWith(this.CHANNEL_ID_PREFIX))
+      ) {
+        const settings = await this.getNotificationSettings();
+        await this.recreateNotificationChannel(settings);
+      } else {
+        // Set the current channel ID to the existing one
+        const existingChannel = channels.channels.find((c) =>
+          c.id.startsWith(this.CHANNEL_ID_PREFIX),
+        );
+        if (existingChannel) {
+          this.currentChannelId = existingChannel.id;
+        }
+      }
     }
   }
 
@@ -359,17 +361,6 @@ export class PrayerNotificationsService {
   }
 
   /**
-   * Implementation of the toggle prayer notification functionality
-   * This is kept for backward compatibility but no longer used directly
-   */
-  private async togglePrayerNotificationImpl(
-    prayerName: string,
-  ): Promise<boolean> {
-    // Use the new queue-based toggle method
-    return this.togglePrayerNotification(prayerName);
-  }
-
-  /**
    * Check if notifications are enabled for a specific prayer
    */
   async isPrayerNotificationEnabled(prayerName: string): Promise<boolean> {
@@ -395,7 +386,7 @@ export class PrayerNotificationsService {
       // Default settings with all prayers enabled
       const defaultSettings: PrayerNotificationSettings = {
         enabledPrayers: [...this.PRAYER_NAMES],
-        lastScheduled: new Date().toISOString(),
+        lastScheduled: null,
         selectedAzanSound: 'azan7', // Default sound
         notificationAdvance: 0,
         currentChannelId: this.currentChannelId,
@@ -404,6 +395,7 @@ export class PrayerNotificationsService {
 
       // Update settings observable
       this.settingsSubject.next(defaultSettings);
+      console.log('No settings found, using default settings:', defaultSettings);
 
       return defaultSettings;
     }
@@ -425,6 +417,8 @@ export class PrayerNotificationsService {
 
     // Update settings observable
     this.settingsSubject.next(settings);
+
+    console.log('Settings found, using previously Loaded notification settings:', settings);
 
     return settings;
   }
@@ -559,7 +553,6 @@ export class PrayerNotificationsService {
       // Update settings with new channel IDs
       const updatedSettings = {
         ...settings,
-        lastScheduled: new Date().toISOString(),
         currentChannelId: this.currentChannelId,
         currentDefaultChannelId: this.currentDefaultChannelId,
       };
@@ -592,53 +585,6 @@ export class PrayerNotificationsService {
       console.error('Error creating notification channels:', error);
       throw error;
     }
-  }
-
-  /**
-   * Create default prayer notification channel
-   */
-  private async createDefaultPrayerChannel(): Promise<void> {
-    if (Capacitor.getPlatform() !== 'android') return;
-    try {
-      const channels = await LocalNotifications.listChannels();
-      // Find existing default channel with the prefix
-      const existingDefaultChannel = channels.channels.find((c) =>
-        c.id.startsWith(this.DEFAULT_CHANNEL_PREFIX),
-      );
-      if (existingDefaultChannel) {
-        // Use the existing channel's ID
-        this.currentDefaultChannelId = existingDefaultChannel.id;
-        return;
-      }
-      // No existing default channel, create a new one
-      const settings = await this.getNotificationSettings();
-      const useZikirSound = settings.selectedAzanSound !== 'none';
-
-      await LocalNotifications.createChannel({
-        id: this.currentDefaultChannelId,
-        name: 'Notifikasi Waktu Biasa',
-        description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-        importance: useZikirSound ? 3 : 4,
-        visibility: 1,
-        vibration: true,
-        lights: true,
-        sound: useZikirSound ? 'zikir_pagi' : undefined,
-      });
-      console.log(
-        'Default prayer channel created with sound:',
-        useZikirSound ? 'zikir_pagi' : 'default',
-      );
-    } catch (error) {
-      console.error('Error creating default prayer channel:', error);
-    }
-  }
-
-  /**
-   * Reschedule notifications (for use after settings change)
-   */
-  async rescheduleNotifications(): Promise<void> {
-    await this.cancelAllNotifications();
-    await this.scheduleAllNotifications();
   }
 
   /**
@@ -714,6 +660,7 @@ export class PrayerNotificationsService {
    */
   private shouldReschedule(lastScheduled: string | null): boolean {
     // If never scheduled, we should schedule
+    console.log('Checking if reschedule is needed, lastScheduled:', lastScheduled);
     if (!lastScheduled) {
       return true;
     }
@@ -721,11 +668,11 @@ export class PrayerNotificationsService {
     const now = new Date();
     const lastScheduleDate = new Date(lastScheduled);
 
-    // If the last schedule was more than 10 minutes ago, reschedule
-    const minutesSinceLastSchedule =
-      (now.getTime() - lastScheduleDate.getTime()) / (1000 * 60);
+    // If the last schedule was more than 24 hours ago, reschedule
+    const hoursSinceLastSchedule =
+      (now.getTime() - lastScheduleDate.getTime()) / (1000 * 60 * 60);
 
-    if (minutesSinceLastSchedule > 10) {
+    if (hoursSinceLastSchedule > 24) {
       return true;
     }
 
@@ -789,169 +736,178 @@ export class PrayerNotificationsService {
 
       // Cancel any existing scheduled notifications
       await this.cancelAllNotifications();
-      if (Capacitor.getPlatform() === 'android') {
-        await AndroidAudio.cancelNotification();
-      }
 
       // Get notification settings
       const settings = await this.getNotificationSettings();
 
-      // If no prayers enabled, nothing to schedule
-      if (settings.enabledPrayers.length === 0) {
-        console.log('No prayers enabled for notifications');
-
-        // Still update the lastScheduled timestamp
-        settings.lastScheduled = new Date().toISOString();
-        await Preferences.set({
-          key: this.PREFERENCES_KEY,
-          value: JSON.stringify(settings),
-        });
-
-        // Update settings observable
-        this.settingsSubject.next(settings);
-
-        return;
-      }
-
-      console.log(
-        'Scheduling notifications for prayers:',
-        settings.enabledPrayers,
-      );
-
-      // Get the prayer times for the next few days
-      const result = await Preferences.get({ key: 'yearlyPrayerTimes' });
-      const savedPrayerTimes = result.value ? JSON.parse(result.value) : null;
-
-      if (!savedPrayerTimes || !savedPrayerTimes.prayers) {
-        console.error('No prayer times available to schedule notifications');
-        return;
-      }
-
-      // Log complete configuration for debugging
-      // this.logNotificationConfig(settings, savedPrayerTimes);
-
-      console.log(
-        `Found ${savedPrayerTimes.prayers.length} days of prayer times data`,
-      );
-
-      const today = new Date();
-      const notifications = [];
-      let scheduledCount = 0;
-      let missingPrayerTimes = 0;
-
-      // Loop through the next MAX_DAYS_AHEAD days
-      for (let dayOffset = 0; dayOffset < this.MAX_DAYS_AHEAD; dayOffset++) {
-        const targetDate = new Date();
-        targetDate.setDate(today.getDate() + dayOffset);
-
-        // Get the prayer times for this date
-        const dateStr = this.formatDate(targetDate);
-        console.log(`Looking for prayer times for ${dateStr}`);
-
-        const dayPrayers = savedPrayerTimes.prayers.find(
-          (p: any) => p.date === dateStr,
-        );
-
-        if (!dayPrayers) {
-          console.log(`No prayer times found for ${dateStr}`);
-          missingPrayerTimes++;
-          continue;
-        }
-
-        // For each enabled prayer, schedule a notification
-        for (const prayerName of settings.enabledPrayers) {
-          const prayerProperty = this.mapPrayerNameToProperty(prayerName);
-
-          if (!prayerProperty || !dayPrayers[prayerProperty]) {
-            console.log(
-              `No time found for ${prayerName} (property: ${prayerProperty}) on ${dateStr}`,
-              dayPrayers,
-            );
-            continue;
-          }
-
-          // Get the prayer time
-          const timeStr = dayPrayers[prayerProperty];
-
-          // Create a date for the prayer time
-          const prayerDateTime = this.createDateFromTimeString(
-            targetDate,
-            timeStr,
+      // Schedule notification using AndroidAudio plugin
+      if (Capacitor.getPlatform() === 'android') {
+        try {
+          await AndroidAudio.setNotification();
+        } catch (error) {
+          console.error(
+            'Error scheduling Android notification using AndroidAudio plugin:',
+            error,
           );
-
-          // Apply notification advance time if set
-          if (settings.notificationAdvance > 0) {
-            prayerDateTime.setMinutes(
-              prayerDateTime.getMinutes() - settings.notificationAdvance,
-            );
-          }
-
-          // Only schedule if it's in the future
-          if (prayerDateTime > new Date()) {
-            // Create a unique ID based on date and prayer
-            const notificationId = parseInt(
-              `${targetDate.getDate()}${targetDate.getMonth() + 1}${this.PRAYER_NAMES.indexOf(prayerName)}`,
-              10,
-            );
-
-            // Determine channel: default for Imsak, Syuruk, Dhuha; custom for others
-            let channelId = this.currentChannelId;
-            if (
-              prayerName === 'Imsak' ||
-              prayerName === 'Syuruk' ||
-              prayerName === 'Dhuha'
-            ) {
-              channelId = this.currentDefaultChannelId;
-            }
-
-            // Prepare notification options based on settings
-            const notificationOptions: any = {
-              id: notificationId,
-              title: `Waktu ${prayerName}`,
-              body:
-                prayerName === 'Imsak' ||
-                prayerName === 'Syuruk' ||
-                prayerName === 'Dhuha'
-                  ? `Sekarang waktu ${prayerName}`
-                  : `Sekarang waktu untuk solat ${prayerName}`,
-              schedule: { at: prayerDateTime, allowWhileIdle: true },
-              channelId: channelId,
-              autoCancel: true,
-              ongoing: false,
-            };
-
-            // Extra Android options - use the channel ID consistently
-            if (Capacitor.getPlatform() === 'android') {
-              notificationOptions.channelId = channelId;
-              notificationOptions.extra = {
-                channel_id: channelId,
-              };
-            }
-
-            notifications.push(notificationOptions);
-            scheduledCount++;
-
-            console.log(
-              `Scheduled notification for ${prayerName} on ${prayerDateTime.toLocaleString()} (channel: ${channelId})`,
-            );
-          }
         }
       }
 
-      // Schedule all the notifications at once
-      if (notifications.length > 0) {
-        await LocalNotifications.schedule({
-          notifications: notifications,
-        });
+      // // If no prayers enabled, nothing to schedule
+      // if (settings.enabledPrayers.length === 0) {
+      //   console.log('No prayers enabled for notifications');
 
-        console.log(
-          `${notifications.length} notifications scheduled successfully`,
-        );
-      } else {
-        console.log(
-          `No notifications to schedule (missing data: ${missingPrayerTimes}, scheduled: ${scheduledCount})`,
-        );
-      }
+      //   // Still update the lastScheduled timestamp
+      //   settings.lastScheduled = new Date().toISOString();
+      //   await Preferences.set({
+      //     key: this.PREFERENCES_KEY,
+      //     value: JSON.stringify(settings),
+      //   });
+
+      //   // Update settings observable
+      //   this.settingsSubject.next(settings);
+
+      //   return;
+      // }
+
+      // console.log(
+      //   'Scheduling notifications for prayers:',
+      //   settings.enabledPrayers,
+      // );
+
+      // // Get the prayer times for the next few days
+      // const result = await Preferences.get({ key: 'yearlyPrayerTimes' });
+      // const savedPrayerTimes = result.value ? JSON.parse(result.value) : null;
+
+      // if (!savedPrayerTimes || !savedPrayerTimes.prayers) {
+      //   console.error('No prayer times available to schedule notifications');
+      //   return;
+      // }
+
+      // // Log complete configuration for debugging
+      // // this.logNotificationConfig(settings, savedPrayerTimes);
+
+      // console.log(
+      //   `Found ${savedPrayerTimes.prayers.length} days of prayer times data`,
+      // );
+
+      // const today = new Date();
+      // const notifications = [];
+      // let scheduledCount = 0;
+      // let missingPrayerTimes = 0;
+
+      // // Loop through the next MAX_DAYS_AHEAD days
+      // for (let dayOffset = 0; dayOffset < this.MAX_DAYS_AHEAD; dayOffset++) {
+      //   const targetDate = new Date();
+      //   targetDate.setDate(today.getDate() + dayOffset);
+
+      //   // Get the prayer times for this date
+      //   const dateStr = this.formatDate(targetDate);
+      //   console.log(`Looking for prayer times for ${dateStr}`);
+
+      //   const dayPrayers = savedPrayerTimes.prayers.find(
+      //     (p: any) => p.date === dateStr,
+      //   );
+
+      //   if (!dayPrayers) {
+      //     console.log(`No prayer times found for ${dateStr}`);
+      //     missingPrayerTimes++;
+      //     continue;
+      //   }
+
+      //   // For each enabled prayer, schedule a notification
+      //   for (const prayerName of settings.enabledPrayers) {
+      //     const prayerProperty = this.mapPrayerNameToProperty(prayerName);
+
+      //     if (!prayerProperty || !dayPrayers[prayerProperty]) {
+      //       console.log(
+      //         `No time found for ${prayerName} (property: ${prayerProperty}) on ${dateStr}`,
+      //         dayPrayers,
+      //       );
+      //       continue;
+      //     }
+
+      //     // Get the prayer time
+      //     const timeStr = dayPrayers[prayerProperty];
+
+      //     // Create a date for the prayer time
+      //     const prayerDateTime = this.createDateFromTimeString(
+      //       targetDate,
+      //       timeStr,
+      //     );
+
+      //     // Apply notification advance time if set
+      //     if (settings.notificationAdvance > 0) {
+      //       prayerDateTime.setMinutes(
+      //         prayerDateTime.getMinutes() - settings.notificationAdvance,
+      //       );
+      //     }
+
+      //     // Only schedule if it's in the future
+      //     if (prayerDateTime > new Date()) {
+      //       // Create a unique ID based on date and prayer
+      //       const notificationId = parseInt(
+      //         `${targetDate.getDate()}${targetDate.getMonth() + 1}${this.PRAYER_NAMES.indexOf(prayerName)}`,
+      //         10,
+      //       );
+
+      //       // Determine channel: default for Imsak, Syuruk, Dhuha; custom for others
+      //       let channelId = this.currentChannelId;
+      //       if (
+      //         prayerName === 'Imsak' ||
+      //         prayerName === 'Syuruk' ||
+      //         prayerName === 'Dhuha'
+      //       ) {
+      //         channelId = this.currentDefaultChannelId;
+      //       }
+
+      //       // Prepare notification options based on settings
+      //       const notificationOptions: any = {
+      //         id: notificationId,
+      //         title: `Waktu ${prayerName}`,
+      //         body:
+      //           prayerName === 'Imsak' ||
+      //           prayerName === 'Syuruk' ||
+      //           prayerName === 'Dhuha'
+      //             ? `Sekarang waktu ${prayerName}`
+      //             : `Sekarang waktu untuk solat ${prayerName}`,
+      //         schedule: { at: prayerDateTime, allowWhileIdle: true },
+      //         channelId: channelId,
+      //         autoCancel: true,
+      //         ongoing: false,
+      //       };
+
+      //       // Extra Android options - use the channel ID consistently
+      //       if (Capacitor.getPlatform() === 'android') {
+      //         notificationOptions.channelId = channelId;
+      //         notificationOptions.extra = {
+      //           channel_id: channelId,
+      //         };
+      //       }
+
+      //       notifications.push(notificationOptions);
+      //       scheduledCount++;
+
+      //       console.log(
+      //         `Scheduled notification for ${prayerName} on ${prayerDateTime.toLocaleString()} (channel: ${channelId})`,
+      //       );
+      //     }
+      //   }
+      // }
+
+      // // Schedule all the notifications at once
+      // if (notifications.length > 0) {
+      //   await LocalNotifications.schedule({
+      //     notifications: notifications,
+      //   });
+
+      //   console.log(
+      //     `${notifications.length} notifications scheduled successfully`,
+      //   );
+      // } else {
+      //   console.log(
+      //     `No notifications to schedule (missing data: ${missingPrayerTimes}, scheduled: ${scheduledCount})`,
+      //   );
+      // }
 
       // Always update the lastScheduled timestamp, even if no notifications were scheduled
       // This prevents constant rescheduling attempts
@@ -981,14 +937,19 @@ export class PrayerNotificationsService {
    */
   private async cancelAllNotifications(): Promise<void> {
     try {
-      // Get pending notifications
-      const pending = await LocalNotifications.getPending();
+      // // Get pending notifications
+      // const pending = await LocalNotifications.getPending();
 
-      // Cancel pending notifications
-      if (pending.notifications.length > 0) {
-        const descriptors = pending.notifications.map((n) => ({ id: n.id }));
-        await LocalNotifications.cancel({ notifications: descriptors });
-        console.log(`Cancelled ${descriptors.length} pending notifications`);
+      // // Cancel pending notifications
+      // if (pending.notifications.length > 0) {
+      //   const descriptors = pending.notifications.map((n) => ({ id: n.id }));
+      //   await LocalNotifications.cancel({ notifications: descriptors });
+      //   console.log(`Cancelled ${descriptors.length} pending notifications`);
+      // }
+
+      // Cancel all notifications in the system
+      if (Capacitor.getPlatform() === 'android') {
+        await AndroidAudio.cancelNotification();
       }
     } catch (error) {
       console.error('Error cancelling notifications:', error);
@@ -1142,7 +1103,7 @@ export class PrayerNotificationsService {
    * Force reschedule all notifications
    */
   async forceRescheduleNotifications(
-    showToasts: boolean = true,
+    showToasts: boolean = false,
   ): Promise<void> {
     try {
       // First make sure we're not in the middle of processing queue
@@ -1159,9 +1120,6 @@ export class PrayerNotificationsService {
           checkQueue();
         });
       }
-
-      // Cancel all existing notifications first
-      await this.cancelAllNotifications();
 
       // Then schedule new ones
       await this.scheduleAllNotifications();

@@ -69,7 +69,7 @@ export class prayerTimesPage implements OnInit {
   async ngOnInit() {
     // First initialize notifications service
     this.notificationsEnabled =
-      await this.prayerNotificationsService.initialize();
+      await this.prayerNotificationsService.initializeNotifications();
 
     // Then initialize prayer times which will trigger notification status update
     await this.initializePrayerTimes();
@@ -671,7 +671,7 @@ export class prayerTimesPage implements OnInit {
       if (!this.notificationsEnabled) {
         // Request permission
         this.notificationsEnabled =
-          await this.prayerNotificationsService.initialize();
+          await this.prayerNotificationsService.initializeNotifications();
         if (!this.notificationsEnabled) {
           await this.presentToast(
             'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',

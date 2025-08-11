@@ -110,10 +110,6 @@ export class AppComponent implements OnInit {
         // Set loading state to false first
         this.isAppLoaded = false;
 
-        // Initialize prayer times
-        await this.prayerTimesService.initializePrayerTimes();
-        console.log('Prayer times initialized');
-
         // Hide the splash screen
         await SplashScreen.hide();
         console.log('Splash screen hidden, showing custom loading screen');
