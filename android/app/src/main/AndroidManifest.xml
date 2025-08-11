@@ -25,6 +25,13 @@
     <meta-data
         android:name="com.google.firebase.messaging.default_notification_channel_id"
         android:value="@string/default_notification_channel_id" />
+    <meta-data
+      android:name="com.google.firebase.messaging.default_notification_icon"
+      android:resource="@drawable/ic_stat_push_notification_icon" />
+    <meta-data
+      android:name="com.google.firebase.messaging.default_notification_color"
+      android:resource="@color/notification_color" />
+
       <activity
           android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
           android:name=".MainActivity"
@@ -78,7 +85,7 @@
       android:exported="false"
       android:directBootAware="true" /> <!-- directBootAware helps for alarms before user unlock -->
 
-      <!-- reschedule the next alarm with updated times-->
+      <!-- reschedule the next alarm when time changed manually-->
 <!--      <receiver-->
 <!--        android:name=".TimeChangeReceiver"-->
 <!--        android:enabled="true"-->

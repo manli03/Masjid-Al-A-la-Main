@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.PowerManager;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 public class PrayerAlarmReceiver extends BroadcastReceiver {
   @Override
@@ -36,7 +37,8 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
       );
 
       NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
-        .setSmallIcon(R.mipmap.ic_launcher)
+        .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
+        .setColor(ContextCompat.getColor(context, R.color.notification_color))
         .setContentTitle(title)
         .setContentText(message)
         .setPriority(NotificationCompat.PRIORITY_HIGH)

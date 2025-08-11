@@ -2,4 +2,5 @@
 <resources>
   <color name="splash_background">#FFFFFF</color> <!-- Change to your app's splash color -->
 <!--  #00ac5f-->
+  <color name="notification_color">#00bd68</color>
 </resources>
