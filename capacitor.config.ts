@@ -9,10 +9,7 @@ const config: CapacitorConfig = {
       overlaysWebView: false,
     },
     SplashScreen: {
-      launchAutoHide: true,
-      launchShowDuration: 1,
-      launchFadeOutDuration: 500,
-      splashImmersive: true,
+      launchAutoHide: false,
     },
     GpsEnabler: {},
     GoogleAuth: {

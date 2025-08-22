@@ -7,7 +7,6 @@ import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
 import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
 import { FcmService } from '../services/fcm.service';
-import { SplashScreen } from '@capacitor/splash-screen';
 import { Subscription } from 'rxjs';
 import { NavigationEnd } from '@angular/router';
 import { LoadingComponent } from '../component/loading/loading.component';
@@ -64,11 +63,6 @@ export class TabsPage implements OnInit, OnDestroy {
 
       // Status bar logic
       this.darkModeMediaQuery.addEventListener('change', this.darkModeListener);
-
-      // Hide Splash Screen
-      SplashScreen.hide().catch((error) => {
-        console.error('Error hiding splash screen:', error);
-      });
 
       // Initialize prayer notifications and check for scheduled notifications
       try {
