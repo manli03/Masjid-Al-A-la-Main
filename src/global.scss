@@ -109,3 +109,8 @@ ion-content {
 .non-home-screen {
   background-color: var(--ion-background-color); /* Use the default background color */
 }
+
+// Safe Area for api 35+
+ion-modal {
+  margin-bottom: var(--ion-safe-area-bottom, 0px);
+}
