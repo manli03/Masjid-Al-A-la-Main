@@ -8,9 +8,10 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { AnnouncementLoadingPageModule } from './announcement-loading/announcement-loading.module';
 import { LoadingComponent } from './component/loading/loading.component';
+import { DatePickerModalComponent } from './component/date-picker-modal/date-picker-modal.component';
 
 @NgModule({
-  declarations: [AppComponent, LoadingComponent],
+  declarations: [AppComponent, LoadingComponent, DatePickerModalComponent],
   imports: [
     BrowserModule,
     IonicModule.forRoot(),

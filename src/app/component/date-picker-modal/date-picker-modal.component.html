@@ -1,0 +1,26 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="modal-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="cancel()" fill="clear" color="medium">Batal</ion-button>
+    </ion-buttons>
+    <ion-title class="modal-title">Pilih Tarikh Lahir</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="confirm()" fill="clear" color="primary" strong="true">Simpan</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="modal-content">
+  <div class="datetime-container">
+    <ion-datetime
+      presentation="date"
+      preferWheel="true"
+      locale="ms-MY"
+      [value]="selectedDate"
+      (ionChange)="onDateChange($event)"
+      min="1900-01-01"
+      [max]="maxDate"
+      class="custom-datetime">
+    </ion-datetime>
+  </div>
+</ion-content>

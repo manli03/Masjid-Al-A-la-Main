@@ -14,6 +14,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { Preferences } from '@capacitor/preferences';
+import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
 
 @Component({
   selector: 'app-profile',
@@ -31,6 +32,7 @@ export class ProfilePage implements OnInit, ViewWillEnter {
   newAdminEmail: string = '';
   accountCreated: string = '';
   prayerNotifications: string[] = [];
+
 
   constructor(
     private alertController: AlertController,
@@ -77,9 +79,12 @@ export class ProfilePage implements OnInit, ViewWillEnter {
           email: userData.email || 'N/A',
           phone: userData.phone || '',
           birthdate: userData.birthdate || '',
+
           // Use a default/placeholder image if imageUrl is missing or invalid
           imageUrl: userData.imageUrl || 'assets/icon/default-avatar.png', // Adjust path as needed
         };
+
+
 
         this.membershipNumber = userData.membershipNumber || 'Not assigned';
 
@@ -430,5 +435,12 @@ export class ProfilePage implements OnInit, ViewWillEnter {
     }
 
     return JSON.parse(value);
+  }
+
+  /**
+   * Open settings page
+   */
+  openSettings() {
+    this.router.navigate(['/settings']);
   }
 }

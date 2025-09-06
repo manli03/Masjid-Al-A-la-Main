@@ -1,0 +1,119 @@
+.modal-toolbar {
+  --background: var(--ion-background-color);
+  --border-color: var(--ion-border-color);
+  border-bottom: 1px solid var(--ion-border-color);
+  position: relative;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--ion-color-dark);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: auto;
+  text-align: center;
+}
+
+.modal-content {
+  --background: var(--ion-background-color);
+}
+
+.datetime-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 20px;
+}
+
+.custom-datetime {
+  --background: var(--ion-item-background);
+  --background-rgb: var(--ion-background-color-rgb);
+  --wheel-highlight-background: var(--ion-color-primary);
+  --wheel-highlight-border-radius: 16px;
+  --wheel-fade-background-rgb: var(--ion-background-color-rgb);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  max-width: 320px;
+  width: 100%;
+}
+
+.custom-datetime::part(wheel-item) {
+  color: var(--ion-color-dark);
+  font-weight: 500;
+}
+
+.custom-datetime::part(wheel-item active) {
+  color: var(--ion-color-primary);
+  font-weight: 600;
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .modal-toolbar {
+    --background: var(--ion-background-color);
+  }
+
+  .modal-title {
+    color: var(--ion-color-light);
+  }
+
+  .custom-datetime {
+    --background: var(--ion-item-background-dark);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .custom-datetime::part(wheel-item) {
+    color: var(--ion-color-light);
+  }
+
+  .custom-datetime::part(wheel-item active) {
+    color: var(--ion-color-primary);
+  }
+}
+
+// Modal sizing
+:host {
+  --height: auto;
+  --width: 90%;
+  --max-width: 400px;
+  --max-height: 80vh;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+// Dark mode modal shadow
+@media (prefers-color-scheme: dark) {
+  :host {
+    --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Responsive design
+@media (max-width: 480px) {
+  :host {
+    --width: 95%;
+    --max-width: 360px;
+  }
+
+  .datetime-container {
+    padding: 16px;
+    min-height: 250px;
+  }
+
+  .custom-datetime {
+    max-width: 280px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+  }
+}
