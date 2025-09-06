@@ -113,27 +113,27 @@
       <h5 style="display: inline-block; vertical-align: top;">Set Peringatan Solat</h5>
     </div>
     <ion-row class="tracker-icons" style="display: flex; justify-content: space-around; margin: 15px 0;">
-      <ion-col (click)="togglePrayerNotification('subuh')" style="text-align: center;">
+      <ion-col (click)="togglePrayerNotification('subuh')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Subuh')">
         <ion-icon [name]="prayerNotification['subuh'] ? 'notifications' : 'notifications-outline'"
           [ngClass]="{'active': prayerNotification['subuh']}" class="prayer-notification-icon"></ion-icon>
         <span style="display: block; text-align: center;">Subuh</span>
       </ion-col>
-      <ion-col (click)="togglePrayerNotification('dhuhr')" style="text-align: center;">
+      <ion-col (click)="togglePrayerNotification('dhuhr')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Zuhur')">
         <ion-icon [name]="prayerNotification['dhuhr'] ? 'notifications' : 'notifications-outline'"
           [ngClass]="{'active': prayerNotification['dhuhr']}" class="prayer-notification-icon"></ion-icon>
         <span style="display: block; text-align: center;">Zuhur</span>
       </ion-col>
-      <ion-col (click)="togglePrayerNotification('asr')" style="text-align: center;">
+      <ion-col (click)="togglePrayerNotification('asr')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Asar')">
         <ion-icon [name]="prayerNotification['asr'] ? 'notifications' : 'notifications-outline'"
           [ngClass]="{'active': prayerNotification['asr']}" class="prayer-notification-icon"></ion-icon>
         <span style="display: block; text-align: center;">Asar</span>
       </ion-col>
-      <ion-col (click)="togglePrayerNotification('maghrib')" style="text-align: center;">
+      <ion-col (click)="togglePrayerNotification('maghrib')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Maghrib')">
         <ion-icon [name]="prayerNotification['maghrib'] ? 'notifications' : 'notifications-outline'"
           [ngClass]="{'active': prayerNotification['maghrib']}" class="prayer-notification-icon"></ion-icon>
         <span style="display: block; text-align: center;">Maghrib</span>
       </ion-col>
-      <ion-col (click)="togglePrayerNotification('isha')" style="text-align: center;">
+      <ion-col (click)="togglePrayerNotification('isha')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Isyak')">
         <ion-icon [name]="prayerNotification['isha'] ? 'notifications' : 'notifications-outline'"
           [ngClass]="{'active': prayerNotification['isha']}" class="prayer-notification-icon"></ion-icon>
         <span style="display: block; text-align: center;">Isyak</span>

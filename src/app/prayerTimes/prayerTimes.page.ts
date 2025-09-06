@@ -55,6 +55,9 @@ export class prayerTimesPage implements OnInit {
   notificationsEnabled: boolean = false;
   backButtonSubscription: any;
   justDeselected: any;
+  isProcessingNotifications: boolean = false;
+  disabledPrayers: Set<string> = new Set();
+  processingSubscription: any;
 
   constructor(
     private prayerTimesService: PrayerTimesService,
@@ -70,6 +73,20 @@ export class prayerTimesPage implements OnInit {
     // First initialize notifications service
     this.notificationsEnabled =
       await this.prayerNotificationsService.initializeNotifications();
+
+    // Subscribe to processing state
+    this.processingSubscription = this.prayerNotificationsService.isProcessing$.subscribe(
+      (isProcessing) => {
+        this.isProcessingNotifications = isProcessing;
+      }
+    );
+
+    // Subscribe to disabled prayers
+    this.prayerNotificationsService.disabledPrayers$.subscribe(
+      (disabledPrayers) => {
+        this.disabledPrayers = disabledPrayers;
+      }
+    );
 
     // Then initialize prayer times which will trigger notification status update
     await this.initializePrayerTimes();
@@ -117,6 +134,9 @@ export class prayerTimesPage implements OnInit {
     // Clean up subscription to prevent memory leaks
     if (this.backButtonSubscription) {
       this.backButtonSubscription.unsubscribe();
+    }
+    if (this.processingSubscription) {
+      this.processingSubscription.unsubscribe();
     }
   }
 
@@ -371,7 +391,9 @@ export class prayerTimesPage implements OnInit {
       month: 'short',
       day: '2-digit',
     };
-    return date.toLocaleDateString('en-MY', options).replace(/ /g, '-'); // Convert to 'dd-MMM-yyyy' format
+    const formattedDate = date.toLocaleDateString('en-MY', options);
+    const [day, month, year] = formattedDate.split(' ');
+    return `${day}-${month.slice(0, 3)}-${year}`; // Use english format since api use english format
   }
 
   // Fetch yearly prayer times and save them to localStorage
@@ -673,10 +695,23 @@ export class prayerTimesPage implements OnInit {
         this.notificationsEnabled =
           await this.prayerNotificationsService.initializeNotifications();
         if (!this.notificationsEnabled) {
-          await this.presentToast(
-            'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
-            'warning',
-          );
+          // Show custom toast with OK button that opens notification settings
+          const toast = await this.toastController.create({
+            message: 'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
+            duration: 5000,
+            position: 'bottom',
+            color: 'warning',
+            buttons: [
+              {
+                text: 'OK',
+                role: 'cancel',
+                handler: async () => {
+                  await this.prayerNotificationsService.openNotificationSettings();
+                },
+              },
+            ],
+          });
+          await toast.present();
           return;
         }
       }
@@ -721,6 +756,13 @@ export class prayerTimesPage implements OnInit {
       color: color,
     });
     await toast.present();
+  }
+
+  /**
+   * Check if a specific prayer is currently disabled
+   */
+  isPrayerDisabled(prayerName: string): boolean {
+    return this.disabledPrayers.has(prayerName);
   }
 
   /**

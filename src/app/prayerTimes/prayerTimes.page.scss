@@ -113,6 +113,16 @@ button.btn-reminder.active {
   font-weight: bold;
 }
 
+button.btn-reminder.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+button.btn-reminder.disabled ion-icon {
+  opacity: 0.5;
+}
+
 .table-container {
   overflow-y: auto;
   margin-bottom: 70px;

@@ -18,7 +18,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class PrayerNotificationRescheduler {
   private static final String TAG = "PrayerNotifRescheduler";
@@ -44,9 +43,14 @@ public class PrayerNotificationRescheduler {
       String mainChannelId = notifSettings.optString("currentChannelId", null);
       String normalChannelId = notifSettings.optString("currentDefaultChannelId", null);
 
+      // Set default channel IDs if not found (for backward compatibility with AzanPlaybackService)
       if (mainChannelId == null || mainChannelId.isEmpty()) {
-        Log.w(TAG, "No currentChannelId found in preferences. Prayer notifications will not be scheduled.");
-        return;
+        mainChannelId = "azan_playback_channel"; // Use the service's channel ID
+        Log.d(TAG, "Using default mainChannelId: " + mainChannelId);
+      }
+      if (normalChannelId == null || normalChannelId.isEmpty()) {
+        normalChannelId = "azan_playback_channel"; // Use the same channel for all prayers now
+        Log.d(TAG, "Using default normalChannelId: " + normalChannelId);
       }
       if (enabledPrayers == null || enabledPrayers.length() == 0) {
         Log.w(TAG, "No enabled prayers found. Skipping rescheduling.");
@@ -166,7 +170,7 @@ public class PrayerNotificationRescheduler {
     try {
       // Your JSON prayer times currently store "HH:mm:ss" like format.
       // If it's just HH:mm, change the SimpleDateFormat to "dd-MMM-yyyy HH:mm".
-      SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss", Locale.getDefault());
+      SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss", Locale.ENGLISH);
       Date date = sdf.parse(dateStr + " " + timeStr);
       return date != null ? date.getTime() : 0;
     } catch (ParseException e) {
@@ -186,11 +190,7 @@ public class PrayerNotificationRescheduler {
     intent.putExtra("advance_minutes", advanceMinutes);
     intent.putExtra("capacitor_request_code", requestCode); // Store request code if needed by receiver
 
-    if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
-      intent.putExtra("message", "Sekarang waktu " + prayerName);
-    } else {
-      intent.putExtra("message", "Sekarang waktu untuk solat " + prayerName);
-    }
+    intent.putExtra("message", "Sekarang waktu " + prayerName);
 
     PendingIntent pendingIntent = PendingIntent.getBroadcast(
       context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

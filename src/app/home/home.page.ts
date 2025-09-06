@@ -30,6 +30,8 @@ export class HomePage implements OnDestroy {
   isDarkMode: boolean = false;
   prayerNotification: { [key: string]: boolean } = {};
   reloadQiblaCompass: boolean = false;
+  isProcessingNotifications: boolean = false;
+  disabledPrayers: Set<string> = new Set();
 
   // Properties for tracking calculated state
   currentPrayer: { name: string; time: string; date: Date } | null = null;
@@ -41,6 +43,7 @@ export class HomePage implements OnDestroy {
   private exitDelay = 2000; // 2 seconds
   private backButtonSubscription: any;
   private currentToast: HTMLIonToastElement | null = null;
+  private processingSubscription: any;
   firstLoad: boolean = false;
 
   @Output() homePageLoaded = new EventEmitter<boolean>();
@@ -148,7 +151,7 @@ export class HomePage implements OnDestroy {
       this.checkDarkMode();
 
       // Load prayer data
-      await this.loadPrayerData();
+      const dataLoaded = await this.loadPrayerData();
 
       // Subscribe to the hardware back button on the Home page
       this.backButtonSubscription =
@@ -173,8 +176,24 @@ export class HomePage implements OnDestroy {
       // Load notification status for each prayer
       await this.updatePrayerNotificationStatus();
 
+      // Subscribe to processing state
+      this.processingSubscription = this.prayerNotificationsService.isProcessing$.subscribe(
+        (isProcessing) => {
+          this.isProcessingNotifications = isProcessing;
+        }
+      );
+
+      // Subscribe to disabled prayers
+      this.prayerNotificationsService.disabledPrayers$.subscribe(
+        (disabledPrayers) => {
+          this.disabledPrayers = disabledPrayers;
+        }
+      );
+
       // Set loaded to true after everything is loaded
-      this.loaded = true;
+      if (dataLoaded) {
+        this.loaded = true;
+      }
       console.log('Home page fully loaded, notifying app component');
 
       // Notify the app component that home page is fully loaded
@@ -221,14 +240,8 @@ export class HomePage implements OnDestroy {
    * Toggle notification for a specific prayer
    */
   async togglePrayerNotification(prayerName: string) {
-    // Map the internal prayer name to the display name
-    const prayerDisplayName = {
-      subuh: 'Subuh',
-      dhuhr: 'Zuhur',
-      asr: 'Asar',
-      maghrib: 'Maghrib',
-      isha: 'Isyak',
-    }[prayerName];
+    // Get display name from service
+    const prayerDisplayName = this.prayerNotificationsService.getDisplayName(prayerName);
 
     if (!prayerDisplayName) return;
 
@@ -287,9 +300,12 @@ export class HomePage implements OnDestroy {
     if (this.backButtonSubscription) {
       this.backButtonSubscription.unsubscribe();
     }
+    if (this.processingSubscription) {
+      this.processingSubscription.unsubscribe();
+    }
   }
 
-  private async loadPrayerData(isFirstLoad: boolean = true) {
+  private async loadPrayerData(isFirstLoad: boolean = true): Promise<boolean> {
     const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
     if (savedData) {
       const zone = savedData.zone;
@@ -323,15 +339,20 @@ export class HomePage implements OnDestroy {
         this.currentHijriDate = this.formatHijriDate(prayerData.hijri);
       }
       this.startUpdatingTime();
+      return true;
     } else {
       // if (!isFirstLoad) {
       //   SplashScreen.hide();
-      //   return;
+      //   return false;
       // }
       this.prayerTimesService.getDefaultPrayerTimes();
-      setTimeout(() => {
-        this.loadPrayerData(false);
+      setTimeout(async () => {
+        const loaded = await this.loadPrayerData(false);
+        if (loaded) {
+          this.loaded = true;
+        }
       }, 2000);
+      return false;
     }
   }
 
@@ -341,7 +362,9 @@ export class HomePage implements OnDestroy {
       month: 'short',
       day: '2-digit',
     };
-    return date.toLocaleDateString('en-MY', options).replace(/ /g, '-'); // Use english format since api use english format
+    const formattedDate = date.toLocaleDateString('en-MY', options);
+    const [day, month, year] = formattedDate.split(' ');
+    return `${day}-${month.slice(0, 3)}-${year}`; // Use english format since api use english format
   }
 
   private formatPrayerTime(time: string): string {
@@ -465,7 +488,6 @@ export class HomePage implements OnDestroy {
     // Update the remaining time display (for the upcoming prayer)
     const diff = this.upcomingPrayer.date.getTime() - now.getTime();
     this.updateRemainingTimeDisplay(diff, this.upcomingPrayer);
-    this.loaded = true;
     // if (!this.firstLoad) {
     //   SplashScreen.hide();
     //   this.firstLoad = true;
@@ -774,12 +796,14 @@ export class HomePage implements OnDestroy {
     this.router.navigate(['/tabs/prayerTimes']);
   }
 
-  handleRefresh(event: CustomEvent) {
-    setTimeout(() => {
-      this.loaded = false;
-      (event.target as HTMLIonRefresherElement).complete();
-      this.loadPrayerData();
-    }, 1000);
+  async handleRefresh(event: CustomEvent) {
+    this.loaded = false;
+    const dataLoaded = await this.loadPrayerData();
+    if (dataLoaded) {
+      this.loaded = true;
+    }
+    (event.target as HTMLIonRefresherElement).complete();
+    this.updatePrayerNotificationStatus();
   }
 
   /**
@@ -799,6 +823,13 @@ export class HomePage implements OnDestroy {
     });
 
     return await modal.present();
+  }
+
+  /**
+   * Check if a specific prayer is currently disabled
+   */
+  isPrayerDisabled(prayerName: string): boolean {
+    return this.disabledPrayers.has(prayerName);
   }
 
   // Notify the app component that home page is fully loaded

@@ -83,13 +83,14 @@ public class NextPrayerTimeCalculator {
    * @return The timestamp in milliseconds for the prayer on the target date, or 0 if not found.
    */
   private static long getPrayerTimeForSpecificDay(Date targetDate, String prayerName, JSONArray prayersJsonArray) {
-    SimpleDateFormat sdfDateMatcher = new SimpleDateFormat("dd-MMM-yyyy", Locale.getDefault());
+    SimpleDateFormat sdfDateMatcher = new SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH);
     String targetDateString = sdfDateMatcher.format(targetDate);
 
     try {
       for (int i = 0; i < prayersJsonArray.length(); i++) {
         JSONObject dayData = prayersJsonArray.getJSONObject(i);
         String dateFromJson = dayData.optString("date", null);
+        Log.d(TAG, "Checking date: " + dateFromJson + " against target: " + targetDateString);
 
         if (targetDateString.equals(dateFromJson)) {
           // Use helper from PrayerNotificationRescheduler for consistency in finding and converting time

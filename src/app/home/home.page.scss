@@ -164,3 +164,18 @@ ion-icon {
   border-radius: 16px;
   box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
 }
+
+// Disabled state for notification buttons
+.tracker-icons ion-col.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.tracker-icons ion-col.disabled ion-icon {
+  opacity: 0.5;
+}
+
+.tracker-icons ion-col.disabled span {
+  opacity: 0.5;
+}

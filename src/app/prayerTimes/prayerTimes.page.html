@@ -107,7 +107,7 @@
                 </ng-template>
               </td>
               <td class="dark prayer-action-cell">
-                <button class="btn btn-reminder icon-only" [ngClass]="{'active': prayer.notificationEnabled}"
+                <button class="btn btn-reminder icon-only" [ngClass]="{'active': prayer.notificationEnabled, 'disabled': isPrayerDisabled(prayer.name)}"
                   *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">
                   <ion-icon [name]="prayer.notificationEnabled ? 'notifications' : 'notifications-outline'"
                     slot="icon-only"></ion-icon>
