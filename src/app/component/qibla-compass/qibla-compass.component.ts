@@ -126,6 +126,12 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     this.checkSupportAndStartDetection();
   }
 
+  // Manual completion of calibration
+  manualCompleteCalibration() {
+    console.log('Manual calibration completion triggered.');
+    this.completeCalibration();
+  }
+
   // --- Sensor Handling and Calibration ---
 
   async checkSupportAndStartDetection() {
@@ -152,8 +158,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
         )
       ) {
         console.log('Sensor permissions granted or prompt.');
-        // this.initializeSensorForCalibration();
-        this.completeCalibration(); // Directly complete calibration for demo
+        this.initializeSensorForCalibration();
       } else {
         throw new Error('Required sensor permissions denied.');
       }
@@ -223,7 +228,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     }
   }
 
-  // *** THIS HANDLER IS ONLY FOR DETECTING CALIBRATION MOVEMENT ***
+  // *** THIS HANDLER IS FOR CALIBRATION STATE - NO AUTO DETECTION ***
   handleCalibrationReading() {
     if (this.uiState !== 'calibrating' || !this.sensor?.quaternion) {
       return; // Only process during calibration state and if data is valid
@@ -235,53 +240,18 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
       Date.now() - this.calibrationStartTime > this.CALIBRATION_TIMEOUT
     ) {
       // Only show timeout message once
-      if (!this.errorMessageCompass?.includes('Gagal mengesan')) {
+      if (!this.errorMessageCompass?.includes('Masa tamat')) {
         this.ngZone.run(() => {
           this.errorMessageCompass =
-            'Gagal mengesan pergerakan kalibrasi. Sila teruskan menggerakkan peranti dalam corak angka 8.';
-          console.warn('Calibration detection timed out.');
+            'Masa tamat kalibrasi. Sila klik butang "Selesai Kalibrasi" untuk meneruskan.';
+          console.warn('Calibration timeout reached.');
         });
       }
-      // Do not reset state, allow user to continue trying
-      // this.calibrationStartTime = null; // Reset timer only if you want timeout repeatedly
+      // Do not reset state, allow user to continue or manually complete
     }
 
-    const [x, y, z, w] = this.sensor.quaternion;
-    const { pitch, roll, yaw } = this.getEulerAngles(x, y, z, w); // Use Euler for detection only
-
-    this.calibrationData.pitch.push(pitch);
-    this.calibrationData.roll.push(roll);
-    this.calibrationData.yaw.push(yaw); // Store Euler yaw for range calculation
-
-    if (this.calibrationData.pitch.length > CALIBRATION_WINDOW_SIZE) {
-      this.calibrationData.pitch.shift();
-      this.calibrationData.roll.shift();
-      this.calibrationData.yaw.shift();
-    }
-
-    if (this.calibrationData.pitch.length < CALIBRATION_WINDOW_SIZE) {
-      return; // Wait for more data
-    }
-
-    const pitchRange =
-      Math.max(...this.calibrationData.pitch) -
-      Math.min(...this.calibrationData.pitch);
-    const rollRange =
-      Math.max(...this.calibrationData.roll) -
-      Math.min(...this.calibrationData.roll);
-    const yawRange = this.calculateYawRange(this.calibrationData.yaw); // Use helper for yaw range
-
-    // Check if thresholds are met
-    if (
-      pitchRange >= CALIBRATION_PITCH_THRESHOLD &&
-      rollRange >= CALIBRATION_ROLL_THRESHOLD &&
-      yawRange >= CALIBRATION_YAW_THRESHOLD
-    ) {
-      console.log('Calibration movement detected!');
-      this.ngZone.run(() => {
-        this.completeCalibration();
-      });
-    }
+    // Sensor is active but no auto-detection - user must manually click button
+    // This keeps the sensor running to show the calibration GIF
   }
 
   completeCalibration() {
