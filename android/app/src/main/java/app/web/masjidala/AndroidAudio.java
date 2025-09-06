@@ -1,7 +1,9 @@
 package app.web.masjidala;
 
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -29,6 +31,9 @@ public class AndroidAudio extends Plugin {
             return;
         }
 
+        // Get volume parameter (optional, defaults to 1.0)
+        Double volume = call.getDouble("volume", 1.0);
+
         try {
             // Stop any currently playing sound
             stopCurrentSound();
@@ -41,16 +46,38 @@ public class AndroidAudio extends Plugin {
                 return;
             }
 
-            Log.d(TAG, "Creating MediaPlayer for resource: " + resourceName + " (ID: " + resourceId + ")");
+            Log.d(TAG, "Creating MediaPlayer for resource: " + resourceName + " (ID: " + resourceId + ") with volume: " + volume);
 
-            // Create MediaPlayer from resource ID directly
-            mediaPlayer = MediaPlayer.create(getContext(), resourceId);
+            // Create MediaPlayer manually to ensure proper audio attributes
+            mediaPlayer = new MediaPlayer();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build();
+                mediaPlayer.setAudioAttributes(audioAttributes);
+                Log.d(TAG, "Set audio attributes to alarm type for preview: " + resourceName);
+            } else {
+                // For older Android versions, set audio stream type
+                mediaPlayer.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
+                Log.d(TAG, "Set audio stream to alarm type for preview (legacy): " + resourceName);
+            }
 
-            if (mediaPlayer == null) {
-                Log.e(TAG, "Failed to create MediaPlayer for resource: " + resourceName);
-                call.reject("Failed to create MediaPlayer for resource: " + resourceName);
+            try {
+                // Set data source and prepare
+                mediaPlayer.setDataSource(getContext(), android.net.Uri.parse("android.resource://" + getContext().getPackageName() + "/" + resourceId));
+                mediaPlayer.prepare();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to prepare MediaPlayer for resource: " + resourceName, e);
+                mediaPlayer.release();
+                mediaPlayer = null;
+                call.reject("Failed to prepare MediaPlayer for resource: " + resourceName);
                 return;
             }
+
+            // Set volume
+            mediaPlayer.setVolume(volume.floatValue(), volume.floatValue());
+            Log.d(TAG, "Set volume to: " + volume);
 
             // Set completion listener
             mediaPlayer.setOnCompletionListener(mp -> {
@@ -83,6 +110,32 @@ public class AndroidAudio extends Plugin {
         } catch (Exception e) {
             Log.e(TAG, "Error stopping sound: " + e.getMessage());
             call.reject("Error stopping sound: " + e.getMessage(), e);
+        }
+    }
+
+    @PluginMethod
+    public void setVolume(PluginCall call) {
+        Double volume = call.getDouble("volume");
+        if (volume == null) {
+            call.reject("Volume parameter is required");
+            return;
+        }
+
+        try {
+            if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                // Set volume for currently playing sound
+                mediaPlayer.setVolume(volume.floatValue(), volume.floatValue());
+                Log.d(TAG, "Updated volume to: " + volume);
+            } else {
+                Log.w(TAG, "No active media player to set volume for");
+            }
+
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            Log.e(TAG, "Error setting volume: " + e.getMessage());
+            call.reject("Error setting volume: " + e.getMessage(), e);
         }
     }
 

@@ -12,6 +12,8 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
   <application
       android:allowBackup="true"
@@ -86,15 +88,26 @@
       android:directBootAware="true" /> <!-- directBootAware helps for alarms before user unlock -->
 
       <!-- reschedule the next alarm when time changed manually-->
-<!--      <receiver-->
-<!--        android:name=".TimeChangeReceiver"-->
-<!--        android:enabled="true"-->
-<!--        android:exported="true">-->
-<!--        <intent-filter>-->
-<!--          <action android:name="android.intent.action.TIME_SET" />-->
-<!--          <action android:name="android.intent.action.TIMEZONE_CHANGED" />-->
-<!--        </intent-filter>-->
-<!--      </receiver>-->
+      <receiver
+        android:name=".TimeChangeReceiver"
+        android:enabled="false"
+        android:exported="true">
+        <intent-filter>
+          <action android:name="android.intent.action.TIME_SET" />
+          <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+        </intent-filter>
+      </receiver>
+
+      <!-- Azan Playback Service for continuous sound playback -->
+      <service
+        android:name=".AzanPlaybackService"
+        android:exported="false"
+        android:foregroundServiceType="mediaPlayback" />
+
+      <!-- Receiver for notification dismissal detection -->
+      <receiver
+        android:name=".NotificationDismissedReceiver"
+        android:exported="false" />
 
   </application>
 

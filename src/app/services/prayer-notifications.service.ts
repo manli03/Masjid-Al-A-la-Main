@@ -7,6 +7,11 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { BehaviorSubject } from 'rxjs';
 import AndroidAudio from '../plugins/android-audio';
+import {
+  AndroidSettings,
+  IOSSettings,
+  NativeSettings,
+} from 'capacitor-native-settings';
 
 // Define notification settings interface
 export interface PrayerNotificationSettings {
@@ -14,8 +19,9 @@ export interface PrayerNotificationSettings {
   lastScheduled: string | null;
   selectedAzanSound: string;
   notificationAdvance: number;
+  azanVolume: number; // New: Azan volume (0.0 to 1.0)
   currentChannelId?: string;
-  currentDefaultChannelId: string;
+  currentDefaultChannelId?: string;
 }
 
 // Define interface for custom AndroidAudio plugin
@@ -49,20 +55,23 @@ export class PrayerNotificationsService {
     'Isyak',
   ];
 
+  // Prayer name mapping for internal to display names
+  private readonly PRAYER_NAME_MAP: { [key: string]: string } = {
+    subuh: 'Subuh',
+    dhuhr: 'Zuhur',
+    asr: 'Asar',
+    maghrib: 'Maghrib',
+    isha: 'Isyak',
+    imsak: 'Imsak',
+    syuruk: 'Syuruk',
+    dhuha: 'Dhuha',
+  };
+
   // Key for storing notification preferences
   private readonly PREFERENCES_KEY = 'prayer_notifications';
 
-  // Key for post notification channel
-  private readonly POST_NOTIFICATION_CHANNEL_ID = 'post_notifications';
-
   // Max days to schedule ahead
   private readonly MAX_DAYS_AHEAD = 1;
-
-  // Notification channel IDs
-  private readonly CHANNEL_ID_PREFIX = 'prayer_times_';
-  private readonly DEFAULT_CHANNEL_PREFIX = 'default_prayer_';
-  private currentChannelId: string = '';
-  private currentDefaultChannelId: string = '';
 
   // Track if notification operations are in progress to prevent double-clicking
   private isProcessing = false;
@@ -72,18 +81,33 @@ export class PrayerNotificationsService {
   private processingQueue = false;
   private processingQueueTimeout: any = null;
 
+  // Track which specific prayers are disabled (in queue or processing)
+  private disabledPrayers: Set<string> = new Set();
+
   // Observable for notification settings
   private settingsSubject =
     new BehaviorSubject<PrayerNotificationSettings | null>(null);
 
+  // Observable for processing state
+  private processingSubject = new BehaviorSubject<boolean>(false);
+
+  // Observable for disabled prayers
+  private disabledPrayersSubject = new BehaviorSubject<Set<string>>(new Set());
+
   // Expose settings as observable
   public settings$ = this.settingsSubject.asObservable();
+
+  // Expose processing state as observable
+  public isProcessing$ = this.processingSubject.asObservable();
+
+  // Expose disabled prayers as observable
+  public disabledPrayers$ = this.disabledPrayersSubject.asObservable();
 
   // Available azan sounds
   public readonly availableSounds = [
     {
       id: 'none',
-      name: 'Lalai',
+      name: 'Notifikasi telefon',
       file: '',
     },
     {
@@ -144,21 +168,6 @@ export class PrayerNotificationsService {
   ) {
     // Set up notification listeners
     this.setupNotificationListeners();
-
-    // Initialize with a new channel ID
-    this.refreshChannelIds();
-  }
-
-  private refreshChannelIds(): void {
-    this.currentChannelId = this.generateNewChannelId(this.CHANNEL_ID_PREFIX);
-    this.currentDefaultChannelId = this.generateNewChannelId(
-      this.DEFAULT_CHANNEL_PREFIX,
-    );
-  }
-
-  private generateNewChannelId(prefix: string): string {
-    const timestamp = new Date().getTime();
-    return `${prefix}${timestamp}`;
   }
 
   /**
@@ -170,15 +179,31 @@ export class PrayerNotificationsService {
       const permResult = await LocalNotifications.requestPermissions();
 
       if (permResult.display !== 'prompt' && permResult.display !== 'granted') {
-        await this.showToast(
-          'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
-          'warning',
-        );
+        // Show custom toast with OK button that opens notification settings
+        const toast = await this.toastController.create({
+          message:
+            'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
+          duration: 5000,
+          position: 'bottom',
+          color: 'warning',
+          buttons: [
+            {
+              text: 'OK',
+              role: 'cancel',
+              handler: async () => {
+                await this.openNotificationSettings();
+              },
+            },
+          ],
+        });
+        await toast.present();
         return false;
       }
 
-      // Create all notification channels if not already created
-      await this.createAllNotificationChannels();
+      // Create post notification channel for announcements
+      if (Capacitor.getPlatform() === 'android') {
+        await this.createPostNotificationChannel();
+      }
 
       return true;
     } catch (error) {
@@ -197,38 +222,6 @@ export class PrayerNotificationsService {
       console.log(
         'Notifications are up to date, no rescheduling needed at startup',
       );
-    }
-  }
-
-  async createAllNotificationChannels(): Promise<void> {
-    // For Android, only create channels if they don't exist yet
-    if (Capacitor.getPlatform() === 'android') {
-      const channels = await LocalNotifications.listChannels();
-
-      // Only create post notification channel if it doesn't exist
-      if (
-        !channels.channels.some(
-          (c) => c.id === this.POST_NOTIFICATION_CHANNEL_ID,
-        )
-      ) {
-        await this.createPostNotificationChannel();
-      }
-
-      // Only create prayer notification main and default channel if none exist
-      if (
-        !channels.channels.some((c) => c.id.startsWith(this.CHANNEL_ID_PREFIX))
-      ) {
-        const settings = await this.getNotificationSettings();
-        await this.recreateNotificationChannel(settings);
-      } else {
-        // Set the current channel ID to the existing one
-        const existingChannel = channels.channels.find((c) =>
-          c.id.startsWith(this.CHANNEL_ID_PREFIX),
-        );
-        if (existingChannel) {
-          this.currentChannelId = existingChannel.id;
-        }
-      }
     }
   }
 
@@ -268,6 +261,10 @@ export class PrayerNotificationsService {
       // Add to pending toggles queue instead of processing immediately
       this.pendingPrayerToggles.set(normalizedPrayerName, !currentlyEnabled);
 
+      // Add prayer to disabled set to prevent further clicks
+      this.disabledPrayers.add(normalizedPrayerName);
+      this.disabledPrayersSubject.next(new Set(this.disabledPrayers));
+
       // Schedule processing of the queue
       this.scheduleQueueProcessing();
 
@@ -276,6 +273,28 @@ export class PrayerNotificationsService {
       console.error('Error toggling prayer notification:', error);
       return false;
     }
+  }
+
+  /**
+   * Get display name for a prayer from internal name
+   */
+  getDisplayName(internalName: string): string {
+    return this.PRAYER_NAME_MAP[internalName.toLowerCase()] || internalName;
+  }
+
+  /**
+   * Check if a specific prayer is currently disabled (in queue or processing)
+   */
+  isPrayerDisabled(prayerName: string): boolean {
+    return this.disabledPrayers.has(prayerName);
+  }
+
+  /**
+   * Update processing state and emit to subscribers
+   */
+  private updateProcessingState(): void {
+    const isProcessing = this.processingQueue || this.isSavingSettings || this.isProcessing;
+    this.processingSubject.next(isProcessing);
   }
 
   /**
@@ -297,6 +316,9 @@ export class PrayerNotificationsService {
     this.processingQueueTimeout = setTimeout(() => {
       this.processToggleQueue();
     }, 300); // 300ms delay to group rapid clicks
+
+    // Update processing state
+    this.updateProcessingState();
   }
 
   /**
@@ -310,10 +332,12 @@ export class PrayerNotificationsService {
 
     try {
       this.processingQueue = true;
+      this.updateProcessingState();
 
       // Get current settings
       const settings = await this.getNotificationSettings();
       let changed = false;
+      const processedPrayers: string[] = [];
 
       // Process all pending toggles
       for (const [
@@ -334,6 +358,9 @@ export class PrayerNotificationsService {
           );
           changed = true;
         }
+
+        // Track processed prayers
+        processedPrayers.push(prayer);
       }
 
       // Clear the pending toggles
@@ -347,11 +374,18 @@ export class PrayerNotificationsService {
       } else {
         console.log('Processed prayer toggles queue - no changes needed');
       }
+
+      // Remove all processed prayers from disabled set
+      for (const prayer of processedPrayers) {
+        this.disabledPrayers.delete(prayer);
+      }
+      this.disabledPrayersSubject.next(new Set(this.disabledPrayers));
     } catch (error) {
       console.error('Error processing prayer toggle queue:', error);
     } finally {
       this.processingQueue = false;
       this.processingQueueTimeout = null;
+      this.updateProcessingState();
 
       // Check if new toggles came in while we were processing
       if (this.pendingPrayerToggles.size > 0) {
@@ -387,15 +421,28 @@ export class PrayerNotificationsService {
       const defaultSettings: PrayerNotificationSettings = {
         enabledPrayers: [...this.PRAYER_NAMES],
         lastScheduled: null,
-        selectedAzanSound: 'azan7', // Default sound
+        selectedAzanSound: 'azan8', // Default sound
         notificationAdvance: 0,
-        currentChannelId: this.currentChannelId,
-        currentDefaultChannelId: this.currentDefaultChannelId,
+        azanVolume: 1.0, // Default volume (100%)
       };
+
+      // Save default settings to storage so Android can find them
+      try {
+        await Preferences.set({
+          key: this.PREFERENCES_KEY,
+          value: JSON.stringify(defaultSettings),
+        });
+        console.log('Default notification settings saved to storage');
+      } catch (error) {
+        console.error('Error saving default notification settings:', error);
+      }
 
       // Update settings observable
       this.settingsSubject.next(defaultSettings);
-      console.log('No settings found, using default settings:', defaultSettings);
+      console.log(
+        'No settings found, using default settings:',
+        defaultSettings,
+      );
 
       return defaultSettings;
     }
@@ -409,16 +456,16 @@ export class PrayerNotificationsService {
       lastScheduled: parsedSettings.lastScheduled || null,
       selectedAzanSound: parsedSettings.selectedAzanSound || 'none',
       notificationAdvance: parsedSettings.notificationAdvance || 0,
-      currentChannelId:
-        parsedSettings.currentChannelId || this.currentChannelId,
-      currentDefaultChannelId:
-        parsedSettings.currentDefaultChannelId || this.currentDefaultChannelId,
+      azanVolume: parsedSettings.azanVolume || 1.0, // Default to 100% if not set
     };
 
     // Update settings observable
     this.settingsSubject.next(settings);
 
-    console.log('Settings found, using previously Loaded notification settings:', settings);
+    console.log(
+      'Settings found, using previously Loaded notification settings:',
+      settings,
+    );
 
     return settings;
   }
@@ -438,10 +485,7 @@ export class PrayerNotificationsService {
 
     try {
       this.isSavingSettings = true;
-
-      // Make sure both channel IDs are set
-      settings.currentChannelId = this.currentChannelId;
-      settings.currentDefaultChannelId = this.currentDefaultChannelId;
+      this.updateProcessingState();
 
       // Save settings to storage first
       await Preferences.set({
@@ -452,20 +496,16 @@ export class PrayerNotificationsService {
       // Update the settings observable
       this.settingsSubject.next(settings);
 
-      // Recreate the notification channel with new settings
-      if (Capacitor.getPlatform() === 'android') {
-        await this.recreateNotificationChannel(settings);
-      }
-
       // Schedule notifications with new settings
       await this.scheduleAllNotifications();
 
-      console.log('Prayer notification settings saved and channel updated');
+      console.log('Prayer notification settings saved');
     } catch (error) {
       console.error('Error saving prayer notification settings:', error);
       throw error;
     } finally {
       this.isSavingSettings = false;
+      this.updateProcessingState();
 
       // Check if we have pending settings to process
       if (this.pendingSettings) {
@@ -480,139 +520,41 @@ export class PrayerNotificationsService {
   }
 
   /**
-   * Recreate notification channel with updated settings
-   * This ensures that changes to notification settings are applied
-   */
-  private async recreateNotificationChannel(
-    settings: PrayerNotificationSettings,
-  ): Promise<void> {
-    if (Capacitor.getPlatform() !== 'android') {
-      return;
-    }
-
-    try {
-      // List all existing channels
-      const channels = await LocalNotifications.listChannels();
-      console.log('Current channels before deletion:', channels.channels);
-
-      // Delete all channels except post notification
-      for (const channel of channels.channels) {
-        if (channel.id !== this.POST_NOTIFICATION_CHANNEL_ID) {
-          console.log(`Deleting channel: ${channel.id}`);
-          await LocalNotifications.deleteChannel({ id: channel.id });
-        }
-      }
-
-      // Generate new channel IDs
-      this.refreshChannelIds();
-
-      // Set sound for main prayer channel
-      let sound: string | undefined = undefined;
-      if (settings.selectedAzanSound && settings.selectedAzanSound !== 'none') {
-        sound = settings.selectedAzanSound;
-      }
-
-      const useAzanSound = settings.selectedAzanSound !== 'none';
-
-      // Create main prayer channel
-      const mainChannelConfig: Channel = {
-        id: this.currentChannelId,
-        name: 'Waktu Solat',
-        description: 'Notifikasi waktu solat',
-        importance: useAzanSound ? 3 : 4,
-        visibility: 1,
-        sound: sound,
-        vibration: true,
-        lights: true,
-      };
-
-      await LocalNotifications.createChannel(mainChannelConfig);
-      console.log(
-        'Main prayer channel created with config:',
-        mainChannelConfig,
-      );
-
-      // Create default prayer channel for Imsak, Syuruk, Dhuha
-      const defaultChannelConfig: Channel = {
-        id: this.currentDefaultChannelId,
-        name: 'Notifikasi Waktu Biasa',
-        description: 'Notifikasi untuk Imsak, Syuruk, Dhuha',
-        importance: useAzanSound ? 3 : 4,
-        visibility: 1,
-        vibration: true,
-        lights: true,
-        sound: useAzanSound ? 'zikir_pagi' : undefined,
-      };
-
-      await LocalNotifications.createChannel(defaultChannelConfig);
-      console.log(
-        'Morning prayers channel created with config:',
-        defaultChannelConfig,
-      );
-
-      // Update settings with new channel IDs
-      const updatedSettings = {
-        ...settings,
-        currentChannelId: this.currentChannelId,
-        currentDefaultChannelId: this.currentDefaultChannelId,
-      };
-
-      // Save the new channel IDs to preferences
-      await Preferences.set({
-        key: this.PREFERENCES_KEY,
-        value: JSON.stringify(updatedSettings),
-      });
-
-      // Update settings in memory
-      this.settingsSubject.next(updatedSettings);
-
-      console.log('Notification settings updated with new channel IDs');
-
-      // Verify channels were created with correct settings
-      const updatedChannels = await LocalNotifications.listChannels();
-      console.log('Channels after recreation:', updatedChannels.channels);
-
-      const mainChannel = updatedChannels.channels.find(
-        (c) => c.id === this.currentChannelId,
-      );
-      const defaultChannel = updatedChannels.channels.find(
-        (c) => c.id === this.currentDefaultChannelId,
-      );
-
-      console.log('Created main channel settings:', mainChannel);
-      console.log('Created default channel settings:', defaultChannel);
-    } catch (error) {
-      console.error('Error creating notification channels:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Play azan sound for preview
    */
   private currentAudio: HTMLAudioElement | null = null;
   private currentPlayingAssetId: string | null = null;
 
-  async playAzanSound(soundName: string): Promise<void> {
+  async playAzanSound(soundName: string, volume?: number): Promise<void> {
     // Stop any currently playing sound first
     await this.stopAzanSound();
+
+    // Get current settings to use the saved volume if not provided
+    const settings = await this.getNotificationSettings();
+    const soundVolume = volume !== undefined ? volume : settings.azanVolume;
 
     // Handle differently based on platform
     if (Capacitor.isNativePlatform()) {
       // For native platforms (Android/iOS)
       if (Capacitor.getPlatform() === 'android') {
         try {
-          console.log(`Playing Android native sound: ${soundName}`);
+          console.log(
+            `Playing Android native sound: ${soundName} with volume: ${soundVolume}`,
+          );
 
-          // On Android, use our custom plugin to play the sound
+          // On Android, use our custom plugin to play the sound with volume
           this.currentPlayingAssetId = soundName;
-          await AndroidAudio.playSound({ resourceName: soundName });
+          await AndroidAudio.playSound({
+            resourceName: soundName,
+            volume: soundVolume,
+          });
           return;
         } catch (error) {
           console.error('Error playing native audio:', error);
           // Fall back to web audio if native playback fails
           const audio = new Audio(`assets/sounds/${soundName}.mp3`);
           this.currentAudio = audio;
+          audio.volume = soundVolume;
           return audio.play();
         }
       }
@@ -620,6 +562,7 @@ export class PrayerNotificationsService {
       // For iOS or fallback
       const audio = new Audio(`assets/sounds/${soundName}.mp3`);
       this.currentAudio = audio;
+      audio.volume = soundVolume;
       return audio.play();
     } else {
       // For web platform, show message instead of playing sound
@@ -656,11 +599,39 @@ export class PrayerNotificationsService {
   }
 
   /**
+   * Set volume for currently playing azan sound
+   */
+  async setAzanVolume(volume: number): Promise<void> {
+    try {
+      // Clamp volume between 0.1 and 1.0
+      const clampedVolume = Math.max(0.1, Math.min(1.0, volume));
+
+      if (
+        Capacitor.isNativePlatform() &&
+        Capacitor.getPlatform() === 'android'
+      ) {
+        // For Android, use the setVolume method
+        await AndroidAudio.setVolume({ volume: clampedVolume });
+        console.log(`Set Android azan volume to: ${clampedVolume}`);
+      } else if (this.currentAudio) {
+        // For web, set volume directly on audio element
+        this.currentAudio.volume = clampedVolume;
+        console.log(`Set web azan volume to: ${clampedVolume}`);
+      }
+    } catch (error) {
+      console.error('Error setting azan volume:', error);
+    }
+  }
+
+  /**
    * Determine if we should reschedule notifications
    */
   private shouldReschedule(lastScheduled: string | null): boolean {
     // If never scheduled, we should schedule
-    console.log('Checking if reschedule is needed, lastScheduled:', lastScheduled);
+    console.log(
+      'Checking if reschedule is needed, lastScheduled:',
+      lastScheduled,
+    );
     if (!lastScheduled) {
       return true;
     }
@@ -1078,14 +1049,21 @@ export class PrayerNotificationsService {
    */
   async openNotificationSettings(): Promise<void> {
     try {
-      // For Android, we can use the native app settings
+      // Set flag to indicate we opened settings
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('notificationSettingsOpened', 'true');
+      }
+
       if (Capacitor.getPlatform() === 'android') {
-        // @ts-ignore - This is available in Android
-        await Capacitor.Plugins.App.openAppSettings();
+        await NativeSettings.open({
+          optionAndroid: AndroidSettings.AppNotification,
+          optionIOS: IOSSettings.AppNotification,
+        });
       } else if (Capacitor.getPlatform() === 'ios') {
-        // On iOS, redirect to app settings through Capacitor
-        // @ts-ignore - This is available in iOS
-        await Capacitor.Plugins.App.openAppSettings();
+        await NativeSettings.open({
+          optionAndroid: AndroidSettings.AppNotification,
+          optionIOS: IOSSettings.AppNotification,
+        });
       } else {
         // For web, just show a message
         await this.showToast(
@@ -1096,6 +1074,24 @@ export class PrayerNotificationsService {
     } catch (error) {
       console.error('Error opening notification settings:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Check notification permission and schedule notifications if enabled
+   */
+  async checkPermissionAndSchedule(): Promise<void> {
+    try {
+      const permResult = await LocalNotifications.checkPermissions();
+
+      if (permResult.display === 'granted') {
+        console.log('Notification permission granted, scheduling notifications...');
+        await this.checkToScheduleNotifications();
+      } else {
+        console.log('Notification permission still denied');
+      }
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
     }
   }
 
@@ -1137,7 +1133,7 @@ export class PrayerNotificationsService {
   }
 
   /**
-   * Create post notification channel
+   * Create post notification channel for announcements
    */
   private async createPostNotificationChannel(): Promise<void> {
     if (Capacitor.getPlatform() !== 'android') {
@@ -1148,17 +1144,17 @@ export class PrayerNotificationsService {
       const channels = await LocalNotifications.listChannels();
       // Check for post notification channel
       const hasPostChannel = channels.channels.some(
-        (c) => c.id === this.POST_NOTIFICATION_CHANNEL_ID,
+        (c) => c.id === 'post_notifications',
       );
 
       if (!hasPostChannel) {
         // Create post notification channel
         await LocalNotifications.createChannel({
-          id: this.POST_NOTIFICATION_CHANNEL_ID,
+          id: 'post_notifications',
           name: 'Pengumuman',
           description: 'Notifikasi untuk pengumuman baharu',
-          importance: 4 as any,
-          visibility: 1 as any,
+          importance: 4,
+          visibility: 1,
           lights: true,
           vibration: true,
         });

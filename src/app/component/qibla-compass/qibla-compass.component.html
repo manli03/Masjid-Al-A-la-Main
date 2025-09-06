@@ -26,6 +26,10 @@
     <div class="errorMessage" *ngIf="errorMessageCompass && uiState === 'calibrating'">
       <p>{{ errorMessageCompass }}</p>
     </div>
+    <ion-button (click)="manualCompleteCalibration()" expand="block" color="success" style="margin-top: 15px;">
+      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+      Selesai Kalibrasi
+    </ion-button>
   </div>
 
   <!-- 3. Calibrated State: The Compass -->

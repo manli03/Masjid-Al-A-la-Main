@@ -32,6 +32,7 @@ export class NotificationSettingsComponent implements OnInit {
     enabledPrayers: [],
     selectedAzanSound: 'azan1',
     notificationAdvance: 0,
+    azanVolume: 1.0, // Default volume (100%)
     lastScheduled: null,
     currentChannelId: '', // Will be populated from service
     currentDefaultChannelId: '', // Will be populated from service
@@ -145,12 +146,13 @@ export class NotificationSettingsComponent implements OnInit {
         return;
       }
 
-      // For native platforms, play the sound
+      // For native platforms, play the sound with current UI volume (not saved volume)
       console.log(
-        `Playing azan sound: ${this.notificationSettings.selectedAzanSound}`,
+        `Playing azan sound: ${this.notificationSettings.selectedAzanSound} with volume: ${this.notificationSettings.azanVolume}`,
       );
       await this.prayerNotificationsService.playAzanSound(
         this.notificationSettings.selectedAzanSound,
+        this.notificationSettings.azanVolume, // Use current UI volume, not saved volume
       );
 
       // We leave isAzanPlaying as true until stopAzanPreview is called
@@ -216,6 +218,41 @@ export class NotificationSettingsComponent implements OnInit {
     // If a sound is playing, stop it
     if (this.isAzanPlaying) {
       this.stopAzanPreview();
+    }
+  }
+
+  // Called when the user changes the volume
+  onVolumeChange(event: any) {
+    const volume = event.detail.value;
+    console.log(`Volume changed to: ${volume}`);
+
+    // If sound is currently playing, update volume in real-time
+    if (this.isAzanPlaying) {
+      this.prayerNotificationsService.setAzanVolume(volume);
+    }
+  }
+
+  // Increase volume by 5%
+  increaseVolume() {
+    const newVolume = Math.min(1.0, this.notificationSettings.azanVolume + 0.05);
+    this.notificationSettings.azanVolume = Math.round(newVolume * 20) / 20; // Round to nearest 5%
+    console.log(`Volume increased to: ${this.notificationSettings.azanVolume}`);
+
+    // If sound is currently playing, update volume in real-time
+    if (this.isAzanPlaying) {
+      this.prayerNotificationsService.setAzanVolume(this.notificationSettings.azanVolume);
+    }
+  }
+
+  // Decrease volume by 5%
+  decreaseVolume() {
+    const newVolume = Math.max(0.1, this.notificationSettings.azanVolume - 0.05);
+    this.notificationSettings.azanVolume = Math.round(newVolume * 20) / 20; // Round to nearest 5%
+    console.log(`Volume decreased to: ${this.notificationSettings.azanVolume}`);
+
+    // If sound is currently playing, update volume in real-time
+    if (this.isAzanPlaying) {
+      this.prayerNotificationsService.setAzanVolume(this.notificationSettings.azanVolume);
     }
   }
 }

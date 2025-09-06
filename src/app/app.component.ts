@@ -13,6 +13,7 @@ import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { PrayerTimesService } from './services/prayerTimes.service';
+import { PrayerNotificationsService } from './services/prayer-notifications.service';
 
 @Component({
   selector: 'app-root',
@@ -29,6 +30,7 @@ export class AppComponent implements OnInit {
     private platform: Platform,
     private updateCheck: CheckUpdateService,
     private prayerTimesService: PrayerTimesService,
+    private prayerNotificationsService: PrayerNotificationsService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
@@ -117,6 +119,7 @@ export class AppComponent implements OnInit {
         // Set up App URL listener for deep links
         this.setupAppUrlListener();
         this.setupPushNotificationListener();
+        this.setupAppResumeListener();
       } catch (error) {
         console.error('Error during app initialization', error);
         this.isAppLoaded = true; // Ensure loading screen is hidden if there's an error
@@ -230,6 +233,24 @@ export class AppComponent implements OnInit {
           }
         },
       );
+    }
+  }
+
+  private setupAppResumeListener() {
+    if (Capacitor.isNativePlatform()) {
+      App.addListener('appStateChange', async (state) => {
+        if (state.isActive) {
+          // App has resumed, check if we previously opened notification settings
+          const settingsOpened = localStorage.getItem('notificationSettingsOpened');
+          if (settingsOpened === 'true') {
+            console.log('App resumed after opening notification settings, checking permission...');
+            // Clear the flag
+            localStorage.removeItem('notificationSettingsOpened');
+            // Check permission and schedule notifications if enabled
+            await this.prayerNotificationsService.checkPermissionAndSchedule();
+          }
+        }
+      });
     }
   }
 }
