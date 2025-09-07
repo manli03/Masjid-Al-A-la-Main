@@ -352,7 +352,9 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        Log.d(TAG, "Azan playback completed");
+        Log.d(TAG, "Azan playback completed naturally");
+        // Create completion notification before stopping service
+        createCompletionNotification();
         stopAzanPlayback();
     }
 
@@ -388,6 +390,71 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         releaseAudioFocus();
         super.onDestroy();
     }
+
+    private void createCompletionNotification() {
+        Log.d(TAG, "Creating completion notification for " + currentPrayerName);
+
+        // Create silent notification channel for completion
+        createSilentNotificationChannel();
+
+        // Get prayer time and location using NotificationUtils
+        String prayerTime = NotificationUtils.getCurrentPrayerTime(this, currentPrayerName);
+        String location = NotificationUtils.getLocationName(this);
+
+        // Create notification content using NotificationUtils
+        String[] formattedMessage = NotificationUtils.formatNotificationMessage(currentPrayerName, prayerTime, location);
+        String title = formattedMessage[0];
+        String message = formattedMessage[1];
+
+        // Create intent for opening the app
+        Intent launchIntent = new Intent(this, MainActivity.class);
+        launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
+        PendingIntent contentIntent = PendingIntent.getActivity(
+                this, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        // Use silent channel for completion notification
+        String silentChannelId = CHANNEL_ID + "_silent";
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, silentChannelId)
+                .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
+                .setColor(ContextCompat.getColor(this, R.color.notification_color))
+                .setContentTitle(title)
+                .setContentText(message)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setOngoing(false) // Not ongoing - can be dismissed
+                .setAutoCancel(true) // Auto-cancel when tapped
+                .setContentIntent(contentIntent);
+
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (notificationManager != null) {
+            notificationManager.notify(NOTIFICATION_ID + 1, builder.build()); // Use different ID for completion notification
+            Log.d(TAG, "Completion notification posted for " + currentPrayerName);
+        }
+    }
+
+    private void createSilentNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            String silentChannelId = CHANNEL_ID + "_silent";
+            NotificationChannel channel = new NotificationChannel(
+                    silentChannelId,
+                    "Azan Completion",
+                    NotificationManager.IMPORTANCE_DEFAULT
+            );
+            channel.setDescription("Silent notifications for azan completion");
+            channel.setSound(null, null); // No sound
+            channel.setVibrationPattern(null); // No vibration
+            channel.setShowBadge(true);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
+
 
     @Override
     public IBinder onBind(Intent intent) {

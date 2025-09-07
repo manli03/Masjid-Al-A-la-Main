@@ -49,7 +49,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
         }
       } else {
         // Create regular notification without sound service
-        createRegularNotification(context, channelId, title, message);
+        createRegularNotification(context, channelId, title, message, prayerName);
       }
 
     } finally {
@@ -73,7 +73,16 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
     return "none";
   }
 
-  private void createRegularNotification(Context context, String channelId, String title, String message) {
+  private void createRegularNotification(Context context, String channelId, String title, String message, String prayerName) {
+    // Get formatted prayer time and location using NotificationUtils
+    String prayerTime = NotificationUtils.getCurrentPrayerTime(context, prayerName);
+    String location = NotificationUtils.getLocationName(context);
+
+    // Create formatted message using NotificationUtils
+    String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location);
+    String formattedTitle = formattedMessage[0];
+    String formattedMessageText = formattedMessage[1];
+
     Intent launchIntent = new Intent(context, MainActivity.class);
     launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
@@ -88,8 +97,9 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
     NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
       .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
       .setColor(ContextCompat.getColor(context, R.color.notification_color))
-      .setContentTitle(title)
-      .setContentText(message)
+      .setContentTitle(formattedTitle)
+      .setContentText(formattedMessageText)
+      .setStyle(new NotificationCompat.BigTextStyle().bigText(formattedMessageText))
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setAutoCancel(true)
       .setContentIntent(contentIntent);
@@ -98,4 +108,6 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
     int notificationId = (int) System.currentTimeMillis();
     notificationManager.notify(notificationId, builder.build());
   }
+
+
 }
