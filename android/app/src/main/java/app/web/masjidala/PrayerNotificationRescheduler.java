@@ -110,7 +110,7 @@ public class PrayerNotificationRescheduler {
   }
 
   // This method handles cancelling previous alarms based on saved request codes.
-  private static void cancelAllScheduledAlarms(Context context) {
+  public static void cancelAllScheduledAlarms(Context context) {
     AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
     SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
     String scheduledJson = prefs.getString(PREF_KEY_SCHEDULED, null);
@@ -208,14 +208,5 @@ public class PrayerNotificationRescheduler {
       // On older APIs, setExactAndAllowWhileIdle is generally preferred for reliability in Doze
       alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
     }
-  }
-
-  // This method was probably for external calls, keeping it as is.
-  static void callCancelMethod(Context context) {
-    cancelAllScheduledAlarms(context);
-  }
-
-  static void callSetMethod(Context context) {
-    rescheduleAll(context);
   }
 }

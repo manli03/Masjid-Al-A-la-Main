@@ -69,12 +69,15 @@ public class DailyNotificationScheduling {
 
             Log.d(TAG, "Setting daily check alarm for " + calendar.getTime().toString());
 
-            // Use setExactIfPossible logic, but without attempting to request permission here
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-              alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-            } else {
-              alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
-            }
+            // 🔥 Use setAlarmClock for maximum reliability - never deferred by Doze mode
+            // This is specifically designed for alarm clock functionality
+            AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(
+                calendar.getTimeInMillis(),
+                pendingIntent
+            );
+
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);
+            Log.d(TAG, "Daily check scheduled using setAlarmClock (Doze-resistant, fires exactly at 12:00 AM)");
 
             // Save the scheduled time
             SharedPreferences preferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);

@@ -36,13 +36,21 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
     public static final String EXTRA_SOUND_NAME = "sound_name";
     public static final String EXTRA_ADVANCE_MINUTES = "advance_minutes";
 
+    // Static instance and synchronization to ensure only one service plays at a time
+    private static AzanPlaybackService currentInstance = null;
+    private static long lastPlaybackStartTime = 0;
+    private static final Object playbackLock = new Object();
+    private static Thread currentPlaybackThread = null; // Track current playback thread
+
     private MediaPlayer mediaPlayer;
     private AudioManager audioManager;
     private AudioFocusRequest audioFocusRequest;
-    private String currentPrayerName;
-    private String currentSoundName;
+    private String prayerName; // Store locally to avoid being overwritten
+    private String soundName;  // Store locally to avoid being overwritten
     private int advanceMinutes;
     private boolean hasAudioFocus = false;
+    private boolean isPlaying = false;
+    private boolean isStopping = false; // Prevent multiple stop calls
 
     @Override
     public void onCreate() {
@@ -66,12 +74,60 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         Log.d(TAG, "onStartCommand with action: " + action);
 
         if (ACTION_START_AZAN.equals(action)) {
-            currentPrayerName = intent.getStringExtra(EXTRA_PRAYER_NAME);
-            currentSoundName = intent.getStringExtra(EXTRA_SOUND_NAME);
+            prayerName = intent.getStringExtra(EXTRA_PRAYER_NAME);
+            soundName = intent.getStringExtra(EXTRA_SOUND_NAME);
             advanceMinutes = intent.getIntExtra(EXTRA_ADVANCE_MINUTES, 0);
 
+            // Check if another instance is already playing within the time window
+            long currentTime = System.currentTimeMillis();
+            if (currentInstance != null && currentInstance != this &&
+                currentTime - lastPlaybackStartTime < 10000) { // Within 10 seconds
+                Log.d(TAG, "Another azan is already playing within 10 seconds for " + currentInstance.prayerName + ", stopping this new request for " + prayerName);
+                stopSelf(); // Stop this service instance immediately
+                return START_NOT_STICKY;
+            }
+
+            // Check if another instance is currently stopping
+            if (currentInstance != null && currentInstance != this && currentInstance.isStopping) {
+                Log.d(TAG, "Previous azan is currently stopping, waiting for it to complete before starting " + prayerName);
+                // Wait a bit for the previous service to finish stopping
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // Interrupt any previous playback thread
+            if (currentPlaybackThread != null && currentPlaybackThread.isAlive()) {
+                Log.d(TAG, "Interrupting previous playback thread for " + (currentInstance != null ? currentInstance.prayerName : "unknown"));
+                currentPlaybackThread.interrupt();
+                try {
+                    // Wait a short time for the thread to finish
+                    currentPlaybackThread.join(500); // Wait up to 500ms
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Interrupted while waiting for previous thread to finish", e);
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            // Stop any previous instance if it's still running
+            if (currentInstance != null && currentInstance != this) {
+                Log.d(TAG, "Stopping previous azan playback instance for " + currentInstance.prayerName);
+                currentInstance.stopAzanPlayback();
+            }
+
+            // Set this as the current instance
+            currentInstance = this;
+            lastPlaybackStartTime = currentTime;
+
+            // Start foreground service immediately to meet Android's 5-second requirement
+            startForeground(NOTIFICATION_ID, createNotification());
+
             // Start playback in background thread to avoid blocking
-            new Thread(this::startAzanPlayback).start();
+            Thread newPlaybackThread = new Thread(this::startAzanPlayback);
+            currentPlaybackThread = newPlaybackThread;
+            newPlaybackThread.start();
         } else if (ACTION_STOP_AZAN.equals(action)) {
             stopAzanPlayback();
         }
@@ -80,10 +136,13 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
     }
 
     private void startAzanPlayback() {
-        Log.d(TAG, "Starting azan playback for " + currentPrayerName + " with sound " + currentSoundName);
+        Log.d(TAG, "Starting azan playback for " + prayerName + " with sound " + soundName);
 
-        // Start foreground service immediately to meet Android's 5-second requirement
-        startForeground(NOTIFICATION_ID, createNotification());
+        // Check if this thread has been interrupted before starting
+        if (Thread.currentThread().isInterrupted()) {
+            Log.d(TAG, "Playback thread was interrupted before starting for " + prayerName);
+            return;
+        }
 
         // Try to request audio focus, but don't fail if we can't get it
         boolean hasFocus = requestAudioFocus();
@@ -91,97 +150,170 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
             Log.w(TAG, "Could not get audio focus, but will try to play anyway");
         }
 
-        // Stop any existing playback
-        stopMediaPlayer();
-
-        // Determine which sound to use based on prayer type
-        String soundToPlay = getSoundForPrayer(currentPrayerName, currentSoundName);
-        Log.d(TAG, "Using sound: " + soundToPlay + " for prayer: " + currentPrayerName);
-
-        // Get the resource ID for the sound
-        int resourceId = getResourceId(soundToPlay);
-        if (resourceId == 0) {
-            Log.e(TAG, "Sound resource not found: " + soundToPlay);
-            stopSelf();
-            return;
-        }
-
-        // Get volume from user settings
-        float volume = getAzanVolume();
-        Log.d(TAG, "Using volume: " + volume + " (" + (volume * 100) + "%)");
-
-        try {
-            // Create MediaPlayer manually to ensure proper audio attributes
-            mediaPlayer = new MediaPlayer();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build();
-                mediaPlayer.setAudioAttributes(audioAttributes);
-                Log.d(TAG, "Set audio attributes to alarm type for azan: " + soundToPlay);
-            } else {
-                // For older Android versions, set audio stream type
-                mediaPlayer.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
-                Log.d(TAG, "Set audio stream to alarm type for azan (legacy): " + soundToPlay);
+        // Synchronize MediaPlayer creation and playback to prevent conflicts
+        synchronized (playbackLock) {
+            // Check for interruption after acquiring lock
+            if (Thread.currentThread().isInterrupted()) {
+                Log.d(TAG, "Playback thread was interrupted after acquiring lock for " + prayerName);
+                return;
             }
 
-            try {
-                // Set data source and prepare
-                mediaPlayer.setDataSource(this, android.net.Uri.parse("android.resource://" + getPackageName() + "/" + resourceId));
-                mediaPlayer.prepare();
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to prepare MediaPlayer for resource: " + soundToPlay, e);
-                mediaPlayer.release();
-                mediaPlayer = null;
+            // Stop any existing playback
+            stopMediaPlayer();
+
+            // Determine which sound to use based on prayer type
+            String soundToPlay = getSoundForPrayer(prayerName, soundName);
+            Log.d(TAG, "Using sound: " + soundToPlay + " for prayer: " + prayerName);
+
+            // Get the resource ID for the sound
+            int resourceId = getResourceId(soundToPlay);
+            if (resourceId == 0) {
+                Log.e(TAG, "Sound resource not found: " + soundToPlay);
                 stopSelf();
                 return;
             }
 
-            // Set volume before starting playback
-            mediaPlayer.setVolume(volume, volume);
-            mediaPlayer.setOnCompletionListener(this);
-            mediaPlayer.setLooping(false); // Don't loop the azan
+            // Get volume from user settings
+            float volume = getAzanVolume();
+            Log.d(TAG, "Using volume: " + volume + " (" + (volume * 100) + "%)");
 
-            // Delay azan playback to allow notification sound to finish first
-            Log.d(TAG, "Waiting for notification sound to finish before playing azan...");
             try {
-                Thread.sleep(2500); // Wait 2.5 seconds for notification sound
-            } catch (InterruptedException e) {
-                Log.w(TAG, "Sleep interrupted", e);
-                Thread.currentThread().interrupt();
+                // Check for interruption before creating MediaPlayer
+                if (Thread.currentThread().isInterrupted()) {
+                    Log.d(TAG, "Playback thread was interrupted before creating MediaPlayer for " + prayerName);
+                    return;
+                }
+
+                // Create MediaPlayer manually to ensure proper audio attributes
+                mediaPlayer = new MediaPlayer();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build();
+                    mediaPlayer.setAudioAttributes(audioAttributes);
+                    Log.d(TAG, "Set audio attributes to alarm type for azan: " + soundToPlay);
+                } else {
+                    // For older Android versions, set audio stream type
+                    mediaPlayer.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
+                    Log.d(TAG, "Set audio stream to alarm type for azan (legacy): " + soundToPlay);
+                }
+
+                try {
+                    // Set data source and prepare
+                    mediaPlayer.setDataSource(this, android.net.Uri.parse("android.resource://" + getPackageName() + "/" + resourceId));
+                    mediaPlayer.prepare();
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to prepare MediaPlayer for resource: " + soundToPlay, e);
+                    if (mediaPlayer != null) {
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                    }
+                    stopSelf();
+                    return;
+                }
+
+                // Set volume before starting playback
+                mediaPlayer.setVolume(volume, volume);
+                mediaPlayer.setOnCompletionListener(this);
+                mediaPlayer.setLooping(false); // Don't loop the azan
+
+                // Check for interruption before sleep
+                if (Thread.currentThread().isInterrupted()) {
+                    Log.d(TAG, "Playback thread was interrupted before sleep for " + prayerName);
+                    if (mediaPlayer != null) {
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                    }
+                    return;
+                }
+
+                // Delay azan playback to allow notification sound to finish first
+                Log.d(TAG, "Waiting for notification sound to finish before playing azan...");
+                try {
+                    Thread.sleep(2500); // Wait 2.5 seconds for notification sound
+                } catch (InterruptedException e) {
+                    Log.w(TAG, "Sleep interrupted", e);
+                    Thread.currentThread().interrupt();
+                    // Clean up MediaPlayer if interrupted during sleep
+                    if (mediaPlayer != null) {
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                    }
+                    return;
+                }
+
+                // Final check for interruption before starting playback
+                if (Thread.currentThread().isInterrupted()) {
+                    Log.d(TAG, "Playback thread was interrupted before starting playback for " + prayerName);
+                    if (mediaPlayer != null) {
+                        mediaPlayer.release();
+                        mediaPlayer = null;
+                    }
+                    return;
+                }
+
+                // Start azan playback
+                mediaPlayer.start();
+                Log.d(TAG, "Azan playback started after notification sound delay with volume: " + (volume * 100) + "%");
+
+            } catch (Exception e) {
+                Log.e(TAG, "Error starting azan playback", e);
+                if (mediaPlayer != null) {
+                    mediaPlayer.release();
+                    mediaPlayer = null;
+                }
+                stopSelf();
             }
-
-            // Start azan playback
-            mediaPlayer.start();
-            Log.d(TAG, "Azan playback started after notification sound delay with volume: " + (volume * 100) + "%");
-
-        } catch (Exception e) {
-            Log.e(TAG, "Error starting azan playback", e);
-            stopSelf();
         }
     }
 
     private void stopAzanPlayback() {
-        Log.d(TAG, "Stopping azan playback");
+        // Prevent multiple stop calls
+        if (isStopping) {
+            Log.d(TAG, "Already stopping azan playback for " + prayerName + ", skipping duplicate call");
+            return;
+        }
 
+        isStopping = true;
+        Log.d(TAG, "Stopping azan playback for " + prayerName);
+
+        // Clear the current instance if this is the current instance
+        if (currentInstance == this) {
+            currentInstance = null;
+        }
+
+        // Stop MediaPlayer immediately to prevent delays
         stopMediaPlayer();
+
+        // Release audio focus
         releaseAudioFocus();
+
+        // Stop foreground and service
         stopForeground(true);
         stopSelf();
+
+        // Create completion notification after stopping (non-blocking)
+        try {
+            createCompletionNotification();
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating completion notification", e);
+        }
     }
 
     private void stopMediaPlayer() {
-        if (mediaPlayer != null) {
-            try {
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.stop();
+        synchronized (playbackLock) {
+            if (mediaPlayer != null) {
+                try {
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.stop();
+                    }
+                    mediaPlayer.release();
+                } catch (Exception e) {
+                    Log.e(TAG, "Error stopping media player", e);
+                } finally {
+                    mediaPlayer = null;
                 }
-                mediaPlayer.release();
-            } catch (Exception e) {
-                Log.e(TAG, "Error stopping media player", e);
-            } finally {
-                mediaPlayer = null;
             }
         }
     }
@@ -321,16 +453,16 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
 
         // Create delete intent to detect when notification is dismissed
         Intent deleteIntent = new Intent(this, NotificationDismissedReceiver.class);
-        deleteIntent.putExtra(NotificationDismissedReceiver.EXTRA_PRAYER_NAME, currentPrayerName);
-        deleteIntent.putExtra(NotificationDismissedReceiver.EXTRA_SOUND_NAME, currentSoundName);
+        deleteIntent.putExtra(NotificationDismissedReceiver.EXTRA_PRAYER_NAME, prayerName);
+        deleteIntent.putExtra(NotificationDismissedReceiver.EXTRA_SOUND_NAME, soundName);
         deleteIntent.putExtra(NotificationDismissedReceiver.EXTRA_ADVANCE_MINUTES, advanceMinutes);
         PendingIntent deletePendingIntent = PendingIntent.getBroadcast(
                 this, 0, deleteIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
         // Build the notification
-        String title = "Waktu " + currentPrayerName;
-        String message = "Sekarang waktu " + currentPrayerName;
+        String title = "Waktu " + prayerName;
+        String message = "Sekarang waktu " + prayerName;
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
@@ -352,10 +484,12 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        Log.d(TAG, "Azan playback completed naturally");
-        // Create completion notification before stopping service
-        createCompletionNotification();
-        stopAzanPlayback();
+        synchronized (playbackLock) {
+            Log.d(TAG, "Azan playback completed naturally for " + prayerName);
+            // Create completion notification before stopping service
+            createCompletionNotification();
+            stopAzanPlayback();
+        }
     }
 
     @Override
@@ -370,14 +504,18 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
                 break;
             case AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK:
                 // Lower volume but continue playing
-                if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                    mediaPlayer.setVolume(0.3f, 0.3f);
+                synchronized (playbackLock) {
+                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                        mediaPlayer.setVolume(0.3f, 0.3f);
+                    }
                 }
                 break;
             case AudioManager.AUDIOFOCUS_GAIN:
                 // Restore full volume
-                if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-                    mediaPlayer.setVolume(1.0f, 1.0f);
+                synchronized (playbackLock) {
+                    if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+                        mediaPlayer.setVolume(1.0f, 1.0f);
+                    }
                 }
                 break;
         }
@@ -385,24 +523,32 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "AzanPlaybackService destroyed");
-        stopMediaPlayer();
-        releaseAudioFocus();
+        Log.d(TAG, "AzanPlaybackService destroyed for " + prayerName);
+
+        // Clear the current instance if this is the current instance
+        if (currentInstance == this) {
+            currentInstance = null;
+        }
+
+        synchronized (playbackLock) {
+            stopMediaPlayer();
+            releaseAudioFocus();
+        }
         super.onDestroy();
     }
 
     private void createCompletionNotification() {
-        Log.d(TAG, "Creating completion notification for " + currentPrayerName);
+        Log.d(TAG, "Creating completion notification for " + prayerName);
 
         // Create silent notification channel for completion
         createSilentNotificationChannel();
 
         // Get prayer time and location using NotificationUtils
-        String prayerTime = NotificationUtils.getCurrentPrayerTime(this, currentPrayerName);
+        String prayerTime = NotificationUtils.getCurrentPrayerTime(this, prayerName);
         String location = NotificationUtils.getLocationName(this);
 
         // Create notification content using NotificationUtils
-        String[] formattedMessage = NotificationUtils.formatNotificationMessage(currentPrayerName, prayerTime, location);
+        String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location);
         String title = formattedMessage[0];
         String message = formattedMessage[1];
 
@@ -430,7 +576,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (notificationManager != null) {
             notificationManager.notify(NOTIFICATION_ID + 1, builder.build()); // Use different ID for completion notification
-            Log.d(TAG, "Completion notification posted for " + currentPrayerName);
+            Log.d(TAG, "Completion notification posted for " + prayerName);
         }
     }
 

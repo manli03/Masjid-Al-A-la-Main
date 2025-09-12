@@ -31,7 +31,6 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(AndroidAudio.class);
     super.onCreate(savedInstanceState);
 
-    DailyNotificationScheduling.scheduleDailyCheck(this);
 //    PreferenceLogger.logAllPreferences(this);
 
     // Handle deep link

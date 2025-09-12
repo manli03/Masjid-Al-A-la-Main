@@ -14,7 +14,6 @@ public class TimeChangeReceiver extends BroadcastReceiver {
 
       // Full reschedule on time/timezone changes
       PrayerNotificationRescheduler.rescheduleAll(context);
-      DailyNotificationScheduling.scheduleDailyCheck(context); // Also reset the daily 12 AM check
 
       Log.d("TimeChangeReceiver", "All notifications and daily check rescheduled.");
     }

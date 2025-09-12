@@ -30,13 +30,14 @@ public class NotificationCheckReceiver extends BroadcastReceiver {
     }
 
     try {
-      // First, reschedule the next 12 AM daily check to ensure continuity
-      DailyNotificationScheduling.scheduleDailyCheck(context);
-
-      // Now, reschedule all individual prayer notifications for the upcoming period
+      // Reschedule all individual prayer notifications for the upcoming period
       Log.d(TAG, "WakeLock acquired. Checking and rescheduling individual prayer notifications.");
       PrayerNotificationRescheduler.rescheduleAll(context);
-      Log.d(TAG, "Rescheduling complete.");
+      Log.d(TAG, "Prayer notifications rescheduled.");
+
+      // 🔥 Reschedule the daily alarm for tomorrow (since setAlarmClock is one-time)
+      DailyNotificationScheduling.scheduleDailyCheck(context);
+      Log.d(TAG, "Daily alarm rescheduled for tomorrow.");
 
     } catch (Exception e) {
       Log.e(TAG, "Error in onReceive for NotificationCheckReceiver: " + e.getMessage());

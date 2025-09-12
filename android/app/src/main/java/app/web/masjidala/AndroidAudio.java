@@ -181,7 +181,7 @@ public class AndroidAudio extends Plugin {
                 call.reject("Context is null");
                 return;
             }
-            PrayerNotificationRescheduler.callCancelMethod(context);
+            PrayerNotificationRescheduler.cancelAllScheduledAlarms(context);
             call.resolve(); // Resolve the call after successful cancellation
         } catch (Exception e) {
             Log.e(TAG, "Error cancelling notifications: " + e.getMessage());
@@ -200,8 +200,14 @@ public class AndroidAudio extends Plugin {
           call.reject("Context is null");
           return;
         }
-        PrayerNotificationRescheduler.callSetMethod(context);
-        call.resolve(); // Resolve the call after successful scheduling notifications
+
+        // Schedule prayer notifications
+        PrayerNotificationRescheduler.rescheduleAll(context);
+
+        // 🔥 Also set up the daily repeating alarm
+        DailyNotificationScheduling.scheduleDailyCheck(context);
+
+        call.resolve(); // Resolve the call after successful scheduling
       } catch (Exception e) {
         Log.e(TAG, "Error scheduling notifications: " + e.getMessage());
         e.printStackTrace();

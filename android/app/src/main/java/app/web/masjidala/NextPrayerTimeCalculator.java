@@ -20,12 +20,12 @@ public class NextPrayerTimeCalculator {
 
   /**
    * Calculates the next exact trigger time for a given prayer name relative to the current moment.
-   * It looks for today's time if it hasn't passed, otherwise tomorrow's.
+   * It only looks for today's prayer time - tomorrow's prayers will be scheduled at 12 AM.
    *
    * @param context   The application context.
    * @param prayerName The name of the prayer (e.g., "Subuh", "Zuhur").
    * @param advanceMinutes The number of minutes to advance the notification.
-   * @return The timestamp in milliseconds for the next prayer notification, or 0 if not found.
+   * @return The timestamp in milliseconds for today's prayer notification, or 0 if not found or already passed.
    */
   public static long getNextTriggerTime(Context context, String prayerName, int advanceMinutes) {
     SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
@@ -45,27 +45,22 @@ public class NextPrayerTimeCalculator {
       now.set(Calendar.MILLISECOND, 0);
       long currentTimeMillis = now.getTimeInMillis(); // Current actual system time
 
-      // 1. Try to find today's prayer time
+      // Only look for today's prayer time - don't schedule tomorrow's prayers
       long todayPrayerTimeMillis = getPrayerTimeForSpecificDay(now.getTime(), prayerName, prayers);
       if (todayPrayerTimeMillis != 0) {
         todayPrayerTimeMillis -= (long) advanceMinutes * 60 * 1000;
 
         // If today's adjusted prayer time is in the future, return it
         if (todayPrayerTimeMillis > currentTimeMillis) {
+          Log.d(TAG, "Scheduling " + prayerName + " for today: " + new Date(todayPrayerTimeMillis).toString());
           return todayPrayerTimeMillis;
+        } else {
+          Log.d(TAG, prayerName + " time has already passed today: " + new Date(todayPrayerTimeMillis).toString());
         }
       }
 
-      // 2. If today's time has passed or was not found, try tomorrow's
-      Calendar tomorrow = (Calendar) now.clone();
-      tomorrow.add(Calendar.DAY_OF_YEAR, 1);
-      long tomorrowPrayerTimeMillis = getPrayerTimeForSpecificDay(tomorrow.getTime(), prayerName, prayers);
-      if (tomorrowPrayerTimeMillis != 0) {
-        tomorrowPrayerTimeMillis -= (long) advanceMinutes * 60 * 1000;
-        return tomorrowPrayerTimeMillis;
-      }
-
-      Log.w(TAG, "No future prayer time found for " + prayerName + " from current day onward.");
+      // Don't schedule tomorrow's prayers - let the 12 AM alarm handle that
+      Log.d(TAG, "Not scheduling " + prayerName + " - will be handled by 12 AM rescheduling");
       return 0;
 
     } catch (JSONException e) {
