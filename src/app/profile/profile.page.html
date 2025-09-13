@@ -22,8 +22,7 @@
   <div class="container" *ngIf="!isLoading">
     <!-- Profile Header -->
     <div class="text-center profile-header">
-      <img [src]="userProfile.imageUrl" alt="Profile picture of a person"
-        class="rounded-circle mb-3 profile-img" />
+      <img [src]="userProfile.imageUrl" alt="Profile picture of a person" class="rounded-circle mb-3 profile-img" />
       <h5>{{ userProfile.name }}</h5>
       <p class="member-status mb-4">{{ isAdminValue ? 'Admin' : 'Ahli Berdaftar' }}</p>
     </div>
@@ -136,8 +135,10 @@
     line-height: 1.5;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .card, .card-body {
+  :host-context(.ion-palette-dark) {
+
+    .card,
+    .card-body {
       background-color: var(--ion-color-dark) !important;
       color: var(--ion-color-light) !important;
       border-radius: 10px !important;

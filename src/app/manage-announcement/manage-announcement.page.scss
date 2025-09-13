@@ -120,7 +120,7 @@ ion-datetime {
 }
 
 /* Dark Mode */
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .image-container {
     background-color: #222;
   }

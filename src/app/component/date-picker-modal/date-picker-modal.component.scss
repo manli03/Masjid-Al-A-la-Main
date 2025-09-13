@@ -1,5 +1,5 @@
 .modal-toolbar {
-  --background: var(--ion-background-color);
+  --background: #ffffff;
   --border-color: var(--ion-border-color);
   border-bottom: 1px solid var(--ion-border-color);
   position: relative;
@@ -15,10 +15,6 @@
   transform: translate(-50%, -50%);
   width: auto;
   text-align: center;
-}
-
-.modal-content {
-  --background: var(--ion-background-color);
 }
 
 .datetime-container {
@@ -56,10 +52,20 @@
   font-weight: 600;
 }
 
+// Modal sizing
+:host {
+  --height: auto;
+  --width: 90%;
+  --max-width: 400px;
+  --max-height: 80vh;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
 // Dark mode support
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .modal-toolbar {
-    --background: var(--ion-background-color);
+    --background: var(--ion-item-background-dark, rgba(255, 255, 255, 0.05));
   }
 
   .modal-title {
@@ -78,20 +84,7 @@
   .custom-datetime::part(wheel-item active) {
     color: var(--ion-color-primary);
   }
-}
 
-// Modal sizing
-:host {
-  --height: auto;
-  --width: 90%;
-  --max-width: 400px;
-  --max-height: 80vh;
-  --border-radius: 16px;
-  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-}
-
-// Dark mode modal shadow
-@media (prefers-color-scheme: dark) {
   :host {
     --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   }

@@ -60,6 +60,8 @@
   margin-top: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  margin-bottom: 70px;
 }
 
 /* MODIFICATION: Re-added style for prayer icon and name alignment */
@@ -72,7 +74,6 @@
 .prayer-name-container img {
   flex-shrink: 0; /* Prevents icon from shrinking */
 }
-
 
 .table-container table {
   width: 100%;
@@ -123,11 +124,6 @@ button.btn-reminder.disabled ion-icon {
   opacity: 0.5;
 }
 
-.table-container {
-  overflow-y: auto;
-  margin-bottom: 70px;
-}
-
 table {
   width: 100%;
 }
@@ -139,24 +135,30 @@ thead.fixed-header {
   z-index: 1;
 }
 
-
 /* ======================================================== */
 /* == MODIFIED STYLES for Daily Prayer Table               == */
 /* ======================================================== */
 .daily-prayer-table {
   table-layout: fixed; /* Enforce column widths */
-  
+
   th {
     border-right: 1px solid #f0f0f0;
   }
   th:last-child {
     border-right: none;
   }
-  
+
   /* MODIFICATION: Adjusted column widths to fit icons */
-  .prayer-name-cell { width: 45%; }
-  .prayer-time-cell { width: 30%; }
-  .prayer-action-cell { width: 25%; text-align: right; }
+  .prayer-name-cell {
+    width: 45%;
+  }
+  .prayer-time-cell {
+    width: 30%;
+  }
+  .prayer-action-cell {
+    width: 25%;
+    text-align: right;
+  }
 
   td {
     vertical-align: middle;
@@ -164,11 +166,11 @@ thead.fixed-header {
     padding-bottom: 16px;
     white-space: nowrap; // PREVENT TEXT WRAP
   }
-  
+
   tbody tr {
     border-bottom: 1px solid #f0f0f0; // Add separator for light mode
   }
-  
+
   tbody tr:last-child {
     border-bottom: none;
   }
@@ -190,10 +192,12 @@ thead.fixed-header {
 }
 /* ======================================================== */
 
-
 /* Styling for highlighting the current day and clicked row */
-.current-day, .clicked-row {
-  transition: background-color 0.3s ease, color 0.3s ease;
+.current-day,
+.clicked-row {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 .current-day {
@@ -205,7 +209,6 @@ thead.fixed-header {
   background-color: grey;
   color: white !important;
 }
-
 
 .arrow.disabled ion-icon {
   color: #d3d3d3; /* Light gray color for disabled state */
@@ -230,7 +233,7 @@ ion-spinner {
   color: white;
 }
 
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .header {
     background-color: rgb(0, 100, 55);
   }
@@ -240,8 +243,12 @@ ion-spinner {
     box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
   }
 
-  .date-container h2 { color: lightgray; }
-  .date-container p { color: gray; }
+  .date-container h2 {
+    color: lightgray;
+  }
+  .date-container p {
+    color: gray;
+  }
 
   .table-container {
     background-color: #1e1e1e;
@@ -257,7 +264,7 @@ ion-spinner {
     background-color: #1e1e1e;
     color: white;
   }
-  
+
   /* MODIFICATION: Update divider colors for dark mode */
   .daily-prayer-table tbody tr {
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
@@ -280,14 +287,19 @@ ion-spinner {
     background-color: rgb(0, 100, 55);
     border-color: rgb(0, 100, 55);
   }
-  
+
   button.btn-reminder.active {
     background-color: #00773d;
     border-color: #00773d;
   }
 
-  ion-spinner { --color: rgb(0, 100, 55); }
-  .loading-overlay { background: rgba(255, 255, 255, 0.5); color: black; }
+  ion-spinner {
+    --color: rgb(0, 100, 55);
+  }
+  .loading-overlay {
+    background: rgba(255, 255, 255, 0.5);
+    color: black;
+  }
 }
 
 .notification-settings-modal {
@@ -303,10 +315,12 @@ ion-spinner {
   flex-direction: column;
   height: 100%;
 }
-.yearly-view-wrapper .header { flex-shrink: 0; }
+.yearly-view-wrapper .header {
+  flex-shrink: 0;
+}
 .yearly-view-wrapper .container {
   flex-grow: 1;
-  overflow: hidden; 
+  overflow: hidden;
   display: flex;
 }
 .yearly-view-wrapper .table-container {

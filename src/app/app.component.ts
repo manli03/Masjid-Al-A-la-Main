@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import '@angular/common/locales/global/ms';
 import { App } from '@capacitor/app';
 import { Router, NavigationExtras, NavigationEnd } from '@angular/router';
@@ -12,8 +12,8 @@ import { SafeArea } from 'capacitor-plugin-safe-area';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { PrayerTimesService } from './services/prayerTimes.service';
 import { PrayerNotificationsService } from './services/prayer-notifications.service';
+import { DarkModeHandlerService } from './services/dark-mode-handler.service';
 
 @Component({
   selector: 'app-root',
@@ -21,7 +21,7 @@ import { PrayerNotificationsService } from './services/prayer-notifications.serv
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent implements OnInit {
+export class AppComponent implements OnInit, OnDestroy {
   isAppLoaded: boolean = false;
   isHomePage: boolean = false;
 
@@ -29,8 +29,8 @@ export class AppComponent implements OnInit {
     private router: Router,
     private platform: Platform,
     private updateCheck: CheckUpdateService,
-    private prayerTimesService: PrayerTimesService,
     private prayerNotificationsService: PrayerNotificationsService,
+    private darkModeService: DarkModeHandlerService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
@@ -39,7 +39,10 @@ export class AppComponent implements OnInit {
     this.initializeApp();
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    // Initialize dark mode for the entire app
+    await this.darkModeService.loadDarkModePreference();
+
     // Check if the app is running on a mobile device
     if (this.platform.is('hybrid')) {
       StatusBar.setBackgroundColor({
@@ -103,6 +106,13 @@ export class AppComponent implements OnInit {
         this.isAppLoaded = true;
       }
     }, 12000);
+  }
+
+  ngOnDestroy(): void {
+    // Clean up any subscriptions or listeners here if needed
+    App.removeAllListeners();
+    PushNotifications.removeAllListeners();
+    this.darkModeService.destroy();
   }
 
   initializeApp() {

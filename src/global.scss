@@ -33,10 +33,10 @@
  */
 
 // @import "@ionic/angular/css/palettes/dark.always.css";
-// @import "@ionic/angular/css/palettes/dark.class.css";
-@import "@ionic/angular/css/palettes/dark.system.css";
+@import "@ionic/angular/css/palettes/dark.class.css";
+// @import "@ionic/angular/css/palettes/dark.system.css";
 
-@import 'bootstrap/dist/css/bootstrap.min.css';
+@import "bootstrap/dist/css/bootstrap.min.css";
 
 // make sure all button and selected item use rgb(178, 201, 59)
 // :root {
@@ -56,12 +56,14 @@ ion-button {
   border-radius: 8px;
 }
 
-ion-content {
+ion-content,
+ion-toolbar {
   --background: #f5f5f5;
 }
 
-@media (prefers-color-scheme: dark) {
-  ion-content {
+.ion-palette-dark {
+  ion-content,
+  ion-toolbar {
     --background: #121212;
   }
 }
@@ -107,7 +109,9 @@ ion-content {
 }
 
 .non-home-screen {
-  background-color: var(--ion-background-color); /* Use the default background color */
+  background-color: var(
+    --ion-background-color
+  ); /* Use the default background color */
 }
 
 // Safe Area for api 35+

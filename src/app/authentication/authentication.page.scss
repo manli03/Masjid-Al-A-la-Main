@@ -1,6 +1,6 @@
 /* General Styling */
-ion-header {
-  background: #f4f4f4;
+ion-toolbar {
+  --background: var(--ion-toolbar-background);
 }
 
 ion-content {
@@ -8,6 +8,7 @@ ion-content {
   flex-direction: column;
   justify-content: center;
   height: 100vh;
+  --background: var(--ion-color-light);
 }
 
 .container {
@@ -16,11 +17,6 @@ ion-content {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-}
-
-ion-toolbar {
-  --background: #ffffff;
-  --color: #333;
 }
 
 /* Input Fields */
@@ -40,7 +36,6 @@ form {
   width: 90%;
   max-width: 400px;
   padding: 20px;
-  background: #ffffff;
   border-radius: 15px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
@@ -88,14 +83,9 @@ form {
 }
 
 /* Dark mode styles */
-@media (prefers-color-scheme: dark) {
-  ion-header {
-    background: #121212;
-  }
-
-  ion-toolbar {
-    --background: #333;
-    --color: #fff;
+:host-context(.ion-palette-dark) {
+  ion-content {
+    --background: var(--ion-color-dark);
   }
 
   ion-input {
@@ -109,15 +99,9 @@ form {
   ion-label a {
     color: #80cbc4;
   }
-}
 
-// Make content take full height and enable flex centering
-ion-content.auth-content {
-  --background: var(--ion-color-light); // Or your desired background
-
-  // Use Ionic CSS variables for dark mode compatibility
-  @media (prefers-color-scheme: dark) {
-    --background: var(--ion-color-dark);
+  .auth-subtitle {
+    color: var(--ion-color-light-shade);
   }
 }
 
@@ -149,10 +133,6 @@ ion-content.auth-content {
   color: var(--ion-color-medium-shade); // Softer color
   margin-bottom: 2.5rem; // Space above the button
   font-size: 0.9rem;
-
-  @media (prefers-color-scheme: dark) {
-    color: var(--ion-color-light-shade);
-  }
 }
 
 // Button styling

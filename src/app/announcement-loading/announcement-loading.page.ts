@@ -48,7 +48,7 @@ export class AnnouncementLoadingPage implements OnInit {
         if (announcementId) {
           sessionStorage.setItem('pendingAnnouncementId', announcementId);
         }
-        this.navigateTo('/tabs/authentication');
+        this.navigateTo(`/tabs/authentication?returnUrl=/tabs/announcement${announcementId ? '/' + announcementId : ''}`);
         return;
       }
 

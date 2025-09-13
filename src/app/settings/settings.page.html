@@ -29,7 +29,7 @@
       <ion-item class="setting-item">
         <ion-icon name="moon-outline" slot="start" color="primary"></ion-icon>
         <ion-label>Mod Gelap</ion-label>
-        <ion-select [(ngModel)]="darkModePreference" (ionChange)="changeDarkMode($event)" interface="popover" class="dark-mode-select">
+        <ion-select [value]="getDarkModePreference()" (ionChange)="changeDarkMode($event)" interface="popover" class="dark-mode-select">
           <ion-select-option value="light">Terang</ion-select-option>
           <ion-select-option value="dark">Gelap</ion-select-option>
           <ion-select-option value="system">Sistem</ion-select-option>

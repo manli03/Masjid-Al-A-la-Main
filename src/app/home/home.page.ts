@@ -134,15 +134,17 @@ export class HomePage implements OnDestroy {
 
   async ionViewDidEnter() {
     console.log('Home page entered, starting to load data');
-    
+
     const info = await Device.getInfo();
     if (info.androidSDKVersion && info.androidSDKVersion >= 35) {
-      const headerLocation = document.querySelector('.header-location') as HTMLElement;
+      const headerLocation = document.querySelector(
+        '.header-location',
+      ) as HTMLElement;
       if (headerLocation) {
         headerLocation.style.paddingTop = '15px';
       }
     }
-    
+
     // Set loaded to false when entering the view
     this.loaded = false;
 
@@ -177,17 +179,18 @@ export class HomePage implements OnDestroy {
       await this.updatePrayerNotificationStatus();
 
       // Subscribe to processing state
-      this.processingSubscription = this.prayerNotificationsService.isProcessing$.subscribe(
-        (isProcessing) => {
-          this.isProcessingNotifications = isProcessing;
-        }
-      );
+      this.processingSubscription =
+        this.prayerNotificationsService.isProcessing$.subscribe(
+          (isProcessing) => {
+            this.isProcessingNotifications = isProcessing;
+          },
+        );
 
       // Subscribe to disabled prayers
       this.prayerNotificationsService.disabledPrayers$.subscribe(
         (disabledPrayers) => {
           this.disabledPrayers = disabledPrayers;
-        }
+        },
       );
 
       // Set loaded to true after everything is loaded
@@ -241,7 +244,8 @@ export class HomePage implements OnDestroy {
    */
   async togglePrayerNotification(prayerName: string) {
     // Get display name from service
-    const prayerDisplayName = this.prayerNotificationsService.getDisplayName(prayerName);
+    const prayerDisplayName =
+      this.prayerNotificationsService.getDisplayName(prayerName);
 
     if (!prayerDisplayName) return;
 
@@ -553,10 +557,20 @@ export class HomePage implements OnDestroy {
 
   // Dark mode detection
   private checkDarkMode() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    this.isDarkMode = prefersDark.matches;
-    prefersDark.addEventListener('change', (e) => {
-      this.isDarkMode = e.matches;
+    // Check if the document element has the ion-palette-dark class
+    this.isDarkMode =
+      document.documentElement.classList.contains('ion-palette-dark');
+
+    // Create a MutationObserver to watch for changes to the ion-palette-dark class
+    const observer = new MutationObserver(() => {
+      this.isDarkMode =
+        document.documentElement.classList.contains('ion-palette-dark');
+    });
+
+    // Observe changes to the document element class list
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
     });
   }
 

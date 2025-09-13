@@ -56,20 +56,6 @@ const routes: Routes = [
           ),
       },
       {
-        path: 'forgot-password',
-        loadChildren: () =>
-          import('../forgot-password/forgot-password.module').then(
-            (m) => m.ForgotPasswordPageModule,
-          ),
-      },
-      {
-        path: 'bridge-login',
-        loadChildren: () =>
-          import('../bridge-login/bridge-login.module').then(
-            (m) => m.BridgeLoginPageModule,
-          ),
-      },
-      {
         path: 'manage-announcement',
         loadChildren: () =>
           import('../manage-announcement/manage-announcement.module').then(

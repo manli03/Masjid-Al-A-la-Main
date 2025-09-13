@@ -14,8 +14,8 @@ export const authGuard: CanActivateFn = async (route, state) => {
   const userData = await storageService.get('user');
 
   if (!userData) {
-    // Redirect to authentication page if not logged in
-    router.navigate(['/tabs/authentication']);
+    // Redirect to authentication page with return URL
+    router.navigate(['/tabs/authentication'], { queryParams: { returnUrl: state.url } });
     return false;
   }
 

@@ -102,7 +102,6 @@ import {
         display: flex;
         justify-content: center;
         align-items: center;
-        background-color: #ffffff;
         z-index: 10000;
         transition: opacity 0.5s ease;
       }

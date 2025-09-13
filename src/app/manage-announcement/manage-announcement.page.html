@@ -44,7 +44,7 @@
             <p class="preserve-whitespace" (click)="viewAnnouncementDetails(news)">
               {{ news.content.length > 150 ? (news.content | slice: 0:150) + '...' : news.content }}
             </p>
-            <ion-button color="tertiary" expand="block" (click)="viewAnnouncementDetails(news)">
+            <ion-button color="medium" expand="block" (click)="viewAnnouncementDetails(news)">
               Lihat Penuh
             </ion-button>
             <ion-button color="primary" (click)="openModal('editAnnouncementModal', news)">

@@ -16,8 +16,7 @@ ion-toolbar {
 
   ion-list-header {
     padding-top: 24px;
-    padding-bottom: 8px;
-    background: var(--ion-background-color);
+    padding-bottom: 8px;;
 
     .section-icon {
       margin-right: 8px;
@@ -99,7 +98,7 @@ ion-toolbar {
 }
 
 // Dark mode support
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .settings-list {
     ion-list-header {
       ion-label {
@@ -111,7 +110,10 @@ ion-toolbar {
       --background: var(--ion-item-background-dark, rgba(255, 255, 255, 0.05));
 
       &:hover {
-        --background: var(--ion-item-background-dark-hover, rgba(0, 172, 95, 0.1));
+        --background: var(
+          --ion-item-background-dark-hover,
+          rgba(0, 172, 95, 0.1)
+        );
       }
 
       ion-label {

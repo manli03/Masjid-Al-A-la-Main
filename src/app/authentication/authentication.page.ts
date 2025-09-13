@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 // Import ToastController
-import { LoadingController, ToastController } from '@ionic/angular';
+import { LoadingController, ToastController, Platform } from '@ionic/angular';
 import { StorageService } from '../services/storage.service';
 
 @Component({
@@ -14,14 +14,53 @@ export class AuthenticationPage {
   // Removed OnInit as it wasn't used
 
   isLoading: boolean = false; // Flag for inline loading state
+  authTitle: string = 'Log Masuk';
+  authSubtitle: string = 'Sila log masuk menggunakan akaun Google anda.';
+  returnUrl: string = '';
+
+  private backButtonSubscription: any;
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private authService: AuthService,
     private loadingController: LoadingController,
     private storageService: StorageService,
     private toastController: ToastController, // Inject ToastController
+    private platform: Platform,
   ) {}
+
+  ionViewWillEnter() {
+    this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(10, () => {
+      this.router.navigateByUrl('/tabs/home');
+    });
+
+    // Read query params to set appropriate messages
+    this.route.queryParams.subscribe(params => {
+      this.returnUrl = params['returnUrl'] || '';
+      if (this.returnUrl.includes('announcement')) {
+        this.authTitle = 'Log Masuk';
+        this.authSubtitle = 'Sila log masuk untuk mengakses pengumuman.';
+      } else if (this.returnUrl.includes('profile')) {
+        this.authTitle = 'Log Masuk';
+        this.authSubtitle = 'Sila log masuk untuk mengakses profil anda.';
+      } else if (this.returnUrl.includes('settings')) {
+        this.authTitle = 'Log Masuk';
+        this.authSubtitle = 'Sila log masuk untuk mengakses tetapan.';
+      } else {
+        // Default
+        this.authTitle = 'Log Masuk';
+        this.authSubtitle = 'Sila log masuk menggunakan akaun Google anda.';
+      }
+    });
+  }
+
+  ionViewWillLeave() {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
+  }
 
   async signInWithGoogle() {
     // Start both loading states
@@ -32,45 +71,17 @@ export class AuthenticationPage {
       if (user) {
         this.isLoading = false; // Stop inline loading here
 
-        // Check if there's a pending announcement to view after authentication
-        const pendingAnnouncementId = sessionStorage.getItem(
-          'pendingAnnouncementId',
-        );
+        // Clear any pending announcement ID
+        sessionStorage.removeItem('pendingAnnouncementId');
 
-        // Navigate based on role AFTER successful sign-in
-        if (await this.authService.isAdmin()) {
-          if (pendingAnnouncementId) {
-            // Clear the pending ID
-            sessionStorage.removeItem('pendingAnnouncementId');
-
-            // Navigate to the specific announcement
-            this.router.navigate(
-              ['/tabs/announcement', pendingAnnouncementId],
-              {
-                replaceUrl: true,
-              },
-            );
-          } else {
-            // Default admin navigation
-          this.router.navigate(['/tabs/manage-announcement'], {
-            replaceUrl: true,
-            });
-          }
+        // Navigate to the return URL if available, otherwise use default logic
+        if (this.returnUrl) {
+          this.router.navigateByUrl(this.returnUrl, { replaceUrl: true });
         } else {
-          // Check if the user's profile is complete
-          const isProfileComplete = await this.authService.isProfileComplete();
-
-          if (isProfileComplete && pendingAnnouncementId) {
-            // If profile is complete and there's a pending announcement, go directly to it
-            sessionStorage.removeItem('pendingAnnouncementId');
-            this.router.navigate(
-              ['/tabs/announcement', pendingAnnouncementId],
-              {
-                replaceUrl: true,
-              },
-            );
+          // Default navigation based on role
+          if (await this.authService.isAdmin()) {
+            this.router.navigate(['/tabs/manage-announcement'], { replaceUrl: true });
           } else {
-            // Otherwise go to profile page (to complete it if needed)
             this.router.navigate(['/tabs/profile'], { replaceUrl: true });
           }
         }
@@ -86,26 +97,29 @@ export class AuthenticationPage {
       // Handle errors (e.g., user closes popup, network issue)
       console.error('Sign in error:', error);
       let errorMessage = 'Gagal log masuk. Sila cuba lagi.';
+      let toastColor = 'danger'; // Default red color for errors
       // Optional: Check for specific error types (e.g., closed popup)
       if (
+        error?.message?.includes('canceled') ||
         error?.message?.includes('closed by user') ||
         error?.code === 'auth/popup-closed-by-user'
       ) {
         errorMessage = 'Proses log masuk dibatalkan.';
+        toastColor = 'warning'; // Yellow color for warnings
       }
-      await this.presentToast(errorMessage);
+      await this.presentToast(errorMessage, toastColor);
       // Ensure loading states are reset on error
       this.isLoading = false;
     }
   }
 
   // Helper function to show toast messages
-  async presentToast(message: string) {
+  async presentToast(message: string, color: string = 'danger') {
     const toast = await this.toastController.create({
       message: message,
       duration: 3000, // 3 seconds
       position: 'bottom', // Or 'top', 'middle'
-      color: 'danger', // Red color for errors
+      color: color,
     });
     await toast.present();
   }

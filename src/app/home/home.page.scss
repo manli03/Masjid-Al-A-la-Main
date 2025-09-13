@@ -31,7 +31,6 @@ ion-icon {
   object-fit: cover;
 }
 
-
 /* ======================================================= */
 /* == MODIFICATION: Styles for Multi-Line Prayer Header == */
 /* ======================================================= */
@@ -61,8 +60,8 @@ ion-icon {
 .prayer-header-text {
   /* THIS IS THE KEY CHANGE: Allow text to wrap */
   white-space: normal; /* Changed from 'nowrap' */
-  overflow: visible;     /* Changed from 'hidden' */
-  text-overflow: clip;   /* Changed from 'ellipsis' */
+  overflow: visible; /* Changed from 'hidden' */
+  text-overflow: clip; /* Changed from 'ellipsis' */
 }
 
 .circle-button {
@@ -80,19 +79,9 @@ ion-icon {
     font-size: 17px;
     vertical-align: middle;
   }
-  
-  @media (prefers-color-scheme: dark) {
-    background-color: #2c2c2c;
-    border-color: #444;
-    
-    ion-icon {
-      color: #ffffff;
-    }
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  
+:host-context(.ion-palette-dark) {
   .location,
   .prayer-header,
   .prayer-time,
@@ -104,6 +93,15 @@ ion-icon {
   .bell {
     background-color: rgba(30, 30, 30, 0.95);
   }
+
+  .circle-button {
+    background-color: #2c2c2c;
+    border-color: #444;
+
+    ion-icon {
+      color: #ffffff;
+    }
+  }  
 }
 .prayer-time h1 {
   font-size: 48px;

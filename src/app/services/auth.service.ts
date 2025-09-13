@@ -151,6 +151,14 @@ export class AuthService {
         return null;
       }
     } catch (error: any) {
+      // If it's a cancellation error, re-throw it so the UI can handle it appropriately
+      if (
+        error?.error === 'popup_closed_by_user' ||
+        error?.message?.includes('canceled') ||
+        error?.message?.includes('closed by user')
+      ) {
+        throw error;
+      }
       this.handleAuthError(error);
       return null;
     }

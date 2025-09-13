@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title class="ion-text-center">Log Masuk</ion-title>
+    <ion-title class="ion-text-center">{{ authTitle }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -12,7 +12,7 @@
 
     <!-- Welcome Text -->
     <h2 class="ion-text-center auth-title">Selamat Datang!</h2>
-    <p class="ion-text-center auth-subtitle">Sila log masuk menggunakan akaun Google anda.</p>
+    <p class="ion-text-center auth-subtitle">{{ authSubtitle }}</p>
 
     <!-- Google Sign-In Button -->
     <ion-button expand="block" (click)="signInWithGoogle()" [disabled]="isLoading" class="auth-button ion-margin-top">

@@ -1,4 +1,8 @@
-// All styles for news-item, article-container, image-gallery etc. are unchanged
+// Selected toolbar background
+.selected-toolbar {
+  --background: #fff;
+}
+
 .news-item {
   padding: 15px;
   margin-bottom: 10px;
@@ -421,7 +425,11 @@
 // ======================================================
 // Corrected & Comprehensive Dark Mode Adjustments
 // ======================================================
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
+  .selected-toolbar {
+    --background: #333;
+  }
+
   // --- Main container and text colors ---
   .article-container {
     background-color: #333; // Your color

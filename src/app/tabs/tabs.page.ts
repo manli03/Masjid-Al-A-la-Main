@@ -1,14 +1,12 @@
-// tab.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { Router, NavigationExtras } from '@angular/router';
+import { Router, NavigationExtras, NavigationEnd } from '@angular/router';
 import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
 import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
 import { FcmService } from '../services/fcm.service';
 import { Subscription } from 'rxjs';
-import { NavigationEnd } from '@angular/router';
 import { LoadingComponent } from '../component/loading/loading.component';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 
@@ -17,32 +15,23 @@ import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
   templateUrl: 'tabs.page.html',
   styleUrls: ['tabs.page.scss'],
 })
-// Remove ViewWillEnter from implements list
 export class TabsPage implements OnInit, OnDestroy {
   private backButtonSubscription: any;
-  private darkModeMediaQuery: MediaQueryList;
-  private darkModeListener: () => void;
   private routerEventsSubscription!: Subscription;
+  private darkModeObserver!: MutationObserver;
   isAdminValue: boolean = false;
+  private isDarkMode: boolean = false;
 
   constructor(
     private platform: Platform,
     public router: Router,
     private storageService: StorageService,
-    private authService: AuthService, // Added AuthService
+    private authService: AuthService,
     private prayerCoordinatorService: PrayerCoordinatorService,
-    private fcmService: FcmService, // Called in constructor,
-  ) {
-    this.darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    this.darkModeListener = () => {
-      const isHome = this.router.url === '/tabs/home';
-      const isAuth = this.router.url === '/tabs/authentication';
-      this.handleStatusBarAndClass(isHome, isAuth);
-    };
-  }
+    private fcmService: FcmService,
+  ) {}
 
   ngOnInit() {
-    // Initial setup when the component is first created
     console.log('TabsPage ngOnInit: Initializing...');
     this.platform.ready().then(async () => {
       // Back button logic
@@ -50,21 +39,20 @@ export class TabsPage implements OnInit, OnDestroy {
         this.platform.backButton.subscribeWithPriority(10, () => {
           const homeTabRoute = '/tabs/home';
           const profileTabRoute = '/tabs/profile';
-          const ManageAnnouncementPageRoute = '/tabs/manage-announcement';
+          const manageAnnouncementRoute = '/tabs/manage-announcement';
           const currentRoute = this.router.url;
           if (
             currentRoute === profileTabRoute ||
-            currentRoute === ManageAnnouncementPageRoute
+            currentRoute === manageAnnouncementRoute
           ) {
-            // If on prayer times or profile tab or manage-announcement tab, navigate to home tab
             this.router.navigateByUrl(homeTabRoute);
           }
         });
 
-      // Status bar logic
-      this.darkModeMediaQuery.addEventListener('change', this.darkModeListener);
+      // Initialize dark mode detection
+      this.checkDarkMode();
 
-      // Initialize prayer notifications and check for scheduled notifications
+      // Initialize prayer notifications
       try {
         await this.prayerCoordinatorService.initialize();
         console.log('Prayer notifications initialized');
@@ -77,7 +65,8 @@ export class TabsPage implements OnInit, OnDestroy {
       if (event instanceof NavigationEnd) {
         const isHome = event.urlAfterRedirects === '/tabs/home';
         const isAuth = event.urlAfterRedirects === '/tabs/authentication';
-        this.handleStatusBarAndClass(isHome, isAuth);
+        const isSettings = event.urlAfterRedirects === '/settings';
+        this.handleStatusBarAndClass(isHome, isAuth, isSettings);
       }
     });
   }
@@ -86,55 +75,81 @@ export class TabsPage implements OnInit, OnDestroy {
     if (this.backButtonSubscription) {
       this.backButtonSubscription.unsubscribe();
     }
-    this.darkModeMediaQuery.removeEventListener(
-      'change',
-      this.darkModeListener,
-    );
     if (this.routerEventsSubscription) {
       this.routerEventsSubscription.unsubscribe();
     }
+    if (this.darkModeObserver) {
+      this.darkModeObserver.disconnect();
+    }
   }
 
-  // Keep the isAdmin utility function
   async isAdmin(): Promise<boolean> {
-    // Check admin status directly from database
-    const isAdmin = await this.authService.isAdmin();
-    return isAdmin;
+    return await this.authService.isAdmin();
   }
 
-  private async handleStatusBarAndClass(isHome: boolean, isAuth: boolean) {
-    // Function to check loading status
+  private checkDarkMode() {
+    // Initial check
+    this.isDarkMode =
+      document.documentElement.classList.contains('ion-palette-dark');
+
+    // Observe changes
+    this.darkModeObserver = new MutationObserver(() => {
+      this.isDarkMode =
+        document.documentElement.classList.contains('ion-palette-dark');
+
+      // Update status bar immediately if route is home/auth
+      const isHome = this.router.url === '/tabs/home';
+      const isAuth = this.router.url === '/tabs/authentication';
+      const isSettings = this.router.url === '/settings';
+      this.handleStatusBarAndClass(isHome, isAuth, isSettings);
+    });
+
+    this.darkModeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+  }
+
+  private async handleStatusBarAndClass(
+    isHome: boolean,
+    isAuth: boolean,
+    isSettings: boolean,
+  ) {
     const checkLoadingStatus = async (): Promise<void> => {
       const isLoaded = !LoadingComponent.isLoaded;
-      console.log('Checking loading status:', isLoaded);
 
       if (!isLoaded) {
         NavigationBar.setTransparency({ isTransparent: false });
-        // Set status bar color
+
         if (this.platform.is('hybrid')) {
           StatusBar.setStyle({ style: Style.Default });
           try {
-            const isDarkMode = this.darkModeMediaQuery.matches;
             let color: string;
-            if (isHome) {
-              color = isDarkMode ? '#121212' : '#f5f5f5';
-            } else if(isAuth) {
-              // Use a different color for authentication page
-              color = isDarkMode ? '#333333' : '#ffffff';
+            if (isHome || isSettings) {
+              color = this.isDarkMode ? '#121212' : '#f5f5f5';
+            } else if (isAuth) {
+              color = this.isDarkMode ? '#333333' : '#ffffff';
             } else {
-              // Use a different color for non-home pages
               color =
                 getComputedStyle(document.documentElement).getPropertyValue(
                   '--ion-toolbar-background',
-                ) || (isDarkMode ? '#222428' : '#ffffff');
+                ) || (this.isDarkMode ? '#222428' : '#ffffff');
             }
+
             await StatusBar.setBackgroundColor({ color: color.trim() });
-            NavigationBar.setColor({
-              color: getComputedStyle(
-                document.documentElement,
-              ).getPropertyValue('--ion-toolbar-background'),
-              darkButtons: !isDarkMode,
-            });
+            if (isSettings) {
+              NavigationBar.setColor({
+                color: color.trim(),
+                darkButtons: !this.isDarkMode,
+              });
+            } else {
+              NavigationBar.setColor({
+                color: getComputedStyle(
+                  document.documentElement,
+                ).getPropertyValue('--ion-toolbar-background'),
+                darkButtons: !this.isDarkMode,
+              });
+            }
           } catch (error) {
             console.error('Error updating status bar color:', error);
           }
@@ -150,19 +165,15 @@ export class TabsPage implements OnInit, OnDestroy {
           }
         }
       } else {
-        // If still loading, set the loading color and check again after delay
         if (this.platform.is('hybrid')) {
-          // Check again after 100ms
           setTimeout(() => checkLoadingStatus(), 100);
         }
       }
     };
 
-    // Start the initial check
     await checkLoadingStatus();
   }
 
-  // --- Modified Method to use loading page and handle announcement IDs ---
   goToAnnouncementTab(announcementId?: number) {
     if (announcementId) {
       // If we have an ID, pass it as a query parameter to the loading page

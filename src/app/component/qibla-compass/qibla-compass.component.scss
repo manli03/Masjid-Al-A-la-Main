@@ -21,7 +21,7 @@
 }
 
 // Dark mode for section header within this component if needed
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .section-header {
     ion-icon {
       // color: #fff; // Example if primary doesn't contrast well
@@ -31,7 +31,6 @@
     }
   }
 }
-
 
 .compass-div {
   background-color: rgba(255, 255, 255, 0); // Transparent background
@@ -51,7 +50,8 @@
   transition: border-color 0.3s ease;
   background-color: #f0f0f0; // Light background for the compass dial area itself
 
-  &.aligned { // Using & for nesting
+  &.aligned {
+    // Using & for nesting
     border-color: #4caf50; // Green color when aligned
   }
 }
@@ -115,18 +115,18 @@
 }
 
 /* Dark mode styles */
-@media (prefers-color-scheme: dark) {
-    // .compass-div background is already transparent
-    .compass-frame {
-      border-color: #555; // Darker border for dark mode
-      background-color: #aaaaaa; // Darker background for compass dial
-      &.aligned {
-        border-color: #4caf50; // Keep green for aligned
-      }
+:host-context(.ion-palette-dark) {
+  // .compass-div background is already transparent
+  .compass-frame {
+    border-color: #555; // Darker border for dark mode
+    background-color: #aaaaaa; // Darker background for compass dial
+    &.aligned {
+      border-color: #4caf50; // Keep green for aligned
     }
-    .errorMessage {
-      color: #ffdddd;
-      background-color: #442222;
-      border: 1px solid #773333;
-    }
+  }
+  .errorMessage {
+    color: #ffdddd;
+    background-color: #442222;
+    border: 1px solid #773333;
+  }
 }

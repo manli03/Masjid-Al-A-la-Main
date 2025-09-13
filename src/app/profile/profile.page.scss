@@ -1,9 +1,19 @@
 // Profile Settings Page Styles
 
+// Center the toolbar title
+ion-toolbar {
+  ion-title {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+}
+
 .profile-header {
   text-align: center;
   padding: 20px 16px 30px;
-  background: var(--ion-background-color);
 
   .profile-avatar {
     width: 80px;
@@ -35,7 +45,6 @@
   ion-list-header {
     padding-top: 24px;
     padding-bottom: 8px;
-    background: var(--ion-background-color);
 
     .section-icon {
       margin-right: 8px;
@@ -127,7 +136,7 @@
 }
 
 // Dark mode support
-@media (prefers-color-scheme: dark) {
+:host-context(.ion-palette-dark) {
   .profile-header {
     .profile-name {
       color: var(--ion-color-light);
@@ -145,7 +154,10 @@
       --background: var(--ion-item-background-dark, rgba(255, 255, 255, 0.05));
 
       &:hover {
-        --background: var(--ion-item-background-dark-hover, rgba(0, 172, 95, 0.1));
+        --background: var(
+          --ion-item-background-dark-hover,
+          rgba(0, 172, 95, 0.1)
+        );
       }
 
       ion-label {

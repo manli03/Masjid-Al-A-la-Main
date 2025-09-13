@@ -22,10 +22,12 @@ import { Zoom, Pagination } from 'swiper/modules';
   // Fix #1: Disable view encapsulation to allow styles to correctly target Swiper's dynamic elements
   encapsulation: ViewEncapsulation.None,
   template: `
-    <ion-header class="ion-no-border" [class.hidden-controls]="controlsHidden">
+    <ion-header class="ion-no-border">
       <ion-toolbar>
-        <ion-title>Lihat Imej</ion-title>
-        <ion-buttons slot="end">
+        <ion-title [class.hidden-controls]="controlsHidden"
+          >Lihat Imej</ion-title
+        >
+        <ion-buttons slot="end" [class.hidden-controls]="controlsHidden">
           <ion-button (click)="dismissModal()">
             <ion-icon slot="icon-only" name="close"></ion-icon>
           </ion-button>
@@ -104,8 +106,6 @@ import { Zoom, Pagination } from 'swiper/modules';
 
       .image-viewer-content {
         &.dark {
-          --background: #000000;
-
           ion-fab-button {
             --background: rgba(255, 255, 255, 0.2);
             --background-activated: rgba(255, 255, 255, 0.4);
@@ -118,8 +118,6 @@ import { Zoom, Pagination } from 'swiper/modules';
         }
 
         &.light {
-          --background: rgb(234, 234, 234);
-
           ion-fab-button {
             --background: rgba(0, 0, 0, 0.2);
             --background-activated: rgba(0, 0, 0, 0.4);

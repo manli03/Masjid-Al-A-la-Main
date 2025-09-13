@@ -75,17 +75,18 @@ export class prayerTimesPage implements OnInit {
       await this.prayerNotificationsService.initializeNotifications();
 
     // Subscribe to processing state
-    this.processingSubscription = this.prayerNotificationsService.isProcessing$.subscribe(
-      (isProcessing) => {
-        this.isProcessingNotifications = isProcessing;
-      }
-    );
+    this.processingSubscription =
+      this.prayerNotificationsService.isProcessing$.subscribe(
+        (isProcessing) => {
+          this.isProcessingNotifications = isProcessing;
+        },
+      );
 
     // Subscribe to disabled prayers
     this.prayerNotificationsService.disabledPrayers$.subscribe(
       (disabledPrayers) => {
         this.disabledPrayers = disabledPrayers;
-      }
+      },
     );
 
     // Then initialize prayer times which will trigger notification status update
@@ -140,11 +141,21 @@ export class prayerTimesPage implements OnInit {
     }
   }
 
-  checkDarkMode() {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-    this.isDarkMode = prefersDark.matches;
-    prefersDark.addEventListener('change', (e) => {
-      this.isDarkMode = e.matches;
+  private checkDarkMode() {
+    // Check if the document element has the ion-palette-dark class
+    this.isDarkMode =
+      document.documentElement.classList.contains('ion-palette-dark');
+
+    // Create a MutationObserver to watch for changes to the ion-palette-dark class
+    const observer = new MutationObserver(() => {
+      this.isDarkMode =
+        document.documentElement.classList.contains('ion-palette-dark');
+    });
+
+    // Observe changes to the document element class list
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
     });
   }
 
@@ -697,7 +708,8 @@ export class prayerTimesPage implements OnInit {
         if (!this.notificationsEnabled) {
           // Show custom toast with OK button that opens notification settings
           const toast = await this.toastController.create({
-            message: 'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
+            message:
+              'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
             duration: 5000,
             position: 'bottom',
             color: 'warning',
@@ -898,11 +910,13 @@ export class prayerTimesPage implements OnInit {
     // Iterate through each prayer to populate the prayer times table for sharing
     this.prayers.forEach((prayer) => {
       // Get the table body element where new rows will be inserted
-      const sharePrayerTableBodyEl = document.getElementById('sharePrayerTableBody') as HTMLTableSectionElement;
-      
+      const sharePrayerTableBodyEl = document.getElementById(
+        'sharePrayerTableBody',
+      ) as HTMLTableSectionElement;
+
       // Create a new table row
       const row = sharePrayerTableBodyEl.insertRow();
-      
+
       // Create cells for the prayer name and time
       const cell1 = row.insertCell();
       const cell2 = row.insertCell();

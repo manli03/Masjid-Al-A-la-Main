@@ -4,6 +4,7 @@ import {
   ModalController,
   ToastController,
   ViewWillEnter,
+  Platform,
 } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -13,6 +14,7 @@ import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { Preferences } from '@capacitor/preferences';
 import { DatePickerModalComponent } from '../component/date-picker-modal/date-picker-modal.component';
+import { DarkModeHandlerService } from '../services/dark-mode-handler.service';
 
 @Component({
   selector: 'app-settings',
@@ -26,7 +28,7 @@ export class SettingsPage implements OnInit, ViewWillEnter {
   isLoading: boolean = false;
   membershipNumber: string = '';
   accountCreated: string = '';
-  darkModePreference: string = 'system';
+  private backButtonSubscription: any;
 
   constructor(
     private alertController: AlertController,
@@ -36,13 +38,28 @@ export class SettingsPage implements OnInit, ViewWillEnter {
     private storageService: StorageService,
     private http: HttpClient,
     private toastController: ToastController,
+    private platform: Platform,
+    private darkModeService: DarkModeHandlerService,
   ) {}
 
-  ngOnInit() {}
+  async ngOnInit() {
+    // Initialize dark mode service
+    await this.darkModeService.loadDarkModePreference();
+  }
 
   ionViewWillEnter() {
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, () => {
+        this.router.navigateByUrl('/tabs/profile');
+      });
     this.loadUserProfileData();
-    this.loadDarkModePreference();
+  }
+
+  ionViewWillLeave() {
+    if (this.backButtonSubscription) {
+      this.backButtonSubscription.unsubscribe();
+      this.backButtonSubscription = null;
+    }
   }
 
   async loadUserProfileData() {
@@ -67,8 +84,6 @@ export class SettingsPage implements OnInit, ViewWillEnter {
           imageUrl: userData.imageUrl || 'assets/icon/default-avatar.png',
         };
 
-
-
         this.membershipNumber = userData.membershipNumber || 'Not assigned';
 
         try {
@@ -87,7 +102,7 @@ export class SettingsPage implements OnInit, ViewWillEnter {
               day: 'numeric',
               hour: '2-digit',
               minute: '2-digit',
-              second: '2-digit'
+              second: '2-digit',
             });
           } else {
             this.accountCreated = 'Tidak diketahui';
@@ -180,7 +195,8 @@ export class SettingsPage implements OnInit, ViewWillEnter {
             line-height: 1.4;
             font-weight: 500;
           `;
-          reminderDiv.innerHTML = '<strong>Peringatan:</strong> Pengguna mesti mendaftar sebagai akaun pengguna biasa terlebih dahulu sebelum boleh dijadikan admin.';
+          reminderDiv.innerHTML =
+            '<strong>Peringatan:</strong> Pengguna mesti mendaftar sebagai akaun pengguna biasa terlebih dahulu sebelum boleh dijadikan admin.';
 
           messageElement.appendChild(reminderDiv);
         }
@@ -246,65 +262,40 @@ export class SettingsPage implements OnInit, ViewWillEnter {
     await toast.present();
   }
 
-  async loadDarkModePreference() {
-    try {
-      const { value } = await Preferences.get({ key: 'dark_mode_preference' });
-      if (value) {
-        this.darkModePreference = value;
-      } else {
-        this.darkModePreference = 'system';
-        await this.saveDarkModePreference('system');
-      }
-      this.applyDarkMode();
-    } catch (error) {
-      console.error('Error loading dark mode preference:', error);
-      this.darkModePreference = 'system';
-    }
+  // Get current dark mode preference for the UI
+  getDarkModePreference(): string {
+    return this.darkModeService.getPreference();
   }
 
+  // Handle dark mode change from the UI
   async changeDarkMode(event: any) {
     const newPreference = event.detail.value;
-    this.darkModePreference = newPreference;
-    await this.saveDarkModePreference(newPreference);
-    this.applyDarkMode();
-    this.presentToast(`Mod ${newPreference === 'system' ? 'sistem' : newPreference === 'dark' ? 'gelap' : 'terang'} telah dipilih`, 'success');
+    await this.darkModeService.changeDarkMode(newPreference);
   }
 
-  private async saveDarkModePreference(preference: string) {
-    try {
-      await Preferences.set({ key: 'dark_mode_preference', value: preference });
-    } catch (error) {
-      console.error('Error saving dark mode preference:', error);
-    }
+  // Check if dark mode is currently active
+  isDarkModeActive(): boolean {
+    return this.darkModeService.isDarkMode();
   }
-
-  private applyDarkMode() {
-    const body = document.body;
-    const preference = this.darkModePreference;
-
-    // Remove existing theme classes
-    body.classList.remove('dark', 'light', 'ion-palette-dark');
-
-    if (preference === 'dark') {
-      // Force dark mode
-      body.classList.add('ion-palette-dark');
-    } else if (preference === 'light') {
-      // Force light mode - remove dark mode class
-      body.classList.remove('ion-palette-dark');
-    } else {
-      // System preference - let CSS handle it automatically
-      // Remove manual overrides to let system preference work
-      body.classList.remove('ion-palette-dark');
-    }
-  }
-
-
 
   async editField(field: string) {
     let title = '';
     let placeholder = '';
     let currentValue = '';
-    let inputType: 'text' | 'tel' | 'email' | 'password' | 'number' | 'search' | 'tel' | 'url' | 'date' | 'datetime-local' | 'time' | 'week' | 'month' = 'text';
+    let inputType:
+      | 'text'
+      | 'tel'
+      | 'email'
+      | 'password'
+      | 'number'
+      | 'search'
+      | 'tel'
+      | 'url'
+      | 'date'
+      | 'datetime-local'
+      | 'time'
+      | 'week'
+      | 'month' = 'text';
 
     switch (field) {
       case 'name':
@@ -392,7 +383,8 @@ export class SettingsPage implements OnInit, ViewWillEnter {
     const modal = await this.modalController.create({
       component: DatePickerModalComponent,
       componentProps: {
-        selectedDate: this.userProfile.birthdate || new Date().toISOString().split('T')[0]
+        selectedDate:
+          this.userProfile.birthdate || new Date().toISOString().split('T')[0],
       },
       cssClass: 'date-picker-modal',
       breakpoints: [0, 0.5, 0.75],
