@@ -130,9 +130,12 @@ export class AuthService {
 
             // Set fcm token
             try {
-              await this.fcmService.setFcmToken();
+              await this.fcmService.registerNotifications();
             } catch (error) {
-              console.warn('Failed to initialize FCM:', error);
+              console.warn(
+                'Failed to register the app to receive push notifications:',
+                error,
+              );
             }
 
             return googleUser;

@@ -6,6 +6,7 @@ import { StorageService } from './storage.service';
 import { firstValueFrom } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { PrayerNotificationsService } from './prayer-notifications.service';
 
 @Injectable({
   providedIn: 'root',
@@ -17,32 +18,11 @@ export class FcmService {
     private storageService: StorageService,
     private http: HttpClient,
     private router: Router,
+    private prayerNotificationsService: PrayerNotificationsService,
   ) {
     if (Capacitor.isNativePlatform()) {
-      this.initializePushNotifications();
+      this.addListeners();
     }
-  }
-
-  // Public method to initialize FCM after sign in
-  async setFcmToken() {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        // The 'registration' event listener is already attached by the constructor.
-        // Calling register() will trigger the listener again with the current token,
-        // which is necessary if the initial registration happened before the user was logged in.
-        await PushNotifications.register();
-      } catch (error) {
-        console.error(
-          'Error re-registering for push notifications on sign-in:',
-          error,
-        );
-      }
-    }
-  }
-
-  private async initializePushNotifications() {
-    this.addListeners();
-    await this.registerNotifications();
   }
 
   private async addListeners() {
@@ -104,17 +84,21 @@ export class FcmService {
     }
   }
 
-  private async registerNotifications() {
-    let permStatus = await PushNotifications.checkPermissions();
-
-    if (permStatus.receive === 'prompt') {
-      permStatus = await PushNotifications.requestPermissions();
+  async registerNotifications() {
+    if (!Capacitor.isNativePlatform()) {
+      console.warn(
+        'Push notifications are only available on native platforms.',
+      );
+      return;
     }
 
-    if (permStatus.receive !== 'granted') {
-      throw new Error('User denied permissions!');
-    }
+    const notificationsEnabled = await this.prayerNotificationsService.initializeNotifications();
 
+    if (!notificationsEnabled) {
+      console.warn('Notifications are not enabled, aborting FCM registration.');
+      return;
+    }
+    
     // Register for push notifications
     await PushNotifications.register();
   }
