@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { StorageService } from './storage.service';
 import { firstValueFrom } from 'rxjs';
-import { ToastController } from '@ionic/angular';
+import { ToastService } from './toast.service';
 import { PrayerNotificationsService } from './prayer-notifications.service';
 
 @Injectable({
@@ -17,7 +17,7 @@ export class AnnouncementService {
   constructor(
     private http: HttpClient,
     private storageService: StorageService,
-    private toastController: ToastController,
+    private toastService: ToastService,
     private prayerNotificationsService: PrayerNotificationsService,
   ) {}
 
@@ -372,18 +372,6 @@ export class AnnouncementService {
     color: string = 'danger',
     duration: number = 3000,
   ) {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: duration,
-      position: 'bottom',
-      color: color,
-      buttons: [
-        {
-          text: 'Tutup',
-          role: 'cancel',
-        },
-      ],
-    });
-    await toast.present();
+    await this.toastService.presentToast(message, color, duration);
   }
 }

@@ -1,7 +1,8 @@
 <div *ngIf="!showYearlyPrayerTimes" style="height: 100vh;">
   <!-- Loading Overlay -->
-  <div *ngIf="isLoading" class="loading-overlay">
+  <div *ngIf="isDetectingLocation" class="loading-overlay">
     <ion-spinner style="zoom: 2;"></ion-spinner>
+    <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
   </div>
   <ion-header class="ion-no-border">
     <ion-toolbar>

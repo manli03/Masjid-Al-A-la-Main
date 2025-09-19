@@ -1,28 +1,14 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { PrayerTimesService } from '../services/prayerTimes.service';
-import {
-  ToastController,
-  ModalController,
-  Platform,
-} from '@ionic/angular';
-import { LocationService } from '../services/geolocation.service';
+import { PrayerTimesService, Prayer } from '../services/prayerTimes.service';
+import { ToastController, ModalController, Platform } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
-import { firstValueFrom } from 'rxjs/internal/firstValueFrom';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { NotificationSettingsComponent } from './notification-settings/notification-settings.component';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import * as htmlToImage from 'html-to-image';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-
-// Define the prayer type
-interface Prayer {
-  name: string;
-  time: string;
-  date: string;
-  notificationEnabled?: boolean;
-}
 
 @Component({
   selector: 'app-prayerTimes',
@@ -50,6 +36,7 @@ export class prayerTimesPage implements OnInit {
   lastUpdated: string = '';
   private intervalId: any;
   isLoading: boolean = false;
+  isDetectingLocation: boolean = false;
   closestPrayerTime: any;
   sameData: boolean = false;
   notificationsEnabled: boolean = false;
@@ -61,7 +48,6 @@ export class prayerTimesPage implements OnInit {
 
   constructor(
     private prayerTimesService: PrayerTimesService,
-    private locationService: LocationService,
     private toastController: ToastController,
     private router: Router,
     private prayerNotificationsService: PrayerNotificationsService,
@@ -161,7 +147,7 @@ export class prayerTimesPage implements OnInit {
 
   async initializePrayerTimes() {
     try {
-      // Get the saved data from localStorage if available
+      // Get the saved data from localStorage (already fetched by service on app start)
       const savedData =
         await this.prayerTimesService.getSavedYearlyPrayerTimes();
 
@@ -172,20 +158,23 @@ export class prayerTimesPage implements OnInit {
 
         // Fetch the full zone name from the mapping object
         const fullZoneName =
-          this.zoneNames[this.zone] ||
+          this.prayerTimesService.zoneNames[this.zone] ||
           'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)';
 
         // Update the location to display the full zone name
         this.location = fullZoneName;
 
         // Get the last updated timestamp from localStorage
-        this.lastUpdated = this.formatTimestamp(savedData.timestamp);
+        this.lastUpdated = this.prayerTimesService.formatTimestamp(
+          savedData.timestamp,
+        );
 
-        // Fetch today's prayer times and wait for it to complete
+        // Load today's prayer times into UI variables
         await this.fetchTodayPrayerTimes();
         this.startUpdatingRemainingTime();
       } else {
-        await this.fetchNewData();
+        console.warn('No prayer data available');
+        await this.showError('Tiada data waktu solat tersedia');
       }
     } catch (error) {
       console.error('Error initializing prayer times:', error);
@@ -193,170 +182,93 @@ export class prayerTimesPage implements OnInit {
     }
   }
 
-  // Fetch new data from API
-  refreshData() {
-    this.fetchNewData();
-  }
-
-  // Function to refresh data from API
-  async fetchNewData(): Promise<void> {
-    this.sameData = false;
+  // Fetch new data from API with location detection
+  async refreshData() {
     try {
-      // Get the user's current location
-      const positionPromise = this.getCurrentLocation();
-      const position = await positionPromise;
+      // Step 1: Show GPS dialog once (if GPS is disabled)
+      await this.prayerTimesService.checkGpsStatus();
 
-      if (!position) {
+      // Step 2: Smart retry mechanism - check GPS status up to 10 times with 500ms intervals
+      let gpsEnabled = false;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        if (await this.prayerTimesService.isGpsEnabled()) {
+          gpsEnabled = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms between checks
+      }
+
+      if (!gpsEnabled) {
+        this.prayerTimesService.presentToast(
+          '❌ GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.',
+          'danger',
+        );
         return;
       }
 
-      // Update prayer times and location
-      await this.getLocationAndUpdatePrayerTimes(position);
+      // Step 3: GPS is enabled! Show loading spinner and proceed with location detection
+      this.isDetectingLocation = true;
 
-      setTimeout(async () => {
-        if (this.sameData) {
-          // Show a success toast message
-          await this.presentToast(
-            'Data waktu solat adalah terkini.',
-            'success',
-          );
-          this.sameData = false; // Reset the flag
-        } else {
-          // Show a success toast message
-          await this.presentToast(
-            'Data waktu solat harian telah dikemaskini! Sila periksa semula masa solat harian anda.',
-            'success',
-          );
-        }
-      }, 1000);
-    } catch (error) {
-      // Show an error toast message
-      setTimeout(() => this.presentToast('' + error, 'danger'), 1000);
-    } finally {
-      // Set isLoading to false after 1 second
-      setTimeout(() => (this.isLoading = false), 1000);
-    }
-  }
+      // Step 4: Get current location and zone using the service
+      const detectedZone = await this.prayerTimesService.getCurrentLocation();
 
-  // Helper function to format timestamp to 'dd MMM yyyy, h:mm a' format
-  formatTimestamp(timestamp: string): string {
-    const date = new Date(timestamp);
-    return date.toLocaleString('ms-MY', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-
-      hour12: true,
-    });
-  }
-
-  // Get current location from LocationService
-  async getCurrentLocation(): Promise<string> {
-    try {
-      if (Capacitor.getPlatform() === 'android') {
-        const isGpsEnabled = await this.locationService.checkGpsStatus();
-        if (!isGpsEnabled) {
-          console.log('GPS is not enabled');
-          await this.presentToast(
-            'GPS tidak diaktifkan. Sila aktifkan GPS untuk menggunakan perkhidmatan lokasi.',
-            'danger',
-          );
-          return '';
-        }
-      }
-
-      this.isLoading = true;
-
-      // Get current location
-      const position = await this.locationService.getCurrentLocation();
-      console.log('Current location:', position);
-
-      // Call the new API to fetch the user zone code based on latitude and longitude
-      try {
-        const zoneResponse = await firstValueFrom(
-          this.prayerTimesService.getUserZoneCode(
-            position.coords.latitude,
-            position.coords.longitude,
-          ),
+      if (detectedZone) {
+        this.prayerTimesService.presentToast(
+          `✅ Lokasi dikesan: ${this.prayerTimesService.zoneNames[detectedZone]}`,
+          'success',
         );
-        const zoneCode = zoneResponse.data.attributes.jakim_code; // Extract the 'jakim_code'
-        return zoneCode;
-      } catch (error) {
-        console.error('Error getting zone code:', error);
-        this.isLoading = false;
-        await this.presentToast(
-          'Koordinat tidak sah. Sila cuba lagi.',
+
+        // Step 5: Update prayer times with the detected zone
+        await this.prayerTimesService.refreshDataWithLocation(detectedZone);
+
+        // Step 6: Update the current location display
+        this.location =
+          this.prayerTimesService.zoneNames[detectedZone] ||
+          this.prayerTimesService.zoneNames['kdh01'];
+
+        // Step 7: Reload prayer data to reflect the new zone
+        await this.initializePrayerTimes();
+      } else {
+        this.prayerTimesService.presentToast(
+          '❌ Gagal mengesan lokasi. Sila cuba lagi.',
           'danger',
         );
-        return '';
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      this.isLoading = false;
-      await this.presentToast('' + error, 'danger');
-      return '';
+    } catch (error: any) {
+      console.error('Error refreshing data:', error);
+      let errorMessage = 'Ralat sewaktu mengesan lokasi';
+
+      if (error.message) {
+        if (error.message.includes('GPS')) {
+          errorMessage =
+            'GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.';
+        } else if (error.message.includes('permission')) {
+          errorMessage =
+            'Kebenaran lokasi diperlukan. Sila benarkan akses lokasi.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Ralat rangkaian. Sila periksa sambungan internet.';
+        } else if (error.message.includes('Koordinat')) {
+          errorMessage = 'Koordinat lokasi tidak sah. Sila cuba lagi.';
+        }
+      }
+
+      this.prayerTimesService.presentToast(`❌ ${errorMessage}`, 'danger');
+    } finally {
+      this.isDetectingLocation = false;
     }
-  }
-
-  // Fetch and update prayer times if no data saved in localStorage
-  async getLocationAndUpdatePrayerTimes(currentLocation: string) {
-    this.zone = currentLocation;
-
-    // Fetch the full zone name from the mapping object
-    const fullZoneName = this.zoneNames[this.zone] || 'Zon Tidak Dikenali';
-
-    // Update the location to display the full zone name
-    this.location = fullZoneName;
-
-    // Fetch yearly prayer times from API
-    this.fetchYearlyPrayerTimes();
   }
 
   // Method to fetch prayer times for the updated date
   async fetchTodayPrayerTimes() {
-    const formattedDate = this.formatDate(this.currentDate);
-    // Find the prayer times for the selected date in yearlyPrayers
-    const selectedPrayer = this.yearlyPrayers.find(
-      (prayer) => prayer.date === formattedDate,
+    const todayPrayerData = this.prayerTimesService.getTodayPrayerTimes(
+      this.yearlyPrayers,
+      this.currentDate,
     );
 
-    if (selectedPrayer) {
-      this.prayers = [
-        {
-          name: 'Imsak',
-          time: selectedPrayer.imsak,
-          date: selectedPrayer.date,
-        },
-        { name: 'Subuh', time: selectedPrayer.fajr, date: selectedPrayer.date },
-        {
-          name: 'Syuruk',
-          time: selectedPrayer.syuruk,
-          date: selectedPrayer.date,
-        },
-        {
-          name: 'Dhuha',
-          time: selectedPrayer.dhuha,
-          date: selectedPrayer.date,
-        },
-        {
-          name: 'Zuhur',
-          time: selectedPrayer.dhuhr,
-          date: selectedPrayer.date,
-        },
-        { name: 'Asar', time: selectedPrayer.asr, date: selectedPrayer.date },
-        {
-          name: 'Maghrib',
-          time: selectedPrayer.maghrib,
-          date: selectedPrayer.date,
-        },
-        { name: 'Isyak', time: selectedPrayer.isha, date: selectedPrayer.date },
-      ];
-
-      // Format the Hijri date using Malay language
-      this.currentHijriDate = this.formatHijriDate(selectedPrayer.hijri);
-      this.currentDate = new Date(selectedPrayer.date);
+    if (todayPrayerData) {
+      this.prayers = todayPrayerData.prayers;
+      this.currentHijriDate = todayPrayerData.hijriDate;
+      this.currentDate = todayPrayerData.currentDate;
 
       // Always update notification status after prayer times are set
       if (this.notificationsEnabled) {
@@ -367,160 +279,10 @@ export class prayerTimesPage implements OnInit {
     }
   }
 
-  // Helper function to format Hijri date in Malay
-  formatHijriDate(hijriDate: string): string {
-    const hijriDateParts = hijriDate.split('-'); // Assuming the format is YYYY-MM-DD
-    const [hijriYear, hijriMonth, hijriDay] = hijriDateParts;
-
-    // Malay Hijri month names
-    const malayMonths = [
-      'Muharram',
-      'Safar',
-      'Rabiulawal',
-      'Rabiulakhir',
-      'Jamadilawal',
-      'Jamadilakhir',
-      'Rejab',
-      'Syaban',
-      'Ramadan',
-      'Syawal',
-      'Zulkaedah',
-      'Zulhijjah',
-    ];
-
-    // Return Hijri date in Malay (using normal digits for the day and year)
-    const malayDate = `${hijriDay} ${
-      malayMonths[parseInt(hijriMonth) - 1]
-    } ${hijriYear}`;
-    return malayDate;
-  }
-
-  // Helper function to format Date to 'dd-MMM-yyyy'
-  formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    };
-    const formattedDate = date.toLocaleDateString('en-MY', options);
-    const [day, month, year] = formattedDate.split(' ');
-    return `${day}-${month.slice(0, 3)}-${year}`; // Use english format since api use english format
-  }
-
-  // Fetch yearly prayer times and save them to localStorage
-  fetchYearlyPrayerTimes() {
-    this.prayerTimesService.getPrayerTimes(this.zone, 'year').subscribe(
-      async (data) => {
-        const savedData =
-          await this.prayerTimesService.getSavedYearlyPrayerTimes();
-        if (data.status === 'OK!') {
-          if (
-            savedData &&
-            savedData.prayers &&
-            JSON.stringify(data.prayerTime) ===
-              JSON.stringify(savedData.prayers)
-          ) {
-            // If the data is the same, don't update
-            this.sameData = true;
-            return;
-          }
-          const yearlyPrayerTimes = data.prayerTime || [];
-          this.yearlyPrayers = yearlyPrayerTimes;
-          this.prayerTimesService.saveYearlyPrayerTimes(
-            this.zone,
-            yearlyPrayerTimes,
-          ); // Save to localStorage
-          this.initializePrayerTimes();
-        } else {
-          this.showError('Gagal untuk mendapatkan waktu solat tahunan');
-          this.currentHijriDate = '';
-        }
-      },
-      (error) => {
-        this.showError('Terjadi ralat sewaktu mendapatkan waktu solat tahunan');
-      },
-    );
-  }
-
   // Handle errors
   async showError(message: string) {
-    await this.presentToast(message, 'danger');
+    await this.prayerTimesService.presentToast(message, 'danger');
   }
-
-  // Zone names mapping
-  zoneNames: { [key: string]: string } = {
-    jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
-    jhr02: 'JHR02 - Johor Bharu, Kota Tinggi, Mersing',
-    jhr03: 'JHR03 - Kluang, Pontian',
-    jhr04: 'JHR04 - Batu Pahat, Muar, Segamat, Gemas Johor',
-    kdh01: 'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)',
-    kdh02: 'KDH02 - Kuala Muda, Yan, Pendang',
-    kdh03: 'KDH03 - Padang Terap, Sik',
-    kdh04: 'KDH04 - Baling',
-    kdh05: 'KDH05 - Bandar Baharu, Kulim',
-    kdh06: 'KDH06 - Langkawi',
-    kdh07: 'KDH07 - Gunung Jerai',
-    ktn01:
-      'KTN01 - Bachok, Kota Bharu, Machang, Pasir Mas, Pasir Puteh, Tanah Merah, Tumpat, Kuala Krai, Mukim Chiku',
-    ktn03: 'KTN03 - Gua Musang (Daerah Galas Dan Bertam), Jeli',
-    mlk01: 'MLK01 - SELURUH NEGERI MELAKA',
-    ngs01: 'NGS01 - Tampin, Jempol',
-    ngs02: 'NGS02 - Jelebu, Kuala Pilah, Port Dickson, Rembau, Seremban',
-    phg01: 'PHG01 - Pulau Tioman',
-    phg02: 'PHG02 - Kuantan, Pekan, Rompin, Muadzam Shah',
-    phg03: 'PHG03 - Jerantut, Temerloh, Maran, Bera, Chenor, Jengka',
-    phg04: 'PHG04 - Bentong, Lipis, Raub',
-    phg05: 'PHG05 - Genting Sempah, Janda Baik, Bukit Tinggi',
-    phg06: 'PHG06 - Cameron Highlands, Genting Higlands, Bukit Fraser',
-    pls01: 'PLS01 - Kangar, Padang Besar, Arau',
-    png01: 'PNG01 - Seluruh Negeri Pulau Pinang',
-    prk01: 'PRK01 - Tapah, Slim River, Tanjung Malim',
-    prk02:
-      'PRK02 - Kuala Kangsar, Sg. Siput (Daerah Kecil), Ipoh, Batu Gajah, Kampar',
-    prk03: 'PRK03 - Lenggong, Pengkalan Hulu, Grik',
-    prk04: 'PRK04 - Temengor, Belum',
-    prk05:
-      'PRK05 - Kg Gajah, Teluk Intan, Bagan Datuk, Seri Iskandar, Beruas, Parit, Lumut, Sitiawan, Pulau Pangkor',
-    prk06: 'PRK06 - Selama, Taiping, Bagan Serai, Parit Buntar',
-    prk07: 'PRK07 - Bukit Larut',
-    sbh01:
-      'SBH01 - Bahagian Sandakan (Timur), Bukit Garam, Semawang, Temanggong, Tambisan, Bandar Sandakan',
-    sbh02:
-      'SBH02 - Beluran, Telupid, Pinangah, Terusan, Kuamut, Bahagian Sandakan (Barat)',
-    sbh03:
-      'SBH03 - Lahad Datu, Silabukan, Kunak, Sahabat, Semporna, Tungku, Bahagian Tawau (Timur)',
-    sbh04:
-      'SBH04 - Bandar Tawau, Balong, Merotai, Kalabakan, Bahagian Tawau (Barat)',
-    sbh05: 'SBH05 - Kudat, Kota Marudu, Pitas, Pulau Banggi, Bahagian Kudat',
-    sbh06: 'SBH06 - Gunung Kinabalu',
-    sbh07:
-      'SBH07 - Kota Kinabalu, Ranau, Kota Belud, Tuaran, Penampang, Papar, Putatan, Bahagian Pantai Barat',
-    sbh08:
-      'SBH08 - Pensiangan, Keningau, Tambunan, Nabawan, Bahagian Pendalaman (Atas)',
-    sbh09:
-      'SBH09 - Beaufort, Kuala Penyu, Sipitang, Tenom, Long Pa Sia, Membakut, Weston, Bahagian Pendalaman (Bawah)',
-    sgr01:
-      'SGR01 - Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Rawang, S.Alam',
-    sgr02: 'SGR02 - Kuala Selangor, Sabak Bernam',
-    sgr03: 'SGR03 - Klang, Kuala Langat',
-    swk01: 'SWK01 - Limbang, Lawas, Sundar, Trusan',
-    swk02: 'SWK02 - Miri, Niah, Bekenu, Sibuti, Marudi',
-    swk03: 'SWK03 - Pandan, Belaga, Suai, Tatau, Sebauh, Bintulu',
-    swk04:
-      'SWK04 - Sibu, Mukah, Dalat, Song, Igan, Oya, Balingian, Kanowit, Kapit',
-    swk05: 'SWK05 - Sarikei, Matu, Julau, Rajang, Daro, Bintangor, Belawai',
-    swk06:
-      'SWK06 - Lubok Antu, Sri Aman, Roban, Debak, Kabong, Lingga, Engkelili, Betong, Spaoh, Pusa, Saratok',
-    swk07: 'SWK07 - Serian, Simunjan, Samarahan, Sebuyau, Meludam',
-    swk08: 'SWK08 - Kuching, Bau, Lundu, Sematan',
-    swk09: 'SWK09 - Zon Khas (Kampung Patarikan)',
-    trg01: 'TRG01 - Kuala Terengganu, Marang, Kuala Nerus',
-    trg02: 'TRG02 - Besut, Setiu',
-    trg03: 'TRG03 - Hulu Terengganu',
-    trg04: 'TRG04 - Dungun, Kemaman',
-    wly01: 'WLY01 - Kuala Lumpur, Putrajaya',
-    wly02: 'WLY02 - Labuan',
-  };
 
   // Calculate remaining time for the closest prayer
   calculateRemainingTime() {
@@ -679,7 +441,7 @@ export class prayerTimesPage implements OnInit {
 
   // Helper function to check if data exists for a specific date
   isDataAvailableForDate(date: Date): boolean {
-    const formattedDate = this.formatDate(date);
+    const formattedDate = this.prayerTimesService.formatDate(date);
     return this.yearlyPrayers.some((prayer) => prayer.date === formattedDate);
   }
 
@@ -711,7 +473,7 @@ export class prayerTimesPage implements OnInit {
             message:
               'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
             duration: 5000,
-            position: 'bottom',
+            position: 'top',
             color: 'warning',
             buttons: [
               {
@@ -740,7 +502,7 @@ export class prayerTimesPage implements OnInit {
           if (!success) {
             this.prayers[index].notificationEnabled =
               !this.prayers[index].notificationEnabled;
-            this.presentToast(
+            this.prayerTimesService.presentToast(
               'Ralat mengemas kini notifikasi. Sila cuba lagi.',
               'danger',
             );
@@ -750,24 +512,14 @@ export class prayerTimesPage implements OnInit {
           console.error('Error setting reminder:', error);
           // On error, refresh actual state from service
           this.updatePrayerNotificationStatus();
-          this.presentToast('Ralat mengaktifkan notifikasi', 'danger');
+          this.prayerTimesService.presentToast(
+            'Ralat mengaktifkan notifikasi',
+            'danger',
+          );
         });
     } catch (error) {
       console.error('Error in setReminder:', error);
     }
-  }
-
-  /**
-   * Present a toast message
-   */
-  async presentToast(message: string, color: string = 'primary') {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      position: 'bottom',
-      color: color,
-    });
-    await toast.present();
   }
 
   /**
@@ -827,18 +579,24 @@ export class prayerTimesPage implements OnInit {
 
       const { data } = await modal.onDidDismiss();
       if (data?.saved) {
-        await this.presentToast('Tetapan notifikasi telah disimpan', 'success');
+        await this.prayerTimesService.presentToast(
+          'Tetapan notifikasi telah disimpan',
+          'success',
+        );
         await this.updatePrayerNotificationStatus();
       }
     } catch (error) {
       console.error('Error opening notification settings:', error);
-      await this.presentToast('Ralat membuka tetapan notifikasi', 'danger');
+      await this.prayerTimesService.presentToast(
+        'Ralat membuka tetapan notifikasi',
+        'danger',
+      );
     }
   }
 
   async sharePrayerTimes() {
     if (!this.loaded || this.prayers.length === 0) {
-      await this.presentToast(
+      await this.prayerTimesService.presentToast(
         'Data waktu solat belum dimuatkan atau tiada.',
         'warning',
       );
@@ -851,7 +609,7 @@ export class prayerTimesPage implements OnInit {
       !this.prayerTimesToShareContainer.nativeElement
     ) {
       console.error('Shareable container element not found');
-      await this.presentToast(
+      await this.prayerTimesService.presentToast(
         'Ralat: Elemen untuk dikongsi tidak ditemui.',
         'danger',
       );
@@ -865,7 +623,7 @@ export class prayerTimesPage implements OnInit {
 
     if (!shareContentElement) {
       console.error('Shareable content element not found');
-      await this.presentToast(
+      await this.prayerTimesService.presentToast(
         'Ralat: Elemen kandungan untuk dikongsi tidak ditemui.',
         'danger',
       );
@@ -887,7 +645,7 @@ export class prayerTimesPage implements OnInit {
       !sharePrayerTableBodyEl
     ) {
       console.error('Required elements within shareable div not found');
-      await this.presentToast(
+      await this.prayerTimesService.presentToast(
         'Ralat: Struktur untuk dikongsi tidak lengkap.',
         'danger',
       );
@@ -994,18 +752,21 @@ export class prayerTimesPage implements OnInit {
           error.message.toLowerCase().includes('share canceled')) ||
         error.message.toLowerCase().includes('share dismissed')
       ) {
-        await this.presentToast('Perkongsian dibatalkan.', 'medium');
+        await this.prayerTimesService.presentToast(
+          'Perkongsian dibatalkan.',
+          'medium',
+        );
       } else if (
         error &&
         error.message &&
         error.message.toLowerCase().includes('activity not found')
       ) {
-        await this.presentToast(
+        await this.prayerTimesService.presentToast(
           'Tiada aplikasi untuk berkongsi ditemui.',
           'warning',
         );
       } else {
-        await this.presentToast(
+        await this.prayerTimesService.presentToast(
           'Ralat semasa cuba berkongsi waktu solat.',
           'danger',
         );

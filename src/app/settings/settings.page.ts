@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import {
   AlertController,
   ModalController,
-  ToastController,
   ViewWillEnter,
   Platform,
 } from '@ionic/angular';
@@ -15,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { Preferences } from '@capacitor/preferences';
 import { DatePickerModalComponent } from '../component/date-picker-modal/date-picker-modal.component';
 import { DarkModeHandlerService } from '../services/dark-mode-handler.service';
+import { ToastService } from '../services/toast.service';
 
 @Component({
   selector: 'app-settings',
@@ -37,7 +37,7 @@ export class SettingsPage implements OnInit, ViewWillEnter {
     private modalController: ModalController,
     private storageService: StorageService,
     private http: HttpClient,
-    private toastController: ToastController,
+    private toastService: ToastService,
     private platform: Platform,
     private darkModeService: DarkModeHandlerService,
   ) {}
@@ -253,13 +253,7 @@ export class SettingsPage implements OnInit, ViewWillEnter {
   }
 
   async presentToast(message: string, color: string = 'danger') {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      position: 'bottom',
-      color: color,
-    });
-    await toast.present();
+    await this.toastService.presentToast(message, color);
   }
 
   // Get current dark mode preference for the UI

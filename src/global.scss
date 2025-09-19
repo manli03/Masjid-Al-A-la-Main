@@ -118,3 +118,32 @@ ion-toolbar {
 ion-modal {
   margin-bottom: var(--ion-safe-area-bottom, 0px);
 }
+
+/* Loading Overlay Styles */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.loading-overlay ion-spinner {
+  --color: #ffffff;
+}
+
+.loading-overlay p {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 15px;
+  text-align: center;
+  max-width: 80%;
+}

@@ -52,6 +52,29 @@ export class LocationService {
     });
   }
 
+  async isEnabled(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const gpsEnabledListener = () => {
+        window.removeEventListener('onGpsEnabled', gpsEnabledListener);
+        window.removeEventListener('onGpsDisabled', gpsDisabledListener);
+        console.log('GPS enabled');
+        resolve(true);
+      };
+
+      const gpsDisabledListener = () => {
+        window.removeEventListener('onGpsEnabled', gpsEnabledListener);
+        window.removeEventListener('onGpsDisabled', gpsDisabledListener);
+        console.log('GPS disabled');
+        resolve(false);
+      };
+
+      window.addEventListener('onGpsEnabled', gpsEnabledListener);
+      window.addEventListener('onGpsDisabled', gpsDisabledListener);
+
+      GpsEnabler.isGpsEnabled();
+    });
+  }
+
   isLocationSupported(): boolean {
     return 'geolocation' in navigator;
   }

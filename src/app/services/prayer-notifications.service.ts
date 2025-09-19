@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { LocalNotifications, Channel } from '@capacitor/local-notifications';
 import { Preferences } from '@capacitor/preferences';
-import { ToastController } from '@ionic/angular';
+import { ToastService } from './toast.service';
 import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -163,7 +163,7 @@ export class PrayerNotificationsService {
   ];
 
   constructor(
-    private toastController: ToastController,
+    private toastService: ToastService,
     private router: Router,
   ) {
     // Set up notification listeners
@@ -180,23 +180,23 @@ export class PrayerNotificationsService {
 
       if (permResult.display !== 'prompt' && permResult.display !== 'granted') {
         // Show custom toast with OK button that opens notification settings
-        const toast = await this.toastController.create({
-          message:
-            'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
-          duration: 5000,
-          position: 'bottom',
-          color: 'warning',
-          buttons: [
-            {
-              text: 'OK',
-              role: 'cancel',
-              handler: async () => {
-                await this.openNotificationSettings();
+        await this.toastService.presentToastImmediate(
+          'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
+          {
+            duration: 5000,
+            position: 'top',
+            color: 'warning',
+            buttons: [
+              {
+                text: 'OK',
+                role: 'cancel',
+                handler: async () => {
+                  await this.openNotificationSettings();
+                },
               },
-            },
-          ],
-        });
-        await toast.present();
+            ],
+          }
+        );
         return false;
       }
 
@@ -1014,20 +1014,7 @@ export class PrayerNotificationsService {
    * Show a toast message
    */
   private async showToast(message: string, color: string): Promise<void> {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      position: 'bottom',
-      color: color,
-      buttons: [
-        {
-          text: 'OK',
-          role: 'cancel',
-        },
-      ],
-    });
-
-    await toast.present();
+    await this.toastService.presentToast(message, color);
   }
 
   /**

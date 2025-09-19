@@ -382,7 +382,7 @@ export class ProfilePage implements OnInit, ViewWillEnter {
     const toast = await this.toastController.create({
       message: message,
       duration: 3000,
-      position: 'bottom',
+      position: 'top',
       color: color,
     });
     await toast.present();

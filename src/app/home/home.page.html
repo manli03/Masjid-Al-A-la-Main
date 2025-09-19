@@ -1,4 +1,10 @@
 <ion-content class="ion-padding">
+  <!-- Loading Overlay -->
+  <div *ngIf="isDetectingLocation" class="loading-overlay">
+    <ion-spinner style="zoom: 2;"></ion-spinner>
+    <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
+  </div>
+
   <img src="../../assets/loading/image.png" alt="App Background" class="background-image" />
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>

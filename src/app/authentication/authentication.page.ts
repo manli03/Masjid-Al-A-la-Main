@@ -1,9 +1,7 @@
 import { Component } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-// Import ToastController
-import { LoadingController, ToastController, Platform } from '@ionic/angular';
-import { StorageService } from '../services/storage.service';
+import { ToastController, Platform } from '@ionic/angular';
 
 @Component({
   selector: 'app-authentication',
@@ -24,19 +22,18 @@ export class AuthenticationPage {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private loadingController: LoadingController,
-    private storageService: StorageService,
     private toastController: ToastController, // Inject ToastController
     private platform: Platform,
   ) {}
 
   ionViewWillEnter() {
-    this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(10, () => {
-      this.router.navigateByUrl('/tabs/home');
-    });
+    this.backButtonSubscription =
+      this.platform.backButton.subscribeWithPriority(10, () => {
+        this.router.navigateByUrl('/tabs/home');
+      });
 
     // Read query params to set appropriate messages
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.subscribe((params) => {
       this.returnUrl = params['returnUrl'] || '';
       if (this.returnUrl.includes('announcement')) {
         this.authTitle = 'Log Masuk';
@@ -80,7 +77,9 @@ export class AuthenticationPage {
         } else {
           // Default navigation based on role
           if (await this.authService.isAdmin()) {
-            this.router.navigate(['/tabs/manage-announcement'], { replaceUrl: true });
+            this.router.navigate(['/tabs/manage-announcement'], {
+              replaceUrl: true,
+            });
           } else {
             this.router.navigate(['/tabs/profile'], { replaceUrl: true });
           }
@@ -118,7 +117,7 @@ export class AuthenticationPage {
     const toast = await this.toastController.create({
       message: message,
       duration: 3000, // 3 seconds
-      position: 'bottom', // Or 'top', 'middle'
+      position: 'top', // Or 'top', 'middle'
       color: color,
     });
     await toast.present();

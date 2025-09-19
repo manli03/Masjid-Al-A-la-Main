@@ -2,10 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Router, NavigationExtras, NavigationEnd } from '@angular/router';
-import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
 import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
-import { FcmService } from '../services/fcm.service';
 import { Subscription } from 'rxjs';
 import { LoadingComponent } from '../component/loading/loading.component';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
@@ -25,10 +23,8 @@ export class TabsPage implements OnInit, OnDestroy {
   constructor(
     private platform: Platform,
     public router: Router,
-    private storageService: StorageService,
     private authService: AuthService,
     private prayerCoordinatorService: PrayerCoordinatorService,
-    private fcmService: FcmService,
   ) {}
 
   ngOnInit() {
@@ -63,9 +59,11 @@ export class TabsPage implements OnInit, OnDestroy {
 
     this.routerEventsSubscription = this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
-        const isHome = event.urlAfterRedirects === '/tabs/home';
-        const isAuth = event.urlAfterRedirects === '/tabs/authentication';
-        const isSettings = event.urlAfterRedirects === '/settings';
+        const url = event.urlAfterRedirects;
+
+        const isHome = url.startsWith('/tabs/home');
+        const isAuth = url.startsWith('/tabs/authentication');
+        const isSettings = url.startsWith('/settings');
         this.handleStatusBarAndClass(isHome, isAuth, isSettings);
       }
     });
@@ -98,9 +96,9 @@ export class TabsPage implements OnInit, OnDestroy {
         document.documentElement.classList.contains('ion-palette-dark');
 
       // Update status bar immediately if route is home/auth
-      const isHome = this.router.url === '/tabs/home';
-      const isAuth = this.router.url === '/tabs/authentication';
-      const isSettings = this.router.url === '/settings';
+      const isHome = this.router.url.startsWith('/tabs/home');
+      const isAuth = this.router.url.startsWith('/tabs/authentication');
+      const isSettings = this.router.url.startsWith('/settings');
       this.handleStatusBarAndClass(isHome, isAuth, isSettings);
     });
 
@@ -125,15 +123,15 @@ export class TabsPage implements OnInit, OnDestroy {
           StatusBar.setStyle({ style: Style.Default });
           try {
             let color: string;
-            if (isHome || isSettings) {
-              color = this.isDarkMode ? '#121212' : '#f5f5f5';
-            } else if (isAuth) {
-              color = this.isDarkMode ? '#333333' : '#ffffff';
-            } else {
+            if (isHome) {
               color =
                 getComputedStyle(document.documentElement).getPropertyValue(
                   '--ion-toolbar-background',
-                ) || (this.isDarkMode ? '#222428' : '#ffffff');
+                ) || (this.isDarkMode ? '#121212' : '#f5f5f5');
+            } else if (isAuth) {
+              color = this.isDarkMode ? '#1f1f1f' : '#ffffff';
+            } else {
+              color = this.isDarkMode ? '#121212' : '#f5f5f5';
             }
 
             await StatusBar.setBackgroundColor({ color: color.trim() });

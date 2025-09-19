@@ -17,7 +17,7 @@ export class PrayerCoordinatorService {
       await this.prayerNotificationsService.initializeNotifications();
     if (!notificationsReady) return;
 
-    // Step 2: Initialize prayer times
+    // Step 2: Initialize prayer times (fetch or update as needed)
     await this.prayerTimesService.initializePrayerTimes();
     console.log('Prayer times initialized');
 

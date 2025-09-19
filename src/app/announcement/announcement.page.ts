@@ -889,7 +889,7 @@ export class announcementPage implements OnInit, OnDestroy {
     const toast = await this.toastController.create({
       message,
       duration: 3000,
-      position: 'bottom',
+      position: 'top',
       color,
     });
     await toast.present();

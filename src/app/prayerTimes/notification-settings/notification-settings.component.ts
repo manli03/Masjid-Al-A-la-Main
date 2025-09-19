@@ -130,7 +130,7 @@ export class NotificationSettingsComponent implements OnInit {
       const loadingToast = await this.toastController.create({
         message: 'Memainkan bunyi azan...',
         duration: 1000,
-        position: 'bottom',
+        position: 'top',
         color: 'primary',
       });
       await loadingToast.present();
@@ -204,7 +204,7 @@ export class NotificationSettingsComponent implements OnInit {
     const toast = await this.toastController.create({
       message,
       duration: 2000,
-      position: 'bottom',
+      position: 'top',
       color,
     });
     await toast.present();

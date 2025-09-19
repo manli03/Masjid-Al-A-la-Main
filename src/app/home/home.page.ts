@@ -2,10 +2,10 @@ import { Component, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   Platform,
-  ToastController,
   ActionSheetController,
   ModalController,
 } from '@ionic/angular';
+import { ToastService } from '../services/toast.service';
 import { PrayerTimesService } from '../services/prayerTimes.service';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
 import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
@@ -25,8 +25,8 @@ export class HomePage implements OnDestroy {
   remainingTime: string = '';
   prayerTimes: { [key: string]: string } = {}; // For display (12‑hour formatted)
   rawPrayerTimes: { [key: string]: string } = {}; // For calculations (24‑hour strings)
-  zoneNames: { [key: string]: string };
   private intervalId: any;
+  isDetectingLocation: boolean = false;
   isDarkMode: boolean = false;
   prayerNotification: { [key: string]: boolean } = {};
   reloadQiblaCompass: boolean = false;
@@ -52,85 +52,11 @@ export class HomePage implements OnDestroy {
     private router: Router,
     private prayerTimesService: PrayerTimesService,
     private platform: Platform,
-    private toastController: ToastController,
+    private toastService: ToastService,
     private actionSheetController: ActionSheetController,
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
-  ) {
-    this.zoneNames = {
-      jhr01: 'JHR01 - Pulau Aur dan Pulau Pemanggil',
-      jhr02: 'JHR02 - Johor Bharu, Kota Tinggi, Mersing',
-      jhr03: 'JHR03 - Kluang, Pontian',
-      jhr04: 'JHR04 - Batu Pahat, Muar, Segamat, Gemas Johor',
-      kdh01: 'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)',
-      kdh02: 'KDH02 - Kuala Muda, Yan, Pendang',
-      kdh03: 'KDH03 - Padang Terap, Sik',
-      kdh04: 'KDH04 - Baling',
-      kdh05: 'KDH05 - Bandar Baharu, Kulim',
-      kdh06: 'KDH06 - Langkawi',
-      kdh07: 'KDH07 - Gunung Jerai',
-      ktn01:
-        'KTN01 - Bachok, Kota Bharu, Machang, Pasir Mas, Pasir Puteh, Tanah Merah, Tumpat, Kuala Krai, Mukim Chiku',
-      ktn03: 'KTN03 - Gua Musang (Daerah Galas Dan Bertam), Jeli',
-      mlk01: 'MLK01 - SELURUH NEGERI MELAKA',
-      ngs01: 'NGS01 - Tampin, Jempol',
-      ngs02: 'NGS02 - Jelebu, Kuala Pilah, Port Dickson, Rembau, Seremban',
-      phg01: 'PHG01 - Pulau Tioman',
-      phg02: 'PHG02 - Kuantan, Pekan, Rompin, Muadzam Shah',
-      phg03: 'PHG03 - Jerantut, Temerloh, Maran, Bera, Chenor, Jengka',
-      phg04: 'PHG04 - Bentong, Lipis, Raub',
-      phg05: 'PHG05 - Genting Sempah, Janda Baik, Bukit Tinggi',
-      phg06: 'PHG06 - Cameron Highlands, Genting Higlands, Bukit Fraser',
-      pls01: 'PLS01 - Kangar, Padang Besar, Arau',
-      png01: 'PNG01 - Seluruh Negeri Pulau Pinang',
-      prk01: 'PRK01 - Tapah, Slim River, Tanjung Malim',
-      prk02:
-        'PRK02 - Kuala Kangsar, Sg. Siput (Daerah Kecil), Ipoh, Batu Gajah, Kampar',
-      prk03: 'PRK03 - Lenggong, Pengkalan Hulu, Grik',
-      prk04: 'PRK04 - Temengor, Belum',
-      prk05:
-        'PRK05 - Kg Gajah, Teluk Intan, Bagan Datuk, Seri Iskandar, Beruas, Parit, Lumut, Sitiawan, Pulau Pangkor',
-      prk06: 'PRK06 - Selama, Taiping, Bagan Serai, Parit Buntar',
-      prk07: 'PRK07 - Bukit Larut',
-      sbh01:
-        'SBH01 - Bahagian Sandakan (Timur), Bukit Garam, Semawang, Temanggong, Tambisan, Bandar Sandakan',
-      sbh02:
-        'SBH02 - Beluran, Telupid, Pinangah, Terusan, Kuamut, Bahagian Sandakan (Barat)',
-      sbh03:
-        'SBH03 - Lahad Datu, Silabukan, Kunak, Sahabat, Semporna, Tungku, Bahagian Tawau (Timur)',
-      sbh04:
-        'SBH04 - Bandar Tawau, Balong, Merotai, Kalabakan, Bahagian Tawau (Barat)',
-      sbh05: 'SBH05 - Kudat, Kota Marudu, Pitas, Pulau Banggi, Bahagian Kudat',
-      sbh06: 'SBH06 - Gunung Kinabalu',
-      sbh07:
-        'SBH07 - Kota Kinabalu, Ranau, Kota Belud, Tuaran, Penampang, Papar, Putatan, Bahagian Pantai Barat',
-      sbh08:
-        'SBH08 - Pensiangan, Keningau, Tambunan, Nabawan, Bahagian Pendalaman (Atas)',
-      sbh09:
-        'SBH09 - Beaufort, Kuala Penyu, Sipitang, Tenom, Long Pa Sia, Membakut, Weston, Bahagian Pendalaman (Bawah)',
-      sgr01:
-        'SGR01 - Gombak, Petaling, Sepang, Hulu Langat, Hulu Selangor, Rawang, S.Alam',
-      sgr02: 'SGR02 - Kuala Selangor, Sabak Bernam',
-      sgr03: 'SGR03 - Klang, Kuala Langat',
-      swk01: 'SWK01 - Limbang, Lawas, Sundar, Trusan',
-      swk02: 'SWK02 - Miri, Niah, Bekenu, Sibuti, Marudi',
-      swk03: 'SWK03 - Pandan, Belaga, Suai, Tatau, Sebauh, Bintulu',
-      swk04:
-        'SWK04 - Sibu, Mukah, Dalat, Song, Igan, Oya, Balingian, Kanowit, Kapit',
-      swk05: 'SWK05 - Sarikei, Matu, Julau, Rajang, Daro, Bintangor, Belawai',
-      swk06:
-        'SWK06 - Lubok Antu, Sri Aman, Roban, Debak, Kabong, Lingga, Engkelili, Betong, Spaoh, Pusa, Saratok',
-      swk07: 'SWK07 - Serian, Simunjan, Samarahan, Sebuyau, Meludam',
-      swk08: 'SWK08 - Kuching, Bau, Lundu, Sematan',
-      swk09: 'SWK09 - Zon Khas (Kampung Patarikan)',
-      trg01: 'TRG01 - Kuala Terengganu, Marang, Kuala Nerus',
-      trg02: 'TRG02 - Besut, Setiu',
-      trg03: 'TRG03 - Hulu Terengganu',
-      trg04: 'TRG04 - Dungun, Kemaman',
-      wly01: 'WLY01 - Kuala Lumpur, Putrajaya',
-      wly02: 'WLY02 - Labuan',
-    };
-  }
+  ) {}
 
   async ionViewDidEnter() {
     console.log('Home page entered, starting to load data');
@@ -159,16 +85,17 @@ export class HomePage implements OnDestroy {
       this.backButtonSubscription =
         this.platform.backButton.subscribeWithPriority(10, async () => {
           if (!this.currentToast) {
-            this.currentToast = await this.toastController.create({
-              message: 'Tekan kembali lagi untuk keluar',
-              duration: this.exitDelay,
-              position: 'bottom',
-            });
+            this.currentToast = await this.toastService.presentToastImmediate(
+              'Tekan kembali lagi untuk keluar',
+              {
+                duration: this.exitDelay,
+                position: 'top',
+              },
+            );
             // When the toast is dismissed, reset the reference.
             this.currentToast.onDidDismiss().then(() => {
               this.currentToast = null;
             });
-            await this.currentToast.present();
           } else {
             // If the toast is already visible and back is pressed again, exit the app.
             (navigator as any)['app'].exitApp();
@@ -314,8 +241,8 @@ export class HomePage implements OnDestroy {
     if (savedData) {
       const zone = savedData.zone;
       this.currentLocation =
-        this.zoneNames[zone] ||
-        'KDH01 - Kota Setar, Kubang Pasu, Pokok Sena (Daerah Kecil)'; // Default to KDH01
+        this.prayerTimesService.zoneNames[zone] ||
+        this.prayerTimesService.zoneNames['kdh01']; // Default to KDH01
       const today = new Date();
       const formattedDate = this.formatDate(today);
       const prayerData = savedData.prayers.find(
@@ -633,89 +560,105 @@ export class HomePage implements OnDestroy {
     // Group zone codes by state
     const stateGroups: { [state: string]: { code: string; name: string }[] } = {
       Johor: [
-        { code: 'jhr01', name: this.zoneNames['jhr01'] },
-        { code: 'jhr02', name: this.zoneNames['jhr02'] },
-        { code: 'jhr03', name: this.zoneNames['jhr03'] },
-        { code: 'jhr04', name: this.zoneNames['jhr04'] },
+        { code: 'jhr01', name: this.prayerTimesService.zoneNames['jhr01'] },
+        { code: 'jhr02', name: this.prayerTimesService.zoneNames['jhr02'] },
+        { code: 'jhr03', name: this.prayerTimesService.zoneNames['jhr03'] },
+        { code: 'jhr04', name: this.prayerTimesService.zoneNames['jhr04'] },
       ],
       Kedah: [
-        { code: 'kdh01', name: this.zoneNames['kdh01'] },
-        { code: 'kdh02', name: this.zoneNames['kdh02'] },
-        { code: 'kdh03', name: this.zoneNames['kdh03'] },
-        { code: 'kdh04', name: this.zoneNames['kdh04'] },
-        { code: 'kdh05', name: this.zoneNames['kdh05'] },
-        { code: 'kdh06', name: this.zoneNames['kdh06'] },
-        { code: 'kdh07', name: this.zoneNames['kdh07'] },
+        { code: 'kdh01', name: this.prayerTimesService.zoneNames['kdh01'] },
+        { code: 'kdh02', name: this.prayerTimesService.zoneNames['kdh02'] },
+        { code: 'kdh03', name: this.prayerTimesService.zoneNames['kdh03'] },
+        { code: 'kdh04', name: this.prayerTimesService.zoneNames['kdh04'] },
+        { code: 'kdh05', name: this.prayerTimesService.zoneNames['kdh05'] },
+        { code: 'kdh06', name: this.prayerTimesService.zoneNames['kdh06'] },
+        { code: 'kdh07', name: this.prayerTimesService.zoneNames['kdh07'] },
       ],
       Kelantan: [
-        { code: 'ktn01', name: this.zoneNames['ktn01'] },
-        { code: 'ktn03', name: this.zoneNames['ktn03'] },
+        { code: 'ktn01', name: this.prayerTimesService.zoneNames['ktn01'] },
+        { code: 'ktn03', name: this.prayerTimesService.zoneNames['ktn03'] },
       ],
-      Melaka: [{ code: 'mlk01', name: this.zoneNames['mlk01'] }],
+      Melaka: [
+        { code: 'mlk01', name: this.prayerTimesService.zoneNames['mlk01'] },
+      ],
       'Negeri Sembilan': [
-        { code: 'ngs01', name: this.zoneNames['ngs01'] },
-        { code: 'ngs02', name: this.zoneNames['ngs02'] },
+        { code: 'ngs01', name: this.prayerTimesService.zoneNames['ngs01'] },
+        { code: 'ngs02', name: this.prayerTimesService.zoneNames['ngs02'] },
       ],
       Pahang: [
-        { code: 'phg01', name: this.zoneNames['phg01'] },
-        { code: 'phg02', name: this.zoneNames['phg02'] },
-        { code: 'phg03', name: this.zoneNames['phg03'] },
-        { code: 'phg04', name: this.zoneNames['phg04'] },
-        { code: 'phg05', name: this.zoneNames['phg05'] },
-        { code: 'phg06', name: this.zoneNames['phg06'] },
+        { code: 'phg01', name: this.prayerTimesService.zoneNames['phg01'] },
+        { code: 'phg02', name: this.prayerTimesService.zoneNames['phg02'] },
+        { code: 'phg03', name: this.prayerTimesService.zoneNames['phg03'] },
+        { code: 'phg04', name: this.prayerTimesService.zoneNames['phg04'] },
+        { code: 'phg05', name: this.prayerTimesService.zoneNames['phg05'] },
+        { code: 'phg06', name: this.prayerTimesService.zoneNames['phg06'] },
       ],
-      Perlis: [{ code: 'pls01', name: this.zoneNames['pls01'] }],
-      'Pulau Pinang': [{ code: 'png01', name: this.zoneNames['png01'] }],
+      Perlis: [
+        { code: 'pls01', name: this.prayerTimesService.zoneNames['pls01'] },
+      ],
+      'Pulau Pinang': [
+        { code: 'png01', name: this.prayerTimesService.zoneNames['png01'] },
+      ],
       Perak: [
-        { code: 'prk01', name: this.zoneNames['prk01'] },
-        { code: 'prk02', name: this.zoneNames['prk02'] },
-        { code: 'prk03', name: this.zoneNames['prk03'] },
-        { code: 'prk04', name: this.zoneNames['prk04'] },
-        { code: 'prk05', name: this.zoneNames['prk05'] },
-        { code: 'prk06', name: this.zoneNames['prk06'] },
-        { code: 'prk07', name: this.zoneNames['prk07'] },
+        { code: 'prk01', name: this.prayerTimesService.zoneNames['prk01'] },
+        { code: 'prk02', name: this.prayerTimesService.zoneNames['prk02'] },
+        { code: 'prk03', name: this.prayerTimesService.zoneNames['prk03'] },
+        { code: 'prk04', name: this.prayerTimesService.zoneNames['prk04'] },
+        { code: 'prk05', name: this.prayerTimesService.zoneNames['prk05'] },
+        { code: 'prk06', name: this.prayerTimesService.zoneNames['prk06'] },
+        { code: 'prk07', name: this.prayerTimesService.zoneNames['prk07'] },
       ],
       Sabah: [
-        { code: 'sbh01', name: this.zoneNames['sbh01'] },
-        { code: 'sbh02', name: this.zoneNames['sbh02'] },
-        { code: 'sbh03', name: this.zoneNames['sbh03'] },
-        { code: 'sbh04', name: this.zoneNames['sbh04'] },
-        { code: 'sbh05', name: this.zoneNames['sbh05'] },
-        { code: 'sbh06', name: this.zoneNames['sbh06'] },
-        { code: 'sbh07', name: this.zoneNames['sbh07'] },
-        { code: 'sbh08', name: this.zoneNames['sbh08'] },
-        { code: 'sbh09', name: this.zoneNames['sbh09'] },
+        { code: 'sbh01', name: this.prayerTimesService.zoneNames['sbh01'] },
+        { code: 'sbh02', name: this.prayerTimesService.zoneNames['sbh02'] },
+        { code: 'sbh03', name: this.prayerTimesService.zoneNames['sbh03'] },
+        { code: 'sbh04', name: this.prayerTimesService.zoneNames['sbh04'] },
+        { code: 'sbh05', name: this.prayerTimesService.zoneNames['sbh05'] },
+        { code: 'sbh06', name: this.prayerTimesService.zoneNames['sbh06'] },
+        { code: 'sbh07', name: this.prayerTimesService.zoneNames['sbh07'] },
+        { code: 'sbh08', name: this.prayerTimesService.zoneNames['sbh08'] },
+        { code: 'sbh09', name: this.prayerTimesService.zoneNames['sbh09'] },
       ],
       Selangor: [
-        { code: 'sgr01', name: this.zoneNames['sgr01'] },
-        { code: 'sgr02', name: this.zoneNames['sgr02'] },
-        { code: 'sgr03', name: this.zoneNames['sgr03'] },
+        { code: 'sgr01', name: this.prayerTimesService.zoneNames['sgr01'] },
+        { code: 'sgr02', name: this.prayerTimesService.zoneNames['sgr02'] },
+        { code: 'sgr03', name: this.prayerTimesService.zoneNames['sgr03'] },
       ],
       Sarawak: [
-        { code: 'swk01', name: this.zoneNames['swk01'] },
-        { code: 'swk02', name: this.zoneNames['swk02'] },
-        { code: 'swk03', name: this.zoneNames['swk03'] },
-        { code: 'swk04', name: this.zoneNames['swk04'] },
-        { code: 'swk05', name: this.zoneNames['swk05'] },
-        { code: 'swk06', name: this.zoneNames['swk06'] },
-        { code: 'swk07', name: this.zoneNames['swk07'] },
-        { code: 'swk08', name: this.zoneNames['swk08'] },
-        { code: 'swk09', name: this.zoneNames['swk09'] },
+        { code: 'swk01', name: this.prayerTimesService.zoneNames['swk01'] },
+        { code: 'swk02', name: this.prayerTimesService.zoneNames['swk02'] },
+        { code: 'swk03', name: this.prayerTimesService.zoneNames['swk03'] },
+        { code: 'swk04', name: this.prayerTimesService.zoneNames['swk04'] },
+        { code: 'swk05', name: this.prayerTimesService.zoneNames['swk05'] },
+        { code: 'swk06', name: this.prayerTimesService.zoneNames['swk06'] },
+        { code: 'swk07', name: this.prayerTimesService.zoneNames['swk07'] },
+        { code: 'swk08', name: this.prayerTimesService.zoneNames['swk08'] },
+        { code: 'swk09', name: this.prayerTimesService.zoneNames['swk09'] },
       ],
       Terengganu: [
-        { code: 'trg01', name: this.zoneNames['trg01'] },
-        { code: 'trg02', name: this.zoneNames['trg02'] },
-        { code: 'trg03', name: this.zoneNames['trg03'] },
-        { code: 'trg04', name: this.zoneNames['trg04'] },
+        { code: 'trg01', name: this.prayerTimesService.zoneNames['trg01'] },
+        { code: 'trg02', name: this.prayerTimesService.zoneNames['trg02'] },
+        { code: 'trg03', name: this.prayerTimesService.zoneNames['trg03'] },
+        { code: 'trg04', name: this.prayerTimesService.zoneNames['trg04'] },
       ],
       'Wilayah Persekutuan': [
-        { code: 'wly01', name: this.zoneNames['wly01'] },
-        { code: 'wly02', name: this.zoneNames['wly02'] },
+        { code: 'wly01', name: this.prayerTimesService.zoneNames['wly01'] },
+        { code: 'wly02', name: this.prayerTimesService.zoneNames['wly02'] },
       ],
     };
 
     // Build grouped buttons with headers
     const buttons: any[] = [];
+
+    // Add automatic location detection option at the top
+    buttons.push({
+      text: '📍 Gunakan Lokasi Semasa (Automatik)',
+      cssClass: 'location-option',
+      handler: () => {
+        this.getAutomaticLocation();
+      },
+    });
+
     const stateIcons: { [state: string]: string } = {
       Johor: '🟦',
       Kedah: '🟩',
@@ -760,7 +703,7 @@ export class HomePage implements OnDestroy {
     });
 
     const actionSheet = await this.actionSheetController.create({
-      header: 'Pilih Negeri & Zon',
+      header: 'Pilih Lokasi Anda',
       buttons: buttons,
     });
     await actionSheet.present();
@@ -779,10 +722,6 @@ export class HomePage implements OnDestroy {
           );
           // Optionally, re-initialize data on the page (for example, reload prayer times display)
           this.loadPrayerData();
-          this.presentToast(
-            'Waktu solat dikemaskini untuk zon baru.',
-            'success',
-          );
         } else {
           console.log('Failed to fetch manual prayer times.');
           this.presentToast('Gagal untuk mendapatkan waktu solat.', 'danger');
@@ -795,15 +734,85 @@ export class HomePage implements OnDestroy {
     );
   }
 
+  // Function to automatically detect user's location and set prayer times
+  async getAutomaticLocation() {
+    try {
+      // Step 1: Show GPS dialog once (if GPS is disabled)
+      await this.prayerTimesService.checkGpsStatus();
+
+      // Step 2: Smart retry mechanism - check GPS status up to 10 times with 500ms intervals
+      let gpsEnabled = false;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        if (await this.prayerTimesService.isGpsEnabled()) {
+          gpsEnabled = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms between checks
+      }
+
+      if (!gpsEnabled) {
+        this.presentToast(
+          '❌ GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.',
+          'danger',
+        );
+        return;
+      }
+
+      // Step 3: GPS is enabled! Show loading spinner and proceed with location detection
+      this.isDetectingLocation = true;
+
+      // Step 4: Get current location and zone using the service
+      const detectedZone = await this.prayerTimesService.getCurrentLocation();
+
+      if (detectedZone) {
+        this.prayerTimesService.presentToast(
+          `✅ Lokasi dikesan: ${this.prayerTimesService.zoneNames[detectedZone]}`,
+          'success',
+        );
+
+        // Step 5: Update prayer times with the detected zone
+        await this.prayerTimesService.refreshDataWithLocation(detectedZone);
+
+        // Step 6: Update the current location display
+        this.currentLocation =
+          this.prayerTimesService.zoneNames[detectedZone] ||
+          this.prayerTimesService.zoneNames['kdh01'];
+
+        // Step 7: Reload prayer data to reflect the new zone
+        await this.loadPrayerData();
+      } else {
+        this.presentToast(
+          '❌ Gagal mengesan lokasi. Sila cuba lagi.',
+          'danger',
+        );
+      }
+    } catch (error: any) {
+      console.error('Error detecting location:', error);
+      let errorMessage = 'Ralat sewaktu mengesan lokasi';
+
+      if (error.message) {
+        if (error.message.includes('GPS')) {
+          errorMessage =
+            'GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.';
+        } else if (error.message.includes('permission')) {
+          errorMessage =
+            'Kebenaran lokasi diperlukan. Sila benarkan akses lokasi.';
+        } else if (error.message.includes('network')) {
+          errorMessage = 'Ralat rangkaian. Sila periksa sambungan internet.';
+        } else if (error.message.includes('Koordinat')) {
+          errorMessage = 'Koordinat lokasi tidak sah. Sila cuba lagi.';
+        }
+      }
+
+      this.presentToast(`❌ ${errorMessage}`, 'danger');
+    } finally {
+      this.isDetectingLocation = false;
+    }
+  }
+
   // Helper method to show toast messages
   async presentToast(message: string, color: string) {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      color: color,
-      position: 'bottom',
-    });
-    toast.present();
+    await this.toastService.presentToast(message, color);
   }
 
   navigateToPrayerTimes() {

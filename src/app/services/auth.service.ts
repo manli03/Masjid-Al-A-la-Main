@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
-import { Platform, ToastController } from '@ionic/angular';
+import { Platform } from '@ionic/angular';
 import { StorageService } from './storage.service';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { FcmService } from './fcm.service';
+import { ToastService } from './toast.service';
 
 @Injectable({
   providedIn: 'root',
@@ -23,7 +24,7 @@ export class AuthService {
     private platform: Platform,
     private storageService: StorageService,
     private http: HttpClient,
-    private toastController: ToastController,
+    private toastService: ToastService,
     private fcmService: FcmService,
   ) {
     this.initializeAuth();
@@ -325,13 +326,7 @@ export class AuthService {
    * Show a toast message
    */
   private async presentToast(message: string, color: string = 'danger') {
-    const toast = await this.toastController.create({
-      message: message,
-      duration: 3000,
-      position: 'bottom',
-      color: color,
-    });
-    await toast.present();
+    await this.toastService.presentToast(message, color);
   }
 
   /**
