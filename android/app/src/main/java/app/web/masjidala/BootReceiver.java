@@ -17,8 +17,7 @@ public class BootReceiver extends BroadcastReceiver {
         try {
           if (intent.getAction() != null) {
             String action = intent.getAction();
-            if (action.equals(Intent.ACTION_BOOT_COMPLETED) ||
-              action.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)) {
+            if (action.equals(Intent.ACTION_LOCKED_BOOT_COMPLETED)) {
               Log.d(TAG, "Device booted with action: " + action + ", rescheduling prayer notifications.");
 
               // Ensure the daily 12 AM check is scheduled first

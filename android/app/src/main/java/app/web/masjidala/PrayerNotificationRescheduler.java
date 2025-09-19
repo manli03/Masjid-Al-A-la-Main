@@ -179,34 +179,49 @@ public class PrayerNotificationRescheduler {
     }
   }
 
-  // This method sets the actual alarm using AlarmManager.
+  // This method sets the actual alarm using AlarmManager with setAlarmClock
   public static void schedulePrayerAlarm(Context context, long triggerAtMillis, int requestCode, String prayerName, String channelId, int advanceMinutes) {
     Log.d(TAG, "Scheduling alarm for " + prayerName + " at " + new Date(triggerAtMillis).toString() + " (RequestCode: " + requestCode + ")");
+    
+    // Create the main alarm intent that will trigger the notification
     Intent intent = new Intent(context, PrayerAlarmReceiver.class);
     intent.putExtra("channel_id", channelId);
     intent.putExtra("title", "Waktu " + prayerName);
-    // Pass necessary info for the notification to be built correctly
     intent.putExtra("prayer_name", prayerName);
     intent.putExtra("advance_minutes", advanceMinutes);
-    intent.putExtra("capacitor_request_code", requestCode); // Store request code if needed by receiver
-
+    intent.putExtra("capacitor_request_code", requestCode);
     intent.putExtra("message", "Sekarang waktu " + prayerName);
 
-    PendingIntent pendingIntent = PendingIntent.getBroadcast(
-      context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-    AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    // Create the main pending intent for the alarm
+    PendingIntent alarmPendingIntent = PendingIntent.getBroadcast(
+        context, 
+        requestCode, 
+        intent, 
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+    );
 
-    // This section uses the exact/allowWhileIdle logic from Capacitor for reliability.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-      if (!alarmManager.canScheduleExactAlarms()) {
-        Log.w(TAG, "Exact alarms not allowed in user settings. Scheduling " + prayerName + " with non-exact alarm.");
-        alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-      } else {
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
-      }
+    // Create a "show alarm" intent that will be triggered when user taps the alarm clock icon
+    Intent showIntent = new Intent(context, MainActivity.class); // Opens the main app
+    showIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+    PendingIntent showPendingIntent = PendingIntent.getActivity(
+        context,
+        requestCode,
+        showIntent,
+        PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+    );
+
+    AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+    if (alarmManager != null) {
+        // Use setAlarmClock which is ideal for prayer times as it:
+        // 1. Shows a system UI indicator that an alarm is set
+        // 2. Guarantees delivery even in Doze mode
+        // 3. Is more appropriate for time-critical notifications
+        AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(triggerAtMillis, showPendingIntent);
+        alarmManager.setAlarmClock(alarmClockInfo, alarmPendingIntent);
+        
+        Log.d(TAG, "Successfully scheduled AlarmClock for " + prayerName + " using setAlarmClock");
     } else {
-      // On older APIs, setExactAndAllowWhileIdle is generally preferred for reliability in Doze
-      alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent);
+        Log.e(TAG, "Failed to schedule alarm for " + prayerName + " - AlarmManager was null");
     }
   }
 }
