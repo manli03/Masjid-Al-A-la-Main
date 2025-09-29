@@ -35,7 +35,7 @@ public class DailyNotificationScheduling {
             // Check if the app can schedule exact alarms
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
                 Log.w(TAG, "Exact alarms permission NOT granted. Daily check might be delayed by the OS.");
-              // We will proceed with setAndAllowWhileIdle, but warn the developer.
+                // We will proceed with setAndAllowWhileIdle, but warn the developer.
             } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 Log.d(TAG, "Exact alarms permission IS granted. Daily check should be punctual.");
             }
@@ -49,7 +49,7 @@ public class DailyNotificationScheduling {
                     context,
                     0, // Using 0 as request code for this single daily check
                     intent,
-              PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
             );
 
             // 🔥 Cancel any existing alarm
@@ -67,13 +67,13 @@ public class DailyNotificationScheduling {
                 calendar.add(Calendar.DAY_OF_YEAR, 1);
             }
 
-            Log.d(TAG, "Setting daily check alarm for " + calendar.getTime().toString());
+            Log.d(TAG, "Setting daily check alarm for " + calendar.getTime());
 
             // 🔥 Use setAlarmClock for maximum reliability - never deferred by Doze mode
             // This is specifically designed for alarm clock functionality
             AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(
-                calendar.getTimeInMillis(),
-                pendingIntent
+                    calendar.getTimeInMillis(),
+                    pendingIntent
             );
 
             alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);

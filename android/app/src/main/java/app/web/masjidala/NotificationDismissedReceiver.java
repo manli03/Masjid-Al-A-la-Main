@@ -1,6 +1,5 @@
 package app.web.masjidala;
 
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -8,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
@@ -26,17 +26,17 @@ public class NotificationDismissedReceiver extends BroadcastReceiver {
         android.util.Log.d(TAG, "Notification dismissed, re-posting...");
 
         // Check if the AzanPlaybackService is still running
-        if (isServiceRunning(context, AzanPlaybackService.class)) {
+        if (isServiceRunning(context)) {
             // Re-post the notification with original details
             createAndShowNotification(context, intent);
         }
     }
 
-    private boolean isServiceRunning(Context context, Class<?> serviceClass) {
+    private boolean isServiceRunning(Context context) {
         android.app.ActivityManager manager = (android.app.ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         if (manager != null) {
             for (android.app.ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-                if (serviceClass.getName().equals(service.service.getClassName())) {
+                if (AzanPlaybackService.class.getName().equals(service.service.getClassName())) {
                     return true;
                 }
             }
@@ -95,8 +95,8 @@ public class NotificationDismissedReceiver extends BroadcastReceiver {
                 .setContentIntent(contentIntent)
                 .setDeleteIntent(deletePendingIntent) // Detect when dismissed
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
-                  .setShowActionsInCompactView(0) // Show first action in compact view
-                  .setMediaSession(null)) // MediaStyle for better action visibility
+                        .setShowActionsInCompactView(0) // Show first action in compact view
+                        .setMediaSession(null)) // MediaStyle for better action visibility
                 .addAction(R.drawable.ic_stop, "Hentikan Bunyi", stopPendingIntent);
 
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);

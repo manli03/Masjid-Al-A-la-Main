@@ -16,6 +16,7 @@ import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
+
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
@@ -49,7 +50,6 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
     private String soundName;  // Store locally to avoid being overwritten
     private int advanceMinutes;
     private boolean hasAudioFocus = false;
-    private boolean isPlaying = false;
     private boolean isStopping = false; // Prevent multiple stop calls
 
     @Override
@@ -81,7 +81,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
             // Check if another instance is already playing within the time window
             long currentTime = System.currentTimeMillis();
             if (currentInstance != null && currentInstance != this &&
-                currentTime - lastPlaybackStartTime < 10000) { // Within 10 seconds
+                    currentTime - lastPlaybackStartTime < 10000) { // Within 10 seconds
                 Log.d(TAG, "Another azan is already playing within 10 seconds for " + currentInstance.prayerName + ", stopping this new request for " + prayerName);
                 stopSelf(); // Stop this service instance immediately
                 return START_NOT_STICKY;
@@ -186,18 +186,12 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
 
                 // Create MediaPlayer manually to ensure proper audio attributes
                 mediaPlayer = new MediaPlayer();
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ALARM)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build();
-                    mediaPlayer.setAudioAttributes(audioAttributes);
-                    Log.d(TAG, "Set audio attributes to alarm type for azan: " + soundToPlay);
-                } else {
-                    // For older Android versions, set audio stream type
-                    mediaPlayer.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
-                    Log.d(TAG, "Set audio stream to alarm type for azan (legacy): " + soundToPlay);
-                }
+                AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build();
+                mediaPlayer.setAudioAttributes(audioAttributes);
+                Log.d(TAG, "Set audio attributes to alarm type for azan: " + soundToPlay);
 
                 try {
                     // Set data source and prepare
@@ -421,20 +415,6 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         }
     }
 
-    private Notification createInitialNotification() {
-        // Create a basic notification for initial foreground start
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
-                .setColor(ContextCompat.getColor(this, R.color.notification_color))
-                .setContentTitle("Memuatkan azan...")
-                .setContentText("Sedia untuk memainkan azan")
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setOngoing(true)
-                .setAutoCancel(false);
-
-        return builder.build();
-    }
-
     private Notification createNotification() {
         // Create intent for stopping the azan
         Intent stopIntent = new Intent(this, AzanPlaybackService.class);
@@ -475,8 +455,8 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
                 .setContentIntent(contentIntent)
                 .setDeleteIntent(deletePendingIntent) // Detect when dismissed
                 .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
-                    .setShowActionsInCompactView(0) // Show first action in compact view
-                    .setMediaSession(null)) // MediaStyle for better action visibility
+                        .setShowActionsInCompactView(0) // Show first action in compact view
+                        .setMediaSession(null)) // MediaStyle for better action visibility
                 .addAction(R.drawable.ic_stop, "Hentikan Bunyi", stopPendingIntent);
 
         return builder.build();
@@ -599,7 +579,6 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
             }
         }
     }
-
 
 
     @Override

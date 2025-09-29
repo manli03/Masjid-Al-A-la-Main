@@ -3,7 +3,6 @@ package app.web.masjidala;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
-import android.os.Build;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -50,18 +49,12 @@ public class AndroidAudio extends Plugin {
 
             // Create MediaPlayer manually to ensure proper audio attributes
             mediaPlayer = new MediaPlayer();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build();
-                mediaPlayer.setAudioAttributes(audioAttributes);
-                Log.d(TAG, "Set audio attributes to alarm type for preview: " + resourceName);
-            } else {
-                // For older Android versions, set audio stream type
-                mediaPlayer.setAudioStreamType(android.media.AudioManager.STREAM_ALARM);
-                Log.d(TAG, "Set audio stream to alarm type for preview (legacy): " + resourceName);
-            }
+            AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build();
+            mediaPlayer.setAudioAttributes(audioAttributes);
+            Log.d(TAG, "Set audio attributes to alarm type for preview: " + resourceName);
 
             try {
                 // Set data source and prepare
@@ -76,6 +69,7 @@ public class AndroidAudio extends Plugin {
             }
 
             // Set volume
+            assert volume != null;
             mediaPlayer.setVolume(volume.floatValue(), volume.floatValue());
             Log.d(TAG, "Set volume to: " + volume);
 
@@ -158,9 +152,9 @@ public class AndroidAudio extends Plugin {
         try {
             // Get the raw resource ID from the name
             int resId = getContext().getResources().getIdentifier(
-                resourceName,
-                "raw",
-                getContext().getPackageName()
+                    resourceName,
+                    "raw",
+                    getContext().getPackageName()
             );
 
             Log.d(TAG, "Resource ID for " + resourceName + ": " + resId);
@@ -192,27 +186,27 @@ public class AndroidAudio extends Plugin {
 
     @PluginMethod
     public void setNotification(PluginCall call) {
-      Log.d(TAG, "setNotification called");
-      try {
-        Context context = this.getContext();
-        if (context == null) {
-          Log.e(TAG, "Context is null");
-          call.reject("Context is null");
-          return;
+        Log.d(TAG, "setNotification called");
+        try {
+            Context context = this.getContext();
+            if (context == null) {
+                Log.e(TAG, "Context is null");
+                call.reject("Context is null");
+                return;
+            }
+
+            // Schedule prayer notifications
+            PrayerNotificationRescheduler.rescheduleAll(context);
+
+            // 🔥 Also set up the daily repeating alarm
+            DailyNotificationScheduling.scheduleDailyCheck(context);
+
+            call.resolve(); // Resolve the call after successful scheduling
+        } catch (Exception e) {
+            Log.e(TAG, "Error scheduling notifications: " + e.getMessage());
+            e.printStackTrace();
+            call.reject("Error scheduling notifications: " + e.getMessage(), e);
         }
-
-        // Schedule prayer notifications
-        PrayerNotificationRescheduler.rescheduleAll(context);
-
-        // 🔥 Also set up the daily repeating alarm
-        DailyNotificationScheduling.scheduleDailyCheck(context);
-
-        call.resolve(); // Resolve the call after successful scheduling
-      } catch (Exception e) {
-        Log.e(TAG, "Error scheduling notifications: " + e.getMessage());
-        e.printStackTrace();
-        call.reject("Error scheduling notifications: " + e.getMessage(), e);
-      }
     }
 
     @Override
