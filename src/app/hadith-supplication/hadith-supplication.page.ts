@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
 import { AlertController, Platform } from '@ionic/angular';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 // Import Capacitor Haptics
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
@@ -132,6 +132,7 @@ export class HadithSupplicationPage implements OnInit {
     private alertController: AlertController,
     private platform: Platform,
     private router: Router,
+    private route: ActivatedRoute,
   ) {}
 
   async ngOnInit() {
@@ -357,6 +358,13 @@ export class HadithSupplicationPage implements OnInit {
     // Use the Hadith interface
     this.selectedHadith = hadith;
 
+    // Add query param to indicate detail view
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { detail: 'true' },
+      queryParamsHandling: 'merge',
+    });
+
     if (this.hadithContent) {
       this.hadithContent.nativeElement.scrollIntoView({
         behavior: 'smooth',
@@ -367,6 +375,12 @@ export class HadithSupplicationPage implements OnInit {
 
   deselectHadith() {
     this.selectedHadith = null;
+    // Remove query param when deselecting
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { detail: null },
+      queryParamsHandling: 'merge',
+    });
   }
 
   navigateHadith(direction: string) {

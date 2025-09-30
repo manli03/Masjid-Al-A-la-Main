@@ -86,7 +86,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
 
         Intent launchIntent = new Intent(context, MainActivity.class);
         launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
+        launchIntent.putExtra("deep_link", "/prayerTimes");
 
         PendingIntent contentIntent = PendingIntent.getActivity(
                 context,

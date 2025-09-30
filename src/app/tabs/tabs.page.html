@@ -1,26 +1,27 @@
 <ion-tabs>
-  <ion-tab-bar slot="bottom">
+  <ion-tab-bar slot="bottom" *ngIf="!hideTabBar">
     <!-- Home Tab -->
-    <ion-tab-button tab="home" [ngClass]="{'active': router.url === '/tabs/prayerTimes'}">
+    <ion-tab-button tab="home" [ngClass]="{'active': router.url.includes('/tabs/home')}">
       <ion-icon name="home"></ion-icon>
       <ion-label>Utama</ion-label>
     </ion-tab-button>
 
     <!-- Hadith Tab -->
-    <ion-tab-button tab="hadithSupplication">
+    <ion-tab-button tab="hadithSupplication" [ngClass]="{'active': router.url.includes('/tabs/hadithSupplication')}">
       <ion-icon name="book"></ion-icon>
       <ion-label>Amalan</ion-label>
     </ion-tab-button>
 
     <!-- Pengumuman Tab - Uses click handler -->
     <ion-tab-button (click)="goToAnnouncementTab()"
-      [ngClass]="{'active': router.url.includes('/tabs/announcement') || router.url.includes('/tabs/manage-announcement') || router.url.includes('/tabs/announcement-loading')}">
+      [ngClass]="{'active': router.url.includes('/tabs/announcement') || router.url.includes('/tabs/manage-announcement') || router.url.includes('/tabs/announcement-loading') || (router.url.includes('/tabs/authentication') && returnUrl.includes('/tabs/announcement'))}">
       <ion-icon name="megaphone"></ion-icon>
       <ion-label>Pengumuman</ion-label>
     </ion-tab-button>
 
     <!-- Profile Tab -->
-    <ion-tab-button tab="profile">
+    <ion-tab-button tab="profile"
+      [ngClass]="{'active': router.url.startsWith('/tabs/profile') || (router.url.includes('/tabs/authentication') && returnUrl.includes('/tabs/profile'))}">
       <ion-icon name="person"></ion-icon>
       <ion-label>Profil</ion-label>
     </ion-tab-button>

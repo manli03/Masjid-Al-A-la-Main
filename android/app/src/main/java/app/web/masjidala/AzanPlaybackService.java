@@ -426,7 +426,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         // Create intent for opening the app
         Intent launchIntent = new Intent(this, MainActivity.class);
         launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
+        launchIntent.putExtra("deep_link", "/prayerTimes");
         PendingIntent contentIntent = PendingIntent.getActivity(
                 this, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
@@ -535,7 +535,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         // Create intent for opening the app
         Intent launchIntent = new Intent(this, MainActivity.class);
         launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
+        launchIntent.putExtra("deep_link", "/prayerTimes");
         PendingIntent contentIntent = PendingIntent.getActivity(
                 this, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

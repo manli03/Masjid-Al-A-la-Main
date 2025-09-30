@@ -466,10 +466,10 @@ export class PrayerNotificationsService {
     // Update settings observable
     this.settingsSubject.next(settings);
 
-    console.log(
-      'Settings found, using previously Loaded notification settings:',
-      settings,
-    );
+    // console.log(
+    //   'Settings found, using previously Loaded notification settings:',
+    //   settings,
+    // );
 
     return settings;
   }
@@ -863,7 +863,7 @@ export class PrayerNotificationsService {
       (notification) => {
         console.log('Notification action performed', notification);
         // Navigate to prayer times page when notification is tapped
-        this.router.navigate(['/tabs/prayerTimes']);
+        this.router.navigate(['/prayerTimes']);
       },
     );
   }

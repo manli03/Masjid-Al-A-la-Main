@@ -14,13 +14,6 @@ const routes: Routes = [
           import('../home/home.module').then((m) => m.HomePageModule),
       },
       {
-        path: 'prayerTimes',
-        loadChildren: () =>
-          import('../prayerTimes/prayerTimes.module').then(
-            (m) => m.prayerTimesPageModule,
-          ),
-      },
-      {
         path: 'announcement-loading',
         loadChildren: () =>
           import('../announcement-loading/announcement-loading.module').then(

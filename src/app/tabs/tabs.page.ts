@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { Router, NavigationExtras, NavigationEnd } from '@angular/router';
+import { Router, NavigationExtras, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
 import { Subscription } from 'rxjs';
@@ -19,10 +19,13 @@ export class TabsPage implements OnInit, OnDestroy {
   private darkModeObserver!: MutationObserver;
   isAdminValue: boolean = false;
   private isDarkMode: boolean = false;
+  hideTabBar: boolean = false;
+  returnUrl: string = '';
 
   constructor(
     private platform: Platform,
     public router: Router,
+    private route: ActivatedRoute,
     private authService: AuthService,
     private prayerCoordinatorService: PrayerCoordinatorService,
   ) {}
@@ -64,6 +67,15 @@ export class TabsPage implements OnInit, OnDestroy {
         const isHome = url.startsWith('/tabs/home');
         const isAuth = url.startsWith('/tabs/authentication');
         const isSettings = url.startsWith('/settings');
+
+        // Check if we should hide the tab bar for detail views
+        this.hideTabBar = this.shouldHideTabBar(url);
+
+        // Get returnUrl from query params for tab active state
+        this.route.queryParams.subscribe((params) => {
+          this.returnUrl = params['returnUrl'] || '';
+        });
+
         this.handleStatusBarAndClass(isHome, isAuth, isSettings);
       }
     });
@@ -170,6 +182,18 @@ export class TabsPage implements OnInit, OnDestroy {
     };
 
     await checkLoadingStatus();
+  }
+
+  private shouldHideTabBar(url: string): boolean {
+    // Hide tab bar for hadith detail view (when detail=true query param is present)
+    if (url.startsWith('/tabs/hadithSupplication') && url.includes('detail=true')) {
+      return true;
+    }
+    // Hide tab bar for announcement detail view (when there's an ID in the path)
+    if (url.match(/^\/tabs\/announcement\/\d+/)) {
+      return true;
+    }
+    return false;
   }
 
   goToAnnouncementTab(announcementId?: number) {

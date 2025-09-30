@@ -64,7 +64,7 @@ public class NotificationDismissedReceiver extends BroadcastReceiver {
         // Create intent for opening the app
         Intent launchIntent = new Intent(context, MainActivity.class);
         launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        launchIntent.putExtra("deep_link", "/tabs/prayerTimes");
+        launchIntent.putExtra("deep_link", "/prayerTimes");
         PendingIntent contentIntent = PendingIntent.getActivity(
                 context, 0, launchIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );

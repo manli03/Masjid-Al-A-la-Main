@@ -83,6 +83,7 @@ ion-toolbar {
 
 .logout-container {
   padding: 20px 16px 40px;
+  margin-bottom: var(--ion-safe-area-bottom);
 
   .logout-button {
     --border-radius: 12px;

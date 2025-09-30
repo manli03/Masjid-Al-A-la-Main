@@ -222,7 +222,7 @@
       </ion-card-content>
     </div>
 
-    <div [class.navigation]="hasPreviousHadith()" [style.display]="!hasPreviousHadith() ? 'flex' : ''"
+    <div class="navigation-buttons" [class.navigation]="hasPreviousHadith()" [style.display]="!hasPreviousHadith() ? 'flex' : ''"
       [style.justifyContent]="!hasPreviousHadith() ? 'flex-end' : ''"
       [style.margin]="!hasPreviousHadith() ? '20px 10px' : ''">
       <div (click)="navigateHadith('previous')" style="display: flex; align-items: center;" *ngIf="hasPreviousHadith()">

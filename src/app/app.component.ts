@@ -169,7 +169,7 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log('App opened with URL:', event.url);
         const route = new URL(event.url).pathname;
         console.log('Parsed route:', route);
-        if (route === '/tabs/prayerTimes') {
+        if (route === '/prayerTimes') {
           this.router.navigateByUrl(route);
         } else {
           this.handleOpenUrl(event.url);

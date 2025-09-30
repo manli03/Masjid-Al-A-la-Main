@@ -813,7 +813,7 @@ export class HomePage implements OnDestroy {
   }
 
   navigateToPrayerTimes() {
-    this.router.navigate(['/tabs/prayerTimes']);
+    this.router.navigate(['/prayerTimes']);
   }
 
   async handleRefresh(event: CustomEvent) {

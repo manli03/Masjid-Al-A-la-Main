@@ -12,13 +12,21 @@ const routes: Routes = [
     path: 'announcement',
     loadChildren: () =>
       import('./announcement/announcement.module').then(
-        (m) => m.announcementPageModule
+        (m) => m.announcementPageModule,
       ),
   },
   {
     path: 'settings',
-    loadChildren: () => import('./settings/settings.module').then( m => m.SettingsPageModule),
-    canActivate: [authGuard]
+    loadChildren: () =>
+      import('./settings/settings.module').then((m) => m.SettingsPageModule),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'prayerTimes',
+    loadChildren: () =>
+      import('./prayerTimes/prayerTimes.module').then(
+        (m) => m.prayerTimesPageModule,
+      ),
   },
 ];
 

@@ -1,130 +1,204 @@
-<div *ngIf="!showYearlyPrayerTimes" style="height: 100vh;">
-  <!-- Loading Overlay -->
-  <div *ngIf="isDetectingLocation" class="loading-overlay">
-    <ion-spinner style="zoom: 2;"></ion-spinner>
-    <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
+<!-- Daily Prayer Times Page -->
+<!-- Loading Overlay -->
+<div *ngIf="isDetectingLocation && !showYearlyPrayerTimes" class="loading-overlay">
+  <ion-spinner style="zoom: 2;"></ion-spinner>
+  <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
+</div>
+<ion-header class="ion-no-border" *ngIf="!showYearlyPrayerTimes">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button [routerLink]="['/tabs/home']">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>
+      <span style="font-weight: bold">Waktu Solat</span>
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="refreshData()">
+        <ion-icon name="location-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="viewYearlyPrayerTimes()">
+        <ion-icon name="calendar-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content *ngIf="!showYearlyPrayerTimes">
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+  <!-- Current Prayer Times -->
+  <div class="header">
+    <img src="assets/loading/hdpi_landscape.png" />
+    <h5 *ngIf="loaded; else skeletonLocation">{{ location }}</h5>
+    <ng-template #skeletonLocation>
+      <ion-skeleton-text [animated]="true" style="width: 150px; display: inline-block;"></ion-skeleton-text>
+    </ng-template>
+    <h1>
+      <span *ngIf="loaded; else skeletonClosestPrayerTime">{{ closestPrayerTime }}</span>
+      <ng-template #skeletonClosestPrayerTime>
+        <ion-skeleton-text [animated]="true" style="width: 100px; display: inline-block;"></ion-skeleton-text>
+      </ng-template>
+    </h1>
+    <p *ngIf="loaded; else skeletonRemainingTime">{{ remainingTime }}</p>
+    <ng-template #skeletonRemainingTime>
+      <ion-skeleton-text [animated]="true" style="width: 80px; display: inline-block;"></ion-skeleton-text>
+    </ng-template>
   </div>
-  <ion-header class="ion-no-border">
-    <ion-toolbar>
-      <ion-buttons slot="start">
-        <ion-button [routerLink]="['/tabs/home']">
-          <ion-icon name="arrow-back"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-      <ion-title>
-        <span style="font-weight: bold">Waktu Solat</span>
-      </ion-title>
-      <ion-buttons slot="end">
-        <ion-button (click)="refreshData()">
-          <ion-icon name="location-outline"></ion-icon>
-        </ion-button>
-        <ion-button (click)="viewYearlyPrayerTimes()">
-          <ion-icon name="calendar-outline"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-    </ion-toolbar>
-  </ion-header>
 
-  <ion-content fullscreen>
-    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
-      <ion-refresher-content></ion-refresher-content>
-    </ion-refresher>
-    <!-- Current Prayer Times -->
-    <div class="header">
-      <img src="assets/loading/hdpi_landscape.png" />
-      <h5 *ngIf="loaded; else skeletonLocation">{{ location }}</h5>
-      <ng-template #skeletonLocation>
-        <ion-skeleton-text [animated]="true" style="width: 150px; display: inline-block;"></ion-skeleton-text>
-      </ng-template>
-      <h1>
-        <span *ngIf="loaded; else skeletonClosestPrayerTime">{{ closestPrayerTime }}</span>
-        <ng-template #skeletonClosestPrayerTime>
-          <ion-skeleton-text [animated]="true" style="width: 100px; display: inline-block;"></ion-skeleton-text>
-        </ng-template>
-      </h1>
-      <p *ngIf="loaded; else skeletonRemainingTime">{{ remainingTime }}</p>
-      <ng-template #skeletonRemainingTime>
-        <ion-skeleton-text [animated]="true" style="width: 80px; display: inline-block;"></ion-skeleton-text>
-      </ng-template>
-    </div>
-
-    <div class="container">
-      <div class="date-container d-flex justify-content-between align-items-center">
-        <div class="arrow" style="cursor: pointer; margin-left: 10px;" [ngClass]="{'disabled': !canNavigatePrevious()}"
-          (click)="!canNavigatePrevious() || goToPreviousDay()">
-          <ion-icon name="chevron-back"></ion-icon>
-        </div>
-
-        <div class="date-text text-center mx-3">
-          <h2 class="mb-0" *ngIf="loaded; else skeletonCurrentDate">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
-          <ng-template #skeletonCurrentDate>
-            <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
-          </ng-template>
-          <p class="mb-0" *ngIf="loaded; else skeletonHijriDate">{{ currentHijriDate }}</p>
-          <ng-template #skeletonHijriDate>
-            <ion-skeleton-text [animated]="true" style="width: 100px;"></ion-skeleton-text>
-          </ng-template>
-        </div>
-
-        <div class="arrow" style="cursor: pointer; margin-right: 10px;" [ngClass]="{'disabled': !canNavigateNext()}"
-          (click)="!canNavigateNext() || goToNextDay()">
-          <ion-icon name="chevron-forward"></ion-icon>
-        </div>
+  <div class="container">
+    <div class="date-container d-flex justify-content-between align-items-center">
+      <div class="arrow" style="cursor: pointer; margin-left: 10px;" [ngClass]="{'disabled': !canNavigatePrevious()}"
+        (click)="!canNavigatePrevious() || goToPreviousDay()">
+        <ion-icon name="chevron-back"></ion-icon>
       </div>
 
-      <div class="table-container">
-        <table class="daily-prayer-table">
-          <thead class="fixed-header">
-            <tr>
-              <th>Solat</th>
-              <th>Waktu</th>
-              <th style="text-align: right;">
-                <ion-button fill="clear" size="small" (click)="sharePrayerTimes()" *ngIf="loaded && prayers.length > 0"
-                  aria-label="Kongsi Waktu Solat">
-                  <ion-icon name="share-social-outline" slot="icon-only"></ion-icon>
-                </ion-button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let prayer of prayers">
-              <!-- MODIFICATION START: Re-added the prayer icon and container -->
-              <td class="dark prayer-name-cell">
-                <div class="prayer-name-container">
-                  <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + (isDarkMode ? '-white' : '') + '.svg'"
-                    alt="{{ prayer.name }} icon" width="20" height="20" />
-                  <span *ngIf="loaded; else skeletonPrayerName">{{ prayer.name }}</span>
-                  <ng-template #skeletonPrayerName>
-                    <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
-                  </ng-template>
-                </div>
-              </td>
-              <!-- MODIFICATION END -->
-              <td class="dark prayer-time-cell">
-                <span *ngIf="loaded; else skeletonPrayerTime">{{ convertTimeToDate(prayer.time) | date: 'shortTime'
-                  }}</span>
-                <ng-template #skeletonPrayerTime>
+      <div class="date-text text-center mx-3">
+        <h2 class="mb-0" *ngIf="loaded; else skeletonCurrentDate">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
+        <ng-template #skeletonCurrentDate>
+          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+        </ng-template>
+        <p class="mb-0" *ngIf="loaded; else skeletonHijriDate">{{ currentHijriDate }}</p>
+        <ng-template #skeletonHijriDate>
+          <ion-skeleton-text [animated]="true" style="width: 100px;"></ion-skeleton-text>
+        </ng-template>
+      </div>
+
+      <div class="arrow" style="cursor: pointer; margin-right: 10px;" [ngClass]="{'disabled': !canNavigateNext()}"
+        (click)="!canNavigateNext() || goToNextDay()">
+        <ion-icon name="chevron-forward"></ion-icon>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="daily-prayer-table">
+        <thead class="fixed-header">
+          <tr>
+            <th>Solat</th>
+            <th>Waktu</th>
+            <th style="text-align: right;">
+              <ion-button fill="clear" size="small" (click)="sharePrayerTimes()" *ngIf="loaded && prayers.length > 0"
+                aria-label="Kongsi Waktu Solat">
+                <ion-icon name="share-social-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let prayer of prayers">
+            <!-- MODIFICATION START: Re-added the prayer icon and container -->
+            <td class="dark prayer-name-cell">
+              <div class="prayer-name-container">
+                <img [src]="'../../assets/icon/' + prayer.name.toLowerCase() + (isDarkMode ? '-white' : '') + '.svg'"
+                  alt="{{ prayer.name }} icon" width="20" height="20" />
+                <span *ngIf="loaded; else skeletonPrayerName">{{ prayer.name }}</span>
+                <ng-template #skeletonPrayerName>
                   <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
                 </ng-template>
-              </td>
-              <td class="dark prayer-action-cell">
-                <button class="btn btn-reminder icon-only" [ngClass]="{'active': prayer.notificationEnabled, 'disabled': isPrayerDisabled(prayer.name)}"
-                  *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">
-                  <ion-icon [name]="prayer.notificationEnabled ? 'notifications' : 'notifications-outline'"
-                    slot="icon-only"></ion-icon>
-                </button>
-                <ng-template #skeletonReminderButton>
-                  <ion-skeleton-text [animated]="true"
-                    style="width: 36px; height: 36px; border-radius: 50%;"></ion-skeleton-text>
-                </ng-template>
-              </td>
+              </div>
+            </td>
+            <!-- MODIFICATION END -->
+            <td class="dark prayer-time-cell">
+              <span *ngIf="loaded; else skeletonPrayerTime">{{ convertTimeToDate(prayer.time) | date: 'shortTime'
+                }}</span>
+              <ng-template #skeletonPrayerTime>
+                <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+              </ng-template>
+            </td>
+            <td class="dark prayer-action-cell">
+              <button class="btn btn-reminder icon-only"
+                [ngClass]="{'active': prayer.notificationEnabled, 'disabled': isPrayerDisabled(prayer.name)}"
+                *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">
+                <ion-icon [name]="prayer.notificationEnabled ? 'notifications' : 'notifications-outline'"
+                  slot="icon-only"></ion-icon>
+              </button>
+              <ng-template #skeletonReminderButton>
+                <ion-skeleton-text [animated]="true"
+                  style="width: 36px; height: 36px; border-radius: 50%;"></ion-skeleton-text>
+              </ng-template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</ion-content>
+
+<!-- Yearly Prayer Times Page -->
+<ion-header class="ion-no-border" *ngIf="showYearlyPrayerTimes">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="backToMainPrayerTimes()">
+        <ion-icon name="arrow-back"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title style="text-align: center; margin-left: -40px;">Waktu Solat Tahunan</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content *ngIf="showYearlyPrayerTimes">
+  <div class="yearly-view-wrapper">
+    <div class="header" style="padding-bottom: 0;">
+      <img src="assets/loading/hdpi_landscape.png" />
+      <div style="margin: 0 10px;">
+        <h4 *ngIf="loaded; else skeletonYearlyLocation">{{ location }}</h4>
+        <ng-template #skeletonYearlyLocation>
+          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
+        </ng-template>
+        <p style="font-size: smaller; padding: 10px 0;" *ngIf="loaded; else skeletonLastUpdated">Data Terakhir
+          dikemaskini: {{
+          lastUpdated }}</p>
+        <ng-template #skeletonLastUpdated>
+          <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
+        </ng-template>
+      </div>
+    </div>
+    <div class="container" *ngIf="yearlyPrayers.length > 0; else noData">
+      <div class="table-container" style="overflow-x: auto; white-space: nowrap;">
+        <table class="tables">
+          <thead class="fixed-header">
+            <tr>
+              <th>{{ currentDate | date: 'yyyy' }}</th>
+              <th>Imsak</th>
+              <th>Subuh</th>
+              <th>Syuruk</th>
+              <th>Dhuha</th>
+              <th>Zuhur</th>
+              <th>Asar</th>
+              <th>Maghrib</th>
+              <th>Isyak</th>
+            </tr>
+          </thead>
+          <tbody #yearlyTable>
+            <tr *ngFor="let prayer of yearlyPrayers"
+              [ngClass]="{'current-day': isToday(prayer.date), 'clicked-row': clickedRow === prayer}"
+              (click)="setClickedRow(prayer)">
+              <td>{{ prayer.date | date: 'MMM d' }}</td>
+              <td>{{ convertTimeToDate(prayer.imsak) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.fajr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.syuruk) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.dhuha) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.dhuhr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.asr) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.maghrib) | date: 'h:mm a' }}</td>
+              <td>{{ convertTimeToDate(prayer.isha) | date: 'h:mm a' }}</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-  </ion-content>
-</div>
+
+    <ng-template #noData>
+      <p style="text-align: center; color: #808080; font-size: 16px; margin-top: 20px;">Tiada waktu solat tersedia
+        untuk
+        tahun ini.</p>
+    </ng-template>
+  </div>
+</ion-content>
+
+
 <!-- Hidden div for generating image to share -->
 <div #prayerTimesToShareContainer id="prayerTimesToShareContainer"
   style="position: fixed; left: -9999px; top: 0; z-index: -1; padding: 0; margin: 0;">
@@ -158,78 +232,4 @@
         Aplikasi Masjid Al-A'la</p>
     </div>
   </div>
-</div>
-
-<div *ngIf="showYearlyPrayerTimes" style="height: 100vh;">
-  <!-- Yearly Prayer Times Table -->
-  <ion-header class="ion-no-border">
-    <ion-toolbar>
-      <ion-buttons slot="start">
-        <ion-button (click)="backToMainPrayerTimes()">
-          <ion-icon name="arrow-back"></ion-icon>
-        </ion-button>
-      </ion-buttons>
-      <ion-title style="text-align: center; margin-left: -40px;">Waktu Solat Tahunan</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <ion-content fullscreen>
-    <div class="yearly-view-wrapper">
-      <div class="header" style="padding-bottom: 0;">
-        <img src="assets/loading/hdpi_landscape.png" />
-        <div style="margin: 0 10px;">
-          <h4 *ngIf="loaded; else skeletonYearlyLocation">{{ location }}</h4>
-          <ng-template #skeletonYearlyLocation>
-            <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
-          </ng-template>
-          <p style="font-size: smaller; padding: 10px 0;" *ngIf="loaded; else skeletonLastUpdated">Data Terakhir
-            dikemaskini: {{
-            lastUpdated }}</p>
-          <ng-template #skeletonLastUpdated>
-            <ion-skeleton-text [animated]="true" style="width: 200px;"></ion-skeleton-text>
-          </ng-template>
-        </div>
-      </div>
-      <div class="container" *ngIf="yearlyPrayers.length > 0; else noData">
-        <div class="table-container" style="overflow-x: auto; white-space: nowrap;">
-          <table class="tables">
-            <thead class="fixed-header">
-              <tr>
-                <th>{{ currentDate | date: 'yyyy' }}</th>
-                <th>Imsak</th>
-                <th>Subuh</th>
-                <th>Syuruk</th>
-                <th>Dhuha</th>
-                <th>Zuhur</th>
-                <th>Asar</th>
-                <th>Maghrib</th>
-                <th>Isyak</th>
-              </tr>
-            </thead>
-            <tbody #yearlyTable>
-              <tr *ngFor="let prayer of yearlyPrayers"
-                [ngClass]="{'current-day': isToday(prayer.date), 'clicked-row': clickedRow === prayer}"
-                (click)="setClickedRow(prayer)">
-                <td>{{ prayer.date | date: 'MMM d' }}</td>
-                <td>{{ convertTimeToDate(prayer.imsak) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.fajr) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.syuruk) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.dhuha) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.dhuhr) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.asr) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.maghrib) | date: 'h:mm a' }}</td>
-                <td>{{ convertTimeToDate(prayer.isha) | date: 'h:mm a' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <ng-template #noData>
-        <p style="text-align: center; color: #808080; font-size: 16px; margin-top: 20px;">Tiada waktu solat tersedia
-          untuk
-          tahun ini.</p>
-      </ng-template>
-    </div>
-  </ion-content>
 </div>
