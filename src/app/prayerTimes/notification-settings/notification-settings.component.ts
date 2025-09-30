@@ -96,6 +96,13 @@ export class NotificationSettingsComponent implements OnInit {
   }
 
   async saveSettings() {
+    // Check notification permission first
+    const notificationsEnabled =
+      await this.prayerNotificationsService.initializeNotifications();
+    if (!notificationsEnabled) {
+      return;
+    }
+
     this.isLoading = true;
 
     try {

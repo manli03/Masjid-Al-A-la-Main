@@ -45,13 +45,8 @@
         <!-- Azan Volume Control -->
         <ion-item *ngIf="notificationSettings.selectedAzanSound !== 'none'">
             <ion-label position="stacked">Volume Azan</ion-label>
-            <ion-range
-                min="0.1"
-                max="1.0"
-                step="0.05"
-                [(ngModel)]="notificationSettings.azanVolume"
-                [disabled]="isLoading"
-                (ionChange)="onVolumeChange($event)">
+            <ion-range min="0.1" max="1.0" step="0.05" [(ngModel)]="notificationSettings.azanVolume"
+                [disabled]="isLoading" (ionChange)="onVolumeChange($event)">
                 <ion-icon name="volume-low" slot="start" (click)="decreaseVolume()"></ion-icon>
                 <ion-icon name="volume-high" slot="end" (click)="increaseVolume()"></ion-icon>
             </ion-range>
@@ -69,7 +64,7 @@
         </ion-item>
 
         <!-- Show play button for all platforms (service will handle the platform differences) -->
-        <ion-item>
+        <ion-item *ngIf="notificationSettings.selectedAzanSound !== 'none'">
             <ion-button expand="block" (click)="toggleAzanPreview()" [color]="isAzanPlaying ? 'danger' : 'primary'">
                 <ion-icon [name]="isAzanPlaying ? 'stop' : 'play'" slot="start"></ion-icon>
                 {{ isAzanPlaying ? 'Hentikan Azan' : 'Main Azan Preview' }}
@@ -89,11 +84,11 @@
                 </ion-select-option>
             </ion-select>
         </ion-item>
-    </ion-list>
 
-    <div class="ion-padding">
-        <ion-button expand="block" (click)="saveSettings()" [disabled]="isLoading">
-            Simpan Tetapan
-        </ion-button>
-    </div>
+        <div class="ion-padding">
+            <ion-button expand="block" (click)="saveSettings()" [disabled]="isLoading">
+                Simpan Tetapan
+            </ion-button>
+        </div>
+    </ion-list>
 </ion-content>
