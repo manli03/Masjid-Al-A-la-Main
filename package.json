@@ -29,7 +29,6 @@
     "@capacitor/device": "^7.0.1",
     "@capacitor/dialog": "^7.0.1",
     "@capacitor/filesystem": "^7.0.1",
-    "@capacitor/geolocation": "^7.0.0",
     "@capacitor/haptics": "^7.0.0",
     "@capacitor/keyboard": "^7.0.0",
     "@capacitor/local-notifications": "^7.0.0",

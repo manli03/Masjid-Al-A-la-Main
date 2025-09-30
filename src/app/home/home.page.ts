@@ -4,6 +4,7 @@ import {
   Platform,
   ActionSheetController,
   ModalController,
+  AlertController,
 } from '@ionic/angular';
 import { ToastService } from '../services/toast.service';
 import { PrayerTimesService } from '../services/prayerTimes.service';
@@ -32,6 +33,7 @@ export class HomePage implements OnDestroy {
   reloadQiblaCompass: boolean = false;
   isProcessingNotifications: boolean = false;
   disabledPrayers: Set<string> = new Set();
+  notificationsEnabled: boolean = false;
 
   // Properties for tracking calculated state
   currentPrayer: { name: string; time: string; date: Date } | null = null;
@@ -56,6 +58,7 @@ export class HomePage implements OnDestroy {
     private actionSheetController: ActionSheetController,
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
+    private alertController: AlertController,
   ) {}
 
   async ionViewDidEnter() {
@@ -170,6 +173,13 @@ export class HomePage implements OnDestroy {
    * Toggle notification for a specific prayer
    */
   async togglePrayerNotification(prayerName: string) {
+    // Check notification permission first
+    this.notificationsEnabled =
+      await this.prayerNotificationsService.initializeNotifications();
+    if (!this.notificationsEnabled) {
+      return;
+    }
+    
     // Get display name from service
     const prayerDisplayName =
       this.prayerNotificationsService.getDisplayName(prayerName);
@@ -236,7 +246,7 @@ export class HomePage implements OnDestroy {
     }
   }
 
-  private async loadPrayerData(isFirstLoad: boolean = true): Promise<boolean> {
+  private async loadPrayerData(): Promise<boolean> {
     const savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
     if (savedData) {
       const zone = savedData.zone;
@@ -272,13 +282,9 @@ export class HomePage implements OnDestroy {
       this.startUpdatingTime();
       return true;
     } else {
-      // if (!isFirstLoad) {
-      //   SplashScreen.hide();
-      //   return false;
-      // }
       this.prayerTimesService.getDefaultPrayerTimes();
       setTimeout(async () => {
-        const loaded = await this.loadPrayerData(false);
+        const loaded = await this.loadPrayerData();
         if (loaded) {
           this.loaded = true;
         }
@@ -788,23 +794,14 @@ export class HomePage implements OnDestroy {
       }
     } catch (error: any) {
       console.error('Error detecting location:', error);
-      let errorMessage = 'Ralat sewaktu mengesan lokasi';
 
-      if (error.message) {
-        if (error.message.includes('GPS')) {
-          errorMessage =
-            'GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.';
-        } else if (error.message.includes('permission')) {
-          errorMessage =
-            'Kebenaran lokasi diperlukan. Sila benarkan akses lokasi.';
-        } else if (error.message.includes('network')) {
-          errorMessage = 'Ralat rangkaian. Sila periksa sambungan internet.';
-        } else if (error.message.includes('Koordinat')) {
-          errorMessage = 'Koordinat lokasi tidak sah. Sila cuba lagi.';
-        }
+      if (error === 'Kebenaran lokasi ditolak') {
+        // Show alert dialog to open app settings
+        this.prayerTimesService.showOpenSettingsDialog();
+        return; // Don't show additional error toast
       }
 
-      this.presentToast(`❌ ${errorMessage}`, 'danger');
+      this.presentToast(`❌ ${error}`, 'danger');
     } finally {
       this.isDetectingLocation = false;
     }

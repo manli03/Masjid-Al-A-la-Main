@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { PrayerTimesService, Prayer } from '../services/prayerTimes.service';
-import { ToastController, ModalController, Platform } from '@ionic/angular';
+import { ModalController, Platform, AlertController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { Capacitor } from '@capacitor/core';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
@@ -48,11 +48,11 @@ export class prayerTimesPage implements OnInit {
 
   constructor(
     private prayerTimesService: PrayerTimesService,
-    private toastController: ToastController,
     private router: Router,
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
     private platform: Platform,
+    private alertController: AlertController,
   ) {}
 
   async ngOnInit() {
@@ -236,23 +236,14 @@ export class prayerTimesPage implements OnInit {
       }
     } catch (error: any) {
       console.error('Error refreshing data:', error);
-      let errorMessage = 'Ralat sewaktu mengesan lokasi';
 
-      if (error.message) {
-        if (error.message.includes('GPS')) {
-          errorMessage =
-            'GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.';
-        } else if (error.message.includes('permission')) {
-          errorMessage =
-            'Kebenaran lokasi diperlukan. Sila benarkan akses lokasi.';
-        } else if (error.message.includes('network')) {
-          errorMessage = 'Ralat rangkaian. Sila periksa sambungan internet.';
-        } else if (error.message.includes('Koordinat')) {
-          errorMessage = 'Koordinat lokasi tidak sah. Sila cuba lagi.';
-        }
+      if (error === 'Kebenaran lokasi ditolak') {
+        // Show alert dialog to open app settings
+        this.prayerTimesService.showOpenSettingsDialog();
+        return; // Don't show additional error toast
       }
-
-      this.prayerTimesService.presentToast(`❌ ${errorMessage}`, 'danger');
+      
+      this.prayerTimesService.presentToast(`❌ ${error}`, 'danger');
     } finally {
       this.isDetectingLocation = false;
     }
@@ -468,24 +459,6 @@ export class prayerTimesPage implements OnInit {
         this.notificationsEnabled =
           await this.prayerNotificationsService.initializeNotifications();
         if (!this.notificationsEnabled) {
-          // Show custom toast with OK button that opens notification settings
-          const toast = await this.toastController.create({
-            message:
-              'Notifikasi tidak diaktifkan. Sila periksa tetapan peranti anda.',
-            duration: 5000,
-            position: 'top',
-            color: 'warning',
-            buttons: [
-              {
-                text: 'OK',
-                role: 'cancel',
-                handler: async () => {
-                  await this.prayerNotificationsService.openNotificationSettings();
-                },
-              },
-            ],
-          });
-          await toast.present();
           return;
         }
       }

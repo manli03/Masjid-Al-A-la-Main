@@ -25,6 +25,10 @@
   margin: 0 10px;
 }
 
+.container {
+  padding-bottom: 110px;
+}
+
 .date-container {
   background-color: white;
   padding: 10px;
@@ -61,7 +65,6 @@
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
-  margin-bottom: 70px;
 }
 
 /* MODIFICATION: Re-added style for prayer icon and name alignment */
@@ -172,7 +175,7 @@ thead.fixed-header {
   }
 
   tbody tr:last-child {
-    border-bottom: none;
+    border-bottom: none !important;
   }
 
   /* Style for the icon-only button */

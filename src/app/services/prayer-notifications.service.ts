@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { LocalNotifications, Channel } from '@capacitor/local-notifications';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { AlertController } from '@ionic/angular';
 import { Preferences } from '@capacitor/preferences';
 import { ToastService } from './toast.service';
 import { Router } from '@angular/router';
@@ -165,6 +166,7 @@ export class PrayerNotificationsService {
   constructor(
     private toastService: ToastService,
     private router: Router,
+    private alertController: AlertController,
   ) {
     // Set up notification listeners
     this.setupNotificationListeners();
@@ -179,24 +181,26 @@ export class PrayerNotificationsService {
       const permResult = await LocalNotifications.requestPermissions();
 
       if (permResult.display !== 'prompt' && permResult.display !== 'granted') {
-        // Show custom toast with OK button that opens notification settings
-        await this.toastService.presentToastImmediate(
-          'Notifikasi tidak dibenarkan. Sila aktifkan kebenaran notifikasi untuk menerima peringatan waktu solat.',
-          {
-            duration: 5000,
-            position: 'top',
-            color: 'warning',
-            buttons: [
-              {
-                text: 'OK',
-                role: 'cancel',
-                handler: async () => {
-                  await this.openNotificationSettings();
-                },
+        // Show alert dialog to open app notification settings
+        const alert = await this.alertController.create({
+          header: 'Kebenaran Notifikasi Diperlukan',
+          message:
+            'Notifikasi tidak diaktifkan. Sila aktifkan notifikasi untuk mendapat pemberitahuan waktu solat.',
+          buttons: [
+            {
+              text: 'Batal',
+              role: 'cancel',
+            },
+            {
+              text: 'Buka Tetapan',
+              handler: async () => {
+                await this.openNotificationSettings();
               },
-            ],
-          }
-        );
+            },
+          ],
+          backdropDismiss: false,
+        });
+        await alert.present();
         return false;
       }
 

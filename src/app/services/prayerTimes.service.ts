@@ -708,6 +708,13 @@ export class PrayerTimesService {
     }
     return true; // iOS/web don't need GPS check
   }
+  
+  // Show dialog to open app settings
+  async showOpenSettingsDialog(): Promise<void> {
+    if (Capacitor.getPlatform() === 'android') {
+      await this.locationService.showOpenSettingsDialog();
+    }
+  }
 
   /**
    * Present a toast message

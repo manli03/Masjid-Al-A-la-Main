@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 import { registerPlugin } from '@capacitor/core';
+import { AlertController } from '@ionic/angular';
+import { NativeSettings, AndroidSettings, IOSSettings } from 'capacitor-native-settings';
 
 // Register the custom plugin
 const GpsEnabler = registerPlugin<GpsEnablerPlugin>('GpsEnabler');
@@ -13,7 +15,9 @@ interface GpsEnablerPlugin {
   providedIn: 'root',
 })
 export class LocationService {
-  constructor() {
+  constructor(
+    private alertController: AlertController,
+  ) {
   }
 
   enableGps() {
@@ -79,27 +83,64 @@ export class LocationService {
     return 'geolocation' in navigator;
   }
 
+  private async openAppSettings(): Promise<void> {
+    try {
+      await NativeSettings.open({
+        optionAndroid: AndroidSettings.ApplicationDetails,
+        optionIOS: IOSSettings.App,
+      });
+    } catch (error) {
+      console.error('Error opening app settings:', error);
+    }
+  }
+
+  async showOpenSettingsDialog(): Promise<void> {
+    try {
+      const alert = await this.alertController.create({
+        header: 'Kebenaran Lokasi Diperlukan',
+        message:
+          'Kebenaran lokasi telah ditolak. Sila benarkan akses lokasi dalam tetapan.',
+        buttons: [
+          {
+            text: 'Batal',
+            role: 'cancel',
+          },
+          {
+            text: 'Buka Tetapan',
+            handler: async () => {
+              await this.openAppSettings();
+            },
+          },
+        ],
+        backdropDismiss: false,
+      });
+      await alert.present();
+    } catch (error) {
+      console.error('Error opening location settings:', error);
+    }
+  }
+
   async getCurrentLocation(): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
       if (this.isLocationSupported()) {
         navigator.geolocation.getCurrentPosition(resolve, (error) => {
-          let errorMessage = 'Unknown error';
+          let errorMessage = 'Ralat tidak diketahui';
           switch (error.code) {
             case 1:
               errorMessage = 'Kebenaran lokasi ditolak';
               break;
             case 2:
-              errorMessage = 'Posisi lokasi tidak tersedia';
+              errorMessage = 'Koordinat lokasi tidak tersedia';
               break;
             case 3:
-              errorMessage = 'Waktu tamat';
+              errorMessage = 'Permintaan lokasi tamat masa';
               break;
           }
           console.error('Ralat semasa mendapatkan lokasi anda:', error);
           reject(errorMessage);
         });
       } else {
-        reject('Geolocation tidak disokong oleh pelayar ini');
+        reject('Servis lokasi tidak disokong oleh pelayar ini');
       }
     });
   }
