@@ -28,8 +28,6 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
 
         try {
             String channelId = intent.getStringExtra("channel_id");
-            String title = intent.getStringExtra("title");
-            String message = intent.getStringExtra("message");
             String prayerName = intent.getStringExtra("prayer_name");
             int advanceMinutes = intent.getIntExtra("advance_minutes", 0);
 
@@ -50,7 +48,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
                 }
             } else {
                 // Create regular notification without sound service
-                createRegularNotification(context, channelId, title, message, prayerName);
+                createRegularNotification(context, channelId, prayerName);
             }
 
         } finally {
@@ -74,7 +72,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
         return "none";
     }
 
-    private void createRegularNotification(Context context, String channelId, String title, String message, String prayerName) {
+    private void createRegularNotification(Context context, String channelId, String prayerName) {
         // Get formatted prayer time and location using NotificationUtils
         String prayerTime = NotificationUtils.getCurrentPrayerTime(context, prayerName);
         String location = NotificationUtils.getLocationName(context);

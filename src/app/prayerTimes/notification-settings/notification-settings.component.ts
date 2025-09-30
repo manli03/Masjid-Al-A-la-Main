@@ -34,8 +34,6 @@ export class NotificationSettingsComponent implements OnInit {
     notificationAdvance: 0,
     azanVolume: 1.0, // Default volume (100%)
     lastScheduled: null,
-    currentChannelId: '', // Will be populated from service
-    currentDefaultChannelId: '', // Will be populated from service
   };
 
   // Reference to available azan sounds from service

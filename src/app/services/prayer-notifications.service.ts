@@ -21,8 +21,6 @@ export interface PrayerNotificationSettings {
   selectedAzanSound: string;
   notificationAdvance: number;
   azanVolume: number; // New: Azan volume (0.0 to 1.0)
-  currentChannelId?: string;
-  currentDefaultChannelId?: string;
 }
 
 // Define interface for custom AndroidAudio plugin

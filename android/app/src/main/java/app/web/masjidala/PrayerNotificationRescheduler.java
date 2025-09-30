@@ -39,8 +39,7 @@ public class PrayerNotificationRescheduler {
             JSONObject notifSettings = new JSONObject(notifJson);
             JSONArray enabledPrayers = notifSettings.optJSONArray("enabledPrayers");
             int advanceMinutes = notifSettings.optInt("notificationAdvance", 0);
-            String mainChannelId = notifSettings.optString("currentChannelId", "azan_playback_channel");
-            String normalChannelId = notifSettings.optString("currentDefaultChannelId", "azan_playback_channel");
+            String mainChannelId = "azan_playback_channel";
 
             if (enabledPrayers == null || enabledPrayers.length() == 0) {
                 Log.w(TAG, "No enabled prayers found. Skipping rescheduling.");
@@ -60,10 +59,6 @@ public class PrayerNotificationRescheduler {
                 long nextTriggerMillis = NextPrayerTimeCalculator.getNextTriggerTime(context, prayerName, advanceMinutes);
 
                 if (nextTriggerMillis > System.currentTimeMillis()) { // Only schedule if in the future
-                    // Use default channel for Imsak, Syuruk, Dhuha as per your existing logic
-                    if ("Imsak".equals(prayerName) || "Syuruk".equals(prayerName) || "Dhuha".equals(prayerName)) {
-                        mainChannelId = normalChannelId;
-                    }
                     Log.d(TAG, "Scheduling prayer: " + prayerName + " at " + new Date(nextTriggerMillis) + " with channelId: " + mainChannelId);
 
                     // Use a unique request code for each prayer type (e.g., hash of prayer name)
