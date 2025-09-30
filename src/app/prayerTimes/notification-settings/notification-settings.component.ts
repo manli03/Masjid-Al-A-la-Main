@@ -49,6 +49,11 @@ export class NotificationSettingsComponent implements OnInit {
     { value: 30, label: '30 minit sebelum' },
   ];
 
+  // Check if advance time is active (affects azan availability)
+  get isAdvanceTimeActive(): boolean {
+    return this.notificationSettings.notificationAdvance > 0;
+  }
+
   isLoading = false;
 
   constructor(
@@ -258,6 +263,31 @@ export class NotificationSettingsComponent implements OnInit {
     // If sound is currently playing, update volume in real-time
     if (this.isAzanPlaying) {
       this.prayerNotificationsService.setAzanVolume(this.notificationSettings.azanVolume);
+    }
+  }
+
+  // Called when the user changes the advance time
+  onAdvanceTimeChange() {
+    console.log(`Advance time changed to: ${this.notificationSettings.notificationAdvance} minutes`);
+
+    // If advance time is set to a value > 0, auto-set azan to phone notification
+    if (this.notificationSettings.notificationAdvance > 0) {
+      // Store the previous azan sound for potential restoration
+      if (this.notificationSettings.selectedAzanSound !== 'none') {
+        // Show warning message
+        this.showToast(
+          'Bunyi azan tidak tersedia untuk notifikasi awal.',
+          'warning'
+        );
+      }
+
+      // Auto-set to phone notification
+      this.notificationSettings.selectedAzanSound = 'none';
+
+      // Stop any playing azan preview
+      if (this.isAzanPlaying) {
+        this.stopAzanPreview();
+      }
     }
   }
 }

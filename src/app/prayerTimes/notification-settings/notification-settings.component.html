@@ -35,7 +35,7 @@
         <ion-item>
             <ion-label>Pilih Azan</ion-label>
             <ion-select interface="action-sheet" [(ngModel)]="notificationSettings.selectedAzanSound"
-                (ionChange)="soundChanged()" [disabled]="isLoading">
+                (ionChange)="soundChanged()" [disabled]="isLoading || isAdvanceTimeActive">
                 <ion-select-option *ngFor="let sound of availableSounds" [value]="sound.id">
                     {{ sound.name }}
                 </ion-select-option>
@@ -78,11 +78,19 @@
         <ion-item>
             <ion-label>Notifikasi</ion-label>
             <ion-select interface="action-sheet" [(ngModel)]="notificationSettings.notificationAdvance"
-                [disabled]="isLoading">
+                (ionChange)="onAdvanceTimeChange()" [disabled]="isLoading">
                 <ion-select-option *ngFor="let option of advanceTimeOptions" [value]="option.value">
                     {{ option.label }}
                 </ion-select-option>
             </ion-select>
+        </ion-item>
+
+        <!-- Warning message when advance time is active -->
+        <ion-item *ngIf="isAdvanceTimeActive" lines="none">
+            <ion-note color="warning">
+                <ion-icon name="warning-outline"></ion-icon>
+                <strong>Notifikasi Awal:</strong> Bunyi azan tidak tersedia untuk notifikasi awal. Notifikasi telefon akan digunakan sebagai ganti.
+            </ion-note>
         </ion-item>
 
         <div class="ion-padding">

@@ -187,9 +187,14 @@ public class NotificationUtils {
         };
     }
 
-    public static String[] formatNotificationMessage(String prayerName, String prayerTime, String location) {
+    public static String[] formatNotificationMessage(String prayerName, String prayerTime, String location, int advanceMinutes) {
         String title;
         String message;
+
+        // Check if this is an advance notification
+        if (advanceMinutes > 0) {
+            return formatAdvanceNotificationMessage(prayerName, prayerTime, location, advanceMinutes);
+        }
 
         if (isZikirPrayer(prayerName)) {
             // Special messages for zikir prayers
@@ -215,6 +220,99 @@ public class NotificationUtils {
             // Regular prayers
             title = "Telah masuk waktu solat fardhu " + prayerName.toLowerCase();
             message = prayerTime + " bagi kawasan " + location + " dan yang sama waktu dengannya\n\nSelamat menunaikan solat fardhu 😊";
+        }
+
+        return new String[]{title, message};
+    }
+
+    private static String[] formatAdvanceNotificationMessage(String prayerName, String prayerTime, String location, int advanceMinutes) {
+        String title;
+        String message;
+
+        if (isZikirPrayer(prayerName)) {
+            // Advance notifications for zikir prayers (softer, encouraging tone)
+            switch (prayerName) {
+                case "Imsak" -> {
+                    switch (advanceMinutes) {
+                        case 5 -> {
+                            title = "5 minit lagi menuju waktu Imsak";
+                            message = "Bersiaplah, waktu Imsak akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk minum air terakhir atau menyelesaikan sahur 🌙";
+                        }
+                        case 10, 15 -> {
+                            title = (advanceMinutes == 10 ? "10" : "15") + " minit lagi menuju waktu Imsak";
+                            message = "Bersiaplah, waktu Imsak akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk melengkapkan sahur anda 🍽️";
+                        }
+                        case 30 -> {
+                            title = "30 minit lagi menuju waktu Imsak";
+                            message = "Bersiaplah, waktu Imsak akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nPastikan anda bersedia sebelum masuk waktu Imsak ⏰";
+                        }
+                        default -> {
+                            title = advanceMinutes + " minit lagi menuju waktu Imsak";
+                            message = "Bersiaplah, waktu Imsak akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk bersiap sedia 🌙";
+                        }
+                    }
+                }
+                case "Syuruk" -> {
+                    switch (advanceMinutes) {
+                        case 5 -> {
+                            title = "5 minit lagi menuju waktu Syuruk";
+                            message = "Waktu Syuruk akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nMasa terbaik untuk memulakan hari dengan doa dan zikir ☀️";
+                        }
+                        case 10, 15, 30 -> {
+                            title = (advanceMinutes == 10 ? "10" : advanceMinutes == 15 ? "15" : "30") + " minit lagi menuju waktu Syuruk";
+                            message = "Waktu Syuruk akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk menyiapkan diri menyambut awal pagi dengan penuh berkat 🌸";
+                        }
+                        default -> {
+                            title = advanceMinutes + " minit lagi menuju waktu Syuruk";
+                            message = "Waktu Syuruk akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nMasa terbaik untuk memulakan hari dengan doa dan zikir ☀️";
+                        }
+                    }
+                }
+                case "Dhuha" -> {
+                    switch (advanceMinutes) {
+                        case 5 -> {
+                            title = "5 minit lagi menuju waktu Dhuha";
+                            message = "Waktu Dhuha akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nBersedialah untuk solat sunat Dhuha yang penuh keberkatan 😊";
+                        }
+                        case 10, 15, 30 -> {
+                            title = (advanceMinutes == 10 ? "10" : advanceMinutes == 15 ? "15" : "30") + " minit lagi menuju waktu Dhuha";
+                            message = "Waktu Dhuha akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nLuangkan masa seketika untuk merancang solat sunat Dhuha yang memberi ketenangan ✨";
+                        }
+                        default -> {
+                            title = advanceMinutes + " minit lagi menuju waktu Dhuha";
+                            message = "Waktu Dhuha akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nBersedialah untuk solat sunat Dhuha yang penuh keberkatan 😊";
+                        }
+                    }
+                }
+                default -> {
+                    title = advanceMinutes + " minit lagi menuju waktu " + prayerName;
+                    message = "Waktu " + prayerName + " akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk bersiap sedia ✨";
+                }
+            }
+        } else {
+            // Advance notifications for fardhu prayers (firmer reminders)
+            switch (advanceMinutes) {
+                case 5 -> {
+                    title = "5 minit lagi masuk waktu solat " + prayerName;
+                    message = "Waktu solat " + prayerName + " akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nAmbillah wuduk dan bersiaplah untuk menunaikan kewajipan 🕌";
+                }
+                case 10 -> {
+                    title = "10 minit lagi menuju waktu solat " + prayerName;
+                    message = "Waktu solat " + prayerName + " akan tiba pada " + prayerTime + " di kawasan " + location + ".\n\nGunakan masa ini untuk bersedia dan jangan bertangguh ⏳";
+                }
+                case 15 -> {
+                    title = "15 minit lagi sebelum solat " + prayerName;
+                    message = "Waktu solat " + prayerName + " akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nIngatlah solat itu tiang agama, bersiaplah dengan hati yang ikhlas 🤲";
+                }
+                case 30 -> {
+                    title = "30 minit lagi menuju waktu solat " + prayerName;
+                    message = "Waktu solat " + prayerName + " dijangka pada " + prayerTime + " di kawasan " + location + ".\n\nRancanglah urusan anda agar tidak terlepas solat ⏰";
+                }
+                default -> {
+                    title = advanceMinutes + " minit lagi menuju waktu solat " + prayerName;
+                    message = "Waktu solat " + prayerName + " akan masuk pada " + prayerTime + " di kawasan " + location + ".\n\nBersiaplah untuk menunaikan kewajipan 🕌";
+                }
+            }
         }
 
         return new String[]{title, message};

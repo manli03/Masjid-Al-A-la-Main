@@ -527,8 +527,8 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         String prayerTime = NotificationUtils.getCurrentPrayerTime(this, prayerName);
         String location = NotificationUtils.getLocationName(this);
 
-        // Create notification content using NotificationUtils
-        String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location);
+        // Create notification content using NotificationUtils with advance time
+        String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location, advanceMinutes);
         String title = formattedMessage[0];
         String message = formattedMessage[1];
 

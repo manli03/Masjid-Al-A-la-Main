@@ -48,7 +48,7 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
                 }
             } else {
                 // Create regular notification without sound service
-                createRegularNotification(context, channelId, prayerName);
+                createRegularNotification(context, channelId, prayerName, advanceMinutes);
             }
 
         } finally {
@@ -72,13 +72,13 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
         return "none";
     }
 
-    private void createRegularNotification(Context context, String channelId, String prayerName) {
+    private void createRegularNotification(Context context, String channelId, String prayerName, int advanceMinutes) {
         // Get formatted prayer time and location using NotificationUtils
         String prayerTime = NotificationUtils.getCurrentPrayerTime(context, prayerName);
         String location = NotificationUtils.getLocationName(context);
 
-        // Create formatted message using NotificationUtils
-        String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location);
+        // Create formatted message using NotificationUtils with advance time
+        String[] formattedMessage = NotificationUtils.formatNotificationMessage(prayerName, prayerTime, location, advanceMinutes);
         String formattedTitle = formattedMessage[0];
         String formattedMessageText = formattedMessage[1];
 
