@@ -228,7 +228,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     }
   }
 
-  // *** THIS HANDLER IS FOR CALIBRATION STATE - NO AUTO DETECTION ***
+  // *** THIS HANDLER IS FOR CALIBRATION STATE - AUTO DETECTION ***
   handleCalibrationReading() {
     if (this.uiState !== 'calibrating' || !this.sensor?.quaternion) {
       return; // Only process during calibration state and if data is valid
@@ -250,8 +250,42 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
       // Do not reset state, allow user to continue or manually complete
     }
 
-    // Sensor is active but no auto-detection - user must manually click button
-    // This keeps the sensor running to show the calibration GIF
+    const [x, y, z, w] = this.sensor.quaternion;
+    const { pitch, roll, yaw } = this.getEulerAngles(x, y, z, w); // Use Euler for detection only
+
+    this.calibrationData.pitch.push(pitch);
+    this.calibrationData.roll.push(roll);
+    this.calibrationData.yaw.push(yaw); // Store Euler yaw for range calculation
+
+    if (this.calibrationData.pitch.length > CALIBRATION_WINDOW_SIZE) {
+      this.calibrationData.pitch.shift();
+      this.calibrationData.roll.shift();
+      this.calibrationData.yaw.shift();
+    }
+
+    if (this.calibrationData.pitch.length < CALIBRATION_WINDOW_SIZE) {
+      return; // Wait for more data
+    }
+
+    const pitchRange =
+      Math.max(...this.calibrationData.pitch) -
+      Math.min(...this.calibrationData.pitch);
+    const rollRange =
+      Math.max(...this.calibrationData.roll) -
+      Math.min(...this.calibrationData.roll);
+    const yawRange = this.calculateYawRange(this.calibrationData.yaw); // Use helper for yaw range
+
+    // Check if thresholds are met
+    if (
+      pitchRange >= CALIBRATION_PITCH_THRESHOLD &&
+      rollRange >= CALIBRATION_ROLL_THRESHOLD &&
+      yawRange >= CALIBRATION_YAW_THRESHOLD
+    ) {
+      console.log('Calibration movement detected!');
+      this.ngZone.run(() => {
+        this.completeCalibration();
+      });
+    }
   }
 
   completeCalibration() {
