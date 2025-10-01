@@ -72,6 +72,7 @@ interface Zikir {
 const DUA_STORAGE_KEY = 'my_duas'; // Key to store the duas in Preferences
 const ZIKIR_LIST_STORAGE_KEY = 'zikir_list';
 const SELECTED_ZIKIR_ID_KEY = 'selected_zikir_id';
+const API_BASE_URL = 'https://oc-manli.duckdns.org/amalan';
 
 @Component({
   selector: 'app-hadith-supplication',
@@ -214,7 +215,7 @@ export class HadithSupplicationPage implements OnInit {
   // Load chapters for the selected book
   loadChapters() {
     const bookSlug = this.BOOKS[this.selectedBook];
-    const chapterUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/hadiths/${bookSlug}/chapter_names.json`; // Dynamically create URL
+    const chapterUrl = `${API_BASE_URL}/hadiths/${bookSlug}/chapter_names.json`; // Dynamically create URL
 
     this.http.get<ChapterNamesResponse>(chapterUrl).subscribe(
       (data) => {
@@ -239,7 +240,7 @@ export class HadithSupplicationPage implements OnInit {
   loadHadiths() {
     this.isListLoading = true;
     const bookSlug = this.BOOKS[this.selectedBook];
-    const hadithUrl = `https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/hadiths/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
+    const hadithUrl = `${API_BASE_URL}/hadiths/${bookSlug}/chapter_${this.selectedChapter}.json`; // Dynamically create URL
 
     this.http.get<Hadith[]>(hadithUrl).subscribe(
       (data) => {
@@ -267,7 +268,7 @@ export class HadithSupplicationPage implements OnInit {
       let fetched = false;
       if (status.connected) {
         // 2. Try to fetch from API if online
-        const doaUrl = 'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/doa.json';
+        const doaUrl = `${API_BASE_URL}/doa.json`;
         try {
           const response = await this.http.get<Dua[]>(doaUrl).toPromise();
           if (response) {
@@ -445,7 +446,7 @@ export class HadithSupplicationPage implements OnInit {
       if (status.connected) {
         // 2. Try to fetch from API if online
         const zikirUrl =
-          'https://raw.githubusercontent.com/manli03/hadith/refs/heads/main/zikir.json';
+          `${API_BASE_URL}/zikir.json`;
         try {
           const response = await this.http.get<Zikir[]>(zikirUrl).toPromise();
           if (response) {
