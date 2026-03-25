@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { StorageService } from './storage.service';
 import { firstValueFrom } from 'rxjs';
@@ -21,36 +21,45 @@ export class AnnouncementService {
     private prayerNotificationsService: PrayerNotificationsService,
   ) {}
 
-  async getAnnouncements() {
+  async getAnnouncements(page: number = 1, limit: number = 10) {
     try {
       // Add user email to get correct read status
       const user = await this.storageService.get('user');
-      let url = `${this.apiUrl}/announcements.php`;
+      let url = `${this.apiUrl}/announcements.php?page=${page}&limit=${limit}`;
 
       // If user is logged in, include email to get read status
       if (user && user.email) {
-        url += `?email=${encodeURIComponent(user.email)}`;
+        url += `&email=${encodeURIComponent(user.email)}`;
       }
 
       const response = await firstValueFrom(this.http.get<any>(url));
       if (response.success) {
-        return response.announcements;
+        // Handle both paginated and non-paginated responses
+        const announcements = response.announcements || [];
+        const hasMore = response.hasMore !== undefined ? response.hasMore : (announcements.length === limit);
+        const total = response.total || 0;
+
+        return {
+          announcements,
+          hasMore,
+          total
+        };
       } else {
         throw new Error(response.message || 'Failed to load announcements');
       }
     } catch (error) {
       console.error('Error fetching announcements:', error);
       await this.handleHttpError(error);
-      return [];
+      return { announcements: [], hasMore: false, total: 0 };
     }
   }
 
-  async getAnnouncementById(id: number) {
+  async getAnnouncementById(id: number, commentsPage: number = 1, commentsLimit: number = 10) {
     try {
-      let url = `${this.apiUrl}/announcements.php?id=${id}`;
+      let url = `${this.apiUrl}/announcements.php?id=${id}&commentsPage=${commentsPage}&commentsLimit=${commentsLimit}`;
       const user = await this.storageService.get('user');
       if (user && user.email) {
-        url += `&email=${user.email}`;
+        url += `&email=${encodeURIComponent(user.email)}`;
       }
 
       const response = await firstValueFrom(this.http.get<any>(url));
@@ -296,6 +305,30 @@ export class AnnouncementService {
       console.error('Error marking announcement as read:', error);
       // Silent fail - don't show error to user since this is a background operation
       return { success: false };
+    }
+  }
+
+  async loadMoreReplies(commentId: number, offset: number = 3, limit: number = 10) {
+    try {
+      const params = new HttpParams()
+        .set('action', 'load_more_replies')
+        .set('commentId', commentId.toString())
+        .set('offset', offset.toString())
+        .set('limit', limit.toString());
+
+      const response = await firstValueFrom(
+        this.http.get<any>(`${this.apiUrl}/announcements.php`, { params }),
+      );
+
+      if (response.success) {
+        return response;
+      } else {
+        throw new Error(response.message || 'Failed to load more replies');
+      }
+    } catch (error) {
+      console.error('Error loading more replies:', error);
+      await this.handleHttpError(error);
+      return { success: false, replies: [], hasMore: false, total: 0 };
     }
   }
 

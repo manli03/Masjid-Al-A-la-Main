@@ -4,6 +4,7 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Router, NavigationExtras, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { PrayerCoordinatorService } from '../services/prayer-coordinator.service';
+import { UnreadAnnouncementsService } from '../services/unread-announcements.service';
 import { Subscription } from 'rxjs';
 import { LoadingComponent } from '../component/loading/loading.component';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
@@ -16,11 +17,13 @@ import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 export class TabsPage implements OnInit, OnDestroy {
   private backButtonSubscription: any;
   private routerEventsSubscription!: Subscription;
+  private unreadSubscription!: Subscription;
   private darkModeObserver!: MutationObserver;
   isAdminValue: boolean = false;
   private isDarkMode: boolean = false;
   hideTabBar: boolean = false;
   returnUrl: string = '';
+  unreadAnnouncementsCount: number = 0;
 
   constructor(
     private platform: Platform,
@@ -28,6 +31,7 @@ export class TabsPage implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private authService: AuthService,
     private prayerCoordinatorService: PrayerCoordinatorService,
+    private unreadAnnouncementsService: UnreadAnnouncementsService,
   ) {}
 
   ngOnInit() {
@@ -79,6 +83,27 @@ export class TabsPage implements OnInit, OnDestroy {
         this.handleStatusBarAndClass(isHome, isAuth, isSettings);
       }
     });
+
+    // Subscribe to unread announcements count
+    this.unreadSubscription = this.unreadAnnouncementsService.unreadCount$.subscribe(
+      (count) => {
+        this.unreadAnnouncementsCount = count;
+      }
+    );
+  }
+
+  /**
+   * Called when the page is about to enter and become the active page.
+   * Refresh unread count when returning from detail views.
+   */
+  async ionViewWillEnter() {
+    // Refresh unread count when tabs become visible again
+    // This handles the case where user returns from announcement detail pages
+    try {
+      await this.unreadAnnouncementsService.refreshUnreadCount();
+    } catch (error) {
+      console.error('Error refreshing unread count on tab enter:', error);
+    }
   }
 
   ngOnDestroy() {
@@ -87,6 +112,9 @@ export class TabsPage implements OnInit, OnDestroy {
     }
     if (this.routerEventsSubscription) {
       this.routerEventsSubscription.unsubscribe();
+    }
+    if (this.unreadSubscription) {
+      this.unreadSubscription.unsubscribe();
     }
     if (this.darkModeObserver) {
       this.darkModeObserver.disconnect();
@@ -207,5 +235,16 @@ export class TabsPage implements OnInit, OnDestroy {
       // Otherwise just go to the loading page
       this.router.navigateByUrl('/tabs/announcement-loading');
     }
+  }
+
+  /**
+   * Get the badge text for unread announcements
+   * Shows number or "99+" for higher counts
+   */
+  getUnreadBadgeText(): string | null {
+    if (this.unreadAnnouncementsCount <= 0) {
+      return null;
+    }
+    return this.unreadAnnouncementsCount > 99 ? '99+' : this.unreadAnnouncementsCount.toString();
   }
 }

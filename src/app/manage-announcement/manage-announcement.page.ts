@@ -40,6 +40,12 @@ export class ManageAnnouncementPage implements ViewWillEnter {
   currentUser: any = null;
   private loading!: HTMLIonLoadingElement; // To hold the loading controller instance
 
+  // Pagination
+  currentPage = 1;
+  isLoadingMore = false;
+  hasMoreData = true;
+  pageSize = 10;
+
   constructor(
     private modalController: ModalController,
     private alertController: AlertController,
@@ -112,12 +118,50 @@ export class ManageAnnouncementPage implements ViewWillEnter {
     }
   }
 
-  async loadAnnouncements() {
+  async loadAnnouncements(reset: boolean = true) {
     try {
-      this.newsItems = await this.announcementService.getAnnouncements();
+      if (reset) {
+        this.currentPage = 1;
+        this.hasMoreData = true;
+        this.newsItems = [];
+      }
+
+      const result = await this.announcementService.getAnnouncements(this.currentPage, this.pageSize);
+      if (result.announcements && result.announcements.length > 0) {
+        if (reset) {
+          this.newsItems = result.announcements;
+        } else {
+          this.newsItems = [...this.newsItems, ...result.announcements];
+        }
+        this.hasMoreData = result.hasMore;
+      } else {
+        this.hasMoreData = false;
+      }
     } catch (error) {
       console.error('Error loading announcements:', error);
       this.presentToast('Ralat memuatkan pengumuman. Sila cuba lagi.');
+    }
+  }
+
+  /**
+   * Loads more announcements for infinite scroll.
+   */
+  async loadMoreAnnouncements(event: any) {
+    if (this.isLoadingMore || !this.hasMoreData) {
+      event.target.complete();
+      return;
+    }
+
+    this.isLoadingMore = true;
+    this.currentPage++;
+
+    try {
+      await this.loadAnnouncements(false);
+    } catch (error) {
+      this.presentToast('Gagal memuat lebih banyak pengumuman.');
+    } finally {
+      this.isLoadingMore = false;
+      event.target.complete();
     }
   }
 
@@ -293,5 +337,12 @@ export class ManageAnnouncementPage implements ViewWillEnter {
         imgElement.style.padding = '40px';
       };
     }
+  }
+
+  /**
+   * TrackBy function for ngFor performance optimization.
+   */
+  trackByAnnouncementId(index: number, item: Announcement): number {
+    return item.id;
   }
 }

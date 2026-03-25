@@ -47,8 +47,8 @@
             </ion-segment-button>
           </ion-segment>
           <ion-list>
-            <ion-item class="news-item" lines="none" *ngFor="let item of displayedNewsItems"
-              (click)="selectArticle(item)">
+            <ion-item class="news-item" lines="none"
+              *ngFor="let item of displayedNewsItems; trackBy: trackByAnnouncementId" (click)="selectArticle(item)">
               <ion-grid>
                 <ion-row>
                   <ion-col size="8">
@@ -80,6 +80,13 @@
           </ion-list>
         </div>
       </ng-container>
+
+      <!-- Infinite scroll for announcements - must be direct child of ion-content -->
+      <ion-infinite-scroll (ionInfinite)="loadMoreAnnouncements($event)" threshold="50px"
+        *ngIf="!selectedArticle && hasMoreData">
+        <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Memuatkan lebih banyak...">
+        </ion-infinite-scroll-content>
+      </ion-infinite-scroll>
 
       <!-- ARTICLE DETAIL VIEW -->
       <ng-container *ngIf="selectedArticle">
@@ -136,7 +143,7 @@
             </div>
 
             <!-- Loop through each top-level comment -->
-            <div *ngFor="let comment of selectedArticle.comments" class="comment-thread">
+            <div *ngFor="let comment of selectedArticle.comments; trackBy: trackByCommentId" class="comment-thread">
               <!-- Render the top-level comment card -->
               <div class="comment-card">
                 <div class="comment-user">
@@ -180,7 +187,7 @@
               <!-- Wrapper for the flat list of replies -->
               <div class="replies-wrapper" *ngIf="comment.replies.length > 0 || isReplyingInThisThread(comment)">
                 <!-- Loop through all replies for this top-level comment -->
-                <div *ngFor="let reply of comment.replies" class="comment-card reply-card">
+                <div *ngFor="let reply of comment.replies; trackBy: trackByCommentId" class="comment-card reply-card">
                   <div class="comment-user">
                     <div class="avatar-container">
                       <img *ngIf="reply.imageUrl" [src]="reply.imageUrl" (error)="handleUserImageError($event)"
@@ -226,6 +233,14 @@
                   </ion-button>
                 </div>
 
+                <!-- Load more replies button -->
+                <div *ngIf="comment.hasMoreReplies" class="load-more-replies-container">
+                  <ion-button fill="clear" size="small" color="primary" (click)="loadMoreReplies(comment)">
+                    <ion-icon name="chevron-down-outline" slot="start"></ion-icon>
+                    Lihat {{ (comment.totalReplies || 0) - comment.replies.length }} balasan lagi
+                  </ion-button>
+                </div>
+
                 <!-- Fix #2: Added reply-input-container class for auto-scroll -->
                 <div *ngIf="isReplyingInThisThread(comment)" class="reply-input-card reply-input-container">
                   <div class="avatar-container">
@@ -252,6 +267,13 @@
               <p>Tiada komen. Sila tambah komen pertama.</p>
             </div>
           </div>
+
+          <!-- Infinite scroll for comments - must be direct child of ion-content -->
+          <ion-infinite-scroll (ionInfinite)="loadMoreComments($event)" threshold="50px"
+            *ngIf="selectedArticle && hasMoreComments">
+            <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Memuatkan lebih banyak komen...">
+            </ion-infinite-scroll-content>
+          </ion-infinite-scroll>
 
           <!-- Back Button -->
           <ion-button class="back-button" (click)="deselectArticle()">

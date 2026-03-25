@@ -14,6 +14,7 @@ import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { PrayerNotificationsService } from './services/prayer-notifications.service';
 import { DarkModeHandlerService } from './services/dark-mode-handler.service';
+import { UnreadAnnouncementsService } from './services/unread-announcements.service';
 
 @Component({
   selector: 'app-root',
@@ -31,6 +32,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private updateCheck: CheckUpdateService,
     private prayerNotificationsService: PrayerNotificationsService,
     private darkModeService: DarkModeHandlerService,
+    private unreadAnnouncementsService: UnreadAnnouncementsService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
@@ -243,6 +245,22 @@ export class AppComponent implements OnInit, OnDestroy {
           }
         },
       );
+
+      // This listener is triggered when a user receives a notification.
+      PushNotifications.addListener('pushNotificationReceived', async (notification) => {
+        console.log(
+          'Push notification received:',
+          JSON.stringify(notification),
+        );
+
+        // Refresh unread count when tabs become visible again
+        // This handles the case where user returns from announcement detail pages
+        try {
+          await this.unreadAnnouncementsService.refreshUnreadCount();
+        } catch (error) {
+          console.error('Error refreshing unread count on push notification received:', error);
+        }
+      });
     }
   }
 

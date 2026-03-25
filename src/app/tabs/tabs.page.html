@@ -17,6 +17,7 @@
       [ngClass]="{'active': router.url.includes('/tabs/announcement') || router.url.includes('/tabs/manage-announcement') || router.url.includes('/tabs/announcement-loading') || (router.url.includes('/tabs/authentication') && returnUrl.includes('/tabs/announcement'))}">
       <ion-icon name="megaphone"></ion-icon>
       <ion-label>Pengumuman</ion-label>
+      <ion-badge *ngIf="getUnreadBadgeText()" color="danger" mode="ios">{{ getUnreadBadgeText() }}</ion-badge>
     </ion-tab-button>
 
     <!-- Profile Tab -->

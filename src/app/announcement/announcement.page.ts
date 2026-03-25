@@ -7,7 +7,7 @@
  * structure with relative date formatting for a modern user experience.
  */
 
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import {
   ToastController,
@@ -26,6 +26,7 @@ import { Directory, Filesystem } from '@capacitor/filesystem';
 import { StorageService } from '../services/storage.service';
 import { AnnouncementService } from '../services/announcement.service';
 import { AuthService } from '../services/auth.service';
+import { UnreadAnnouncementsService } from '../services/unread-announcements.service';
 
 // Custom Components
 import { ImageViewerModalComponent } from '../component/image-viewer-modal/image-viewer-modal.component';
@@ -57,6 +58,8 @@ interface Comment {
   is_edited?: boolean;
   isAdmin?: boolean;
   replies: Comment[];
+  totalReplies?: number;
+  hasMoreReplies?: boolean;
 }
 
 interface AnnouncementDetail extends Announcement {
@@ -68,7 +71,7 @@ interface AnnouncementDetail extends Announcement {
   templateUrl: 'announcement.page.html',
   styleUrls: ['announcement.page.scss'],
 })
-export class announcementPage implements OnInit, OnDestroy {
+export class announcementPage {
   // --- Component Properties ---
 
   // DOM Element Reference for auto-focus
@@ -90,6 +93,18 @@ export class announcementPage implements OnInit, OnDestroy {
   isAdmin = false;
   allRead = true;
 
+  // Pagination
+  currentPage = 1;
+  isLoadingMore = false;
+  hasMoreData = true;
+  pageSize = 10;
+
+  // Comment Pagination
+  commentsCurrentPage = 1;
+  isLoadingMoreComments = false;
+  hasMoreComments = true;
+  commentsPageSize = 10;
+
   // Form Models
   newComment: string = '';
   newReply: string = '';
@@ -108,6 +123,8 @@ export class announcementPage implements OnInit, OnDestroy {
   private backButtonSubscription: any;
   private loading: HTMLIonLoadingElement | null = null;
 
+  private iconColorInterval: any;
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
@@ -120,6 +137,7 @@ export class announcementPage implements OnInit, OnDestroy {
     private platform: Platform,
     private popoverController: PopoverController,
     private loadingController: LoadingController,
+    private unreadAnnouncementsService: UnreadAnnouncementsService,
   ) {}
 
   // --- 1. Lifecycle Hooks ---
@@ -170,6 +188,15 @@ export class announcementPage implements OnInit, OnDestroy {
       if (announcementId) {
         await this.loadAnnouncementDetailsById(parseInt(announcementId, 10));
       }
+
+      // Change mail-unread icon svg path color to red
+      // Start an interval to run our function every 50ms
+      const iconColorInterval = setInterval(this.colorUnreadIcon, 50);
+
+      // Set a timeout to stop the interval after 2 seconds to prevent it from running forever
+      setTimeout(() => {
+        clearInterval(iconColorInterval);
+      }, 2000);
     } catch (error) {
       this.presentToast('Gagal memuatkan halaman. Sila cuba lagi.');
     } finally {
@@ -199,6 +226,41 @@ export class announcementPage implements OnInit, OnDestroy {
     }
   }
 
+  colorUnreadIcon() {
+    const iconElement = document
+      .querySelectorAll('ion-segment-button')[1]
+      ?.querySelector('ion-icon');
+
+    // First, check if the icon exists at all
+    if (!iconElement) return;
+
+    // === NEW PART ===
+    // Only proceed if it's the correct icon
+    if (iconElement.getAttribute('name') === 'mail-unread') {
+      if (iconElement.shadowRoot) {
+        const firstPath = iconElement.shadowRoot.querySelector(
+          'svg path:first-of-type',
+        ) as SVGPathElement;
+
+        if (firstPath) {
+          firstPath.style.fill = 'red';
+          // Once we succeed, we can stop the interval
+          clearInterval(this.iconColorInterval);
+        }
+      }
+    } else {
+      // If the icon is 'mail', we should ensure the color is reset
+      if (iconElement.shadowRoot) {
+        const firstPath = iconElement.shadowRoot.querySelector(
+          'svg path:first-of-type',
+        ) as SVGPathElement;
+        if (firstPath) {
+          firstPath.style.fill = ''; // Resets the color to the default
+        }
+      }
+    }
+  }
+
   // --- 2. Data Loading & Page Setup ---
 
   /**
@@ -209,29 +271,102 @@ export class announcementPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Fetches the list of all announcements from the service.
+   * Fetches the list of announcements from the service with pagination.
    */
-  async loadAnnouncements() {
+  async loadAnnouncements(reset: boolean = true) {
     try {
-      this.newsItems = await this.announcementService.getAnnouncements();
+      if (reset) {
+        this.currentPage = 1;
+        this.hasMoreData = true;
+        this.newsItems = [];
+      }
+
+      const result = await this.announcementService.getAnnouncements(
+        this.currentPage,
+        this.pageSize,
+      );
+
+      if (result.announcements && result.announcements.length > 0) {
+        if (reset) {
+          this.newsItems = result.announcements;
+        } else {
+          this.newsItems = [...this.newsItems, ...result.announcements];
+        }
+        this.hasMoreData = result.hasMore;
+      } else {
+        this.hasMoreData = false;
+      }
+
       this.filterAnnouncementsBySegment();
     } catch (error) {
+      console.error('Error loading announcements:', error);
       this.presentToast('Gagal memuat senarai pengumuman.');
+    }
+  }
+
+  /**
+   * Loads more announcements for infinite scroll.
+   */
+  async loadMoreAnnouncements(event: any) {
+    if (this.isLoadingMore || !this.hasMoreData) {
+      event.target.complete();
+      return;
+    }
+
+    this.isLoadingMore = true;
+    this.currentPage++;
+
+    try {
+      await this.loadAnnouncements(false);
+    } catch (error) {
+      this.presentToast('Gagal memuat lebih banyak pengumuman.');
+    } finally {
+      this.isLoadingMore = false;
+      event.target.complete();
     }
   }
 
   /**
    * Loads the full details of a specific announcement by its ID.
    */
-  async loadAnnouncementDetailsById(announcementId: number) {
+  async loadAnnouncementDetailsById(
+    announcementId: number,
+    resetComments: boolean = true,
+  ) {
     try {
+      if (resetComments) {
+        this.commentsCurrentPage = 1;
+        this.hasMoreComments = true;
+      }
+
       const fullAnnouncement =
-        await this.announcementService.getAnnouncementById(announcementId);
+        await this.announcementService.getAnnouncementById(
+          announcementId,
+          this.commentsCurrentPage,
+          this.commentsPageSize,
+        );
       if (fullAnnouncement) {
-        this.selectedArticle = fullAnnouncement;
+        if (resetComments) {
+          this.selectedArticle = fullAnnouncement;
+        } else {
+          // Append new comments to existing ones
+          if (
+            fullAnnouncement.comments &&
+            fullAnnouncement.comments.length > 0
+          ) {
+            this.selectedArticle!.comments = [
+              ...this.selectedArticle!.comments,
+              ...fullAnnouncement.comments,
+            ];
+          }
+          // Update pagination state
+          this.hasMoreComments = fullAnnouncement.hasMoreComments || false;
+        }
         this.prepareImageGrid();
         if (!fullAnnouncement.isRead) {
           this.announcementService.markAsRead(announcementId).catch();
+          // Update the unread count in the service
+          this.unreadAnnouncementsService.decrementUnreadCount();
         }
       } else {
         // this.presentToast('Pengumuman tidak dijumpai.');
@@ -239,6 +374,60 @@ export class announcementPage implements OnInit, OnDestroy {
       }
     } catch (error) {
       this.presentToast('Gagal memuat detail pengumuman.');
+    }
+  }
+
+  /**
+   * Loads more comments for infinite scroll.
+   */
+  async loadMoreComments(event: any) {
+    if (
+      this.isLoadingMoreComments ||
+      !this.hasMoreComments ||
+      !this.selectedArticle
+    ) {
+      event.target.complete();
+      return;
+    }
+
+    this.isLoadingMoreComments = true;
+    this.commentsCurrentPage++;
+
+    try {
+      await this.loadAnnouncementDetailsById(this.selectedArticle.id, false);
+    } catch (error) {
+      this.presentToast('Gagal memuat lebih banyak komen.');
+    } finally {
+      this.isLoadingMoreComments = false;
+      event.target.complete();
+    }
+  }
+
+  /**
+   * Loads more replies for a specific comment.
+   */
+  async loadMoreReplies(comment: Comment) {
+    if (!comment.hasMoreReplies || !this.selectedArticle) return;
+
+    const currentReplyCount = comment.replies.length;
+    const offset = currentReplyCount; // Start after current replies
+
+    try {
+      const response = await this.announcementService.loadMoreReplies(
+        comment.id,
+        offset,
+      );
+
+      if (response.success && response.replies) {
+        // Add new replies to the existing replies array
+        comment.replies = [...comment.replies, ...response.replies];
+
+        // Update pagination state
+        comment.hasMoreReplies = response.hasMore;
+        comment.totalReplies = response.total;
+      }
+    } catch (error) {
+      this.presentToast('Gagal memuat lebih banyak balasan.');
     }
   }
 
@@ -269,6 +458,18 @@ export class announcementPage implements OnInit, OnDestroy {
   deselectArticle() {
     this.router.navigateByUrl('/tabs/announcement', { replaceUrl: true });
     this.resetPageState();
+
+    // Refresh unread count when returning to list view from detail view
+    setTimeout(async () => {
+      try {
+        await this.unreadAnnouncementsService.refreshUnreadCount();
+      } catch (error) {
+        console.error(
+          'Error refreshing unread count when returning to list:',
+          error,
+        );
+      }
+    }, 100); // Small delay to ensure navigation completes
   }
 
   /**
@@ -893,5 +1094,19 @@ export class announcementPage implements OnInit, OnDestroy {
       color,
     });
     await toast.present();
+  }
+
+  /**
+   * TrackBy function for ngFor performance optimization.
+   */
+  trackByAnnouncementId(index: number, item: Announcement): number {
+    return item.id;
+  }
+
+  /**
+   * TrackBy function for comments ngFor performance optimization.
+   */
+  trackByCommentId(index: number, item: Comment): number {
+    return item.id;
   }
 }

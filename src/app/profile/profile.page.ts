@@ -255,9 +255,6 @@ export class ProfilePage implements OnInit, ViewWillEnter {
                 '/tabs/announcement',
                 pendingAnnouncementId,
               ]);
-            } else {
-              // Default navigation to announcements list
-              this.router.navigate(['/tabs/announcement']);
             }
           }
         } catch (error) {
