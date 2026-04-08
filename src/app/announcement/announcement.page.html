@@ -48,11 +48,15 @@
           </ion-segment>
           <ion-list>
             <ion-item class="news-item" lines="none"
-              *ngFor="let item of displayedNewsItems; trackBy: trackByAnnouncementId" (click)="selectArticle(item)">
+              *ngFor="let item of displayedNewsItems; trackBy: trackByAnnouncementId" (click)="selectArticle(item)"
+              [ngClass]="{'unread-item': !item.isRead}">
               <ion-grid>
                 <ion-row>
                   <ion-col size="8">
-                    <div class="news-title">{{ item.title }}</div>
+                    <div class="news-title-container">
+                      <div class="news-title">{{ item.title }}</div>
+                      <div class="unread-indicator" *ngIf="!item.isRead"></div>
+                      </div>
                     <div class="news-author">{{ item.author }}</div>
                     <div class="news-date">{{ formatDate(item.date) }}</div>
                   </ion-col>
@@ -82,7 +86,7 @@
       </ng-container>
 
       <!-- Infinite scroll for announcements - must be direct child of ion-content -->
-      <ion-infinite-scroll (ionInfinite)="loadMoreAnnouncements($event)" threshold="50px"
+      <ion-infinite-scroll #infiniteScroll (ionInfinite)="loadMoreAnnouncements($event)" threshold="80px"
         *ngIf="!selectedArticle && hasMoreData">
         <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Memuatkan lebih banyak...">
         </ion-infinite-scroll-content>
@@ -143,7 +147,8 @@
             </div>
 
             <!-- Loop through each top-level comment -->
-            <div *ngFor="let comment of selectedArticle.comments; trackBy: trackByCommentId" class="comment-thread">
+            <div *ngFor="let comment of selectedArticle.comments; trackBy: trackByCommentId" class="comment-thread"
+              [attr.data-comment-id]="comment.id">
               <!-- Render the top-level comment card -->
               <div class="comment-card">
                 <div class="comment-user">
@@ -184,8 +189,16 @@
                 </ion-button>
               </div>
 
+              <!-- Show "Show replies" button for comments that have replies but haven't been shown yet -->
+              <ion-button *ngIf="comment.hasMoreReplies && !isRepliesShown(comment.id)" fill="clear" size="small" color="primary"
+                (click)="showInitialReplies(comment)" style="margin-left: 20px;">
+                <ion-icon name="chevron-down-outline" slot="start"></ion-icon>
+                Tunjuk {{ comment.totalReplies || 0 }} balasan
+              </ion-button>
+
               <!-- Wrapper for the flat list of replies -->
-              <div class="replies-wrapper" *ngIf="comment.replies.length > 0 || isReplyingInThisThread(comment)">
+              <div class="replies-wrapper" [ngClass]="getRepliesWrapperClass(comment.id)"
+                *ngIf="isRepliesShown(comment.id) || isReplyingInThisThread(comment) || isHidingReplies(comment.id)">
                 <!-- Loop through all replies for this top-level comment -->
                 <div *ngFor="let reply of comment.replies; trackBy: trackByCommentId" class="comment-card reply-card">
                   <div class="comment-user">
@@ -233,11 +246,19 @@
                   </ion-button>
                 </div>
 
-                <!-- Load more replies button -->
-                <div *ngIf="comment.hasMoreReplies" class="load-more-replies-container">
-                  <ion-button fill="clear" size="small" color="primary" (click)="loadMoreReplies(comment)">
+                <!-- Load more / Hide replies buttons - show both side by side -->
+                <div class="load-more-replies-container" *ngIf="!isReplyingInThisThread(comment)">
+                  <!-- Show "More" when there are more replies to load -->
+                  <ion-button *ngIf="comment.hasMoreReplies" fill="clear" size="small" color="primary"
+                    (click)="loadMoreReplies(comment)">
                     <ion-icon name="chevron-down-outline" slot="start"></ion-icon>
-                    Lihat {{ (comment.totalReplies || 0) - comment.replies.length }} balasan lagi
+                    Lagi ({{ (comment.totalReplies || 0) - (comment.replies.length || 0) }})
+                    </ion-button>
+                    
+                    <!-- Show "Hide" button - always available when replies are shown -->
+                    <ion-button fill="clear" size="small" color="medium" (click)="hideReplies(comment)">
+                      <ion-icon name="chevron-up-outline" slot="start"></ion-icon>
+                      Sembunyi
                   </ion-button>
                 </div>
 
@@ -270,7 +291,7 @@
 
           <!-- Infinite scroll for comments - must be direct child of ion-content -->
           <ion-infinite-scroll (ionInfinite)="loadMoreComments($event)" threshold="50px"
-            *ngIf="selectedArticle && hasMoreComments">
+            *ngIf="selectedArticle && hasMoreComments && selectedArticle.comments.length >= 10">
             <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Memuatkan lebih banyak komen...">
             </ion-infinite-scroll-content>
           </ion-infinite-scroll>

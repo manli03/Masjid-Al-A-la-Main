@@ -7,10 +7,55 @@
   padding: 15px;
   margin-bottom: 10px;
   border-radius: 5px;
+  
+  &.unread-item {
+    background-color: rgba(var(--ion-color-primary-rgb), 0.2);
+    border-left: 4px solid var(--ion-color-primary);
+    
+    // Ensure inner elements are transparent to show parent background
+    &::part(native) {
+      background-color: transparent;
+    }
+    
+    ion-label, .item-inner, .item-native {
+      background-color: transparent;
+    }
+  }
 }
+
+:host-context(.ion-palette-dark) {
+  .news-item.unread-item {
+    background-color: rgba(var(--ion-color-primary-rgb), 0.15);
+    border-left: 4px solid var(--ion-color-primary);
+    
+    // Ensure inner elements are transparent to show parent background
+    &::part(native) {
+      background-color: transparent;
+    }
+    
+    ion-label, .item-inner, .item-native {
+      background-color: transparent;
+    }
+  }
+}
+.news-title-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .news-title {
   font-size: 18px;
   font-weight: bold;
+  flex: 1;
+}
+
+.unread-indicator {
+  width: 8px;
+  height: 8px;
+  background-color: var(--ion-color-primary);
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .news-author {
   color: var(--ion-color-primary-shade);
@@ -331,6 +376,20 @@
 .replies-wrapper {
   position: relative;
   margin-left: 52px;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-bottom 0.3s ease-out;
+
+  // Hiding animation state
+  &.hiding {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin-bottom: 0 !important;
+  }
+
+  &.hidden {
+    display: none;
+  }
+
   &::before {
     content: "";
     position: absolute;
@@ -339,6 +398,12 @@
     left: -12px;
     width: 2px;
     background-color: #eee;
+    transition: bottom 0.3s ease-out;
+  }
+
+  // When hiding, animate the vertical line to collapse
+  &.hiding::before {
+    bottom: 100%;
   }
 }
 .reply-card,
@@ -422,6 +487,7 @@
 }
 
 .back-button {
+  margin-top: 30px;
   margin-bottom: var(--ion-safe-area-bottom);
 }
 

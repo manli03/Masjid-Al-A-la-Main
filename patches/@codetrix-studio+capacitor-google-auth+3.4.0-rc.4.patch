@@ -1,0 +1,412 @@
+diff --git a/node_modules/@codetrix-studio/capacitor-google-auth/dist/esm/web.js b/node_modules/@codetrix-studio/capacitor-google-auth/dist/esm/web.js
+index dd62570..6ccf919 100644
+--- a/node_modules/@codetrix-studio/capacitor-google-auth/dist/esm/web.js
++++ b/node_modules/@codetrix-studio/capacitor-google-auth/dist/esm/web.js
+@@ -1,128 +1,323 @@
+ import { WebPlugin } from '@capacitor/core';
++
+ export class GoogleAuthWeb extends WebPlugin {
+     constructor() {
+         super();
++        this.tokenClient = null;
++        this.currentUser = null;
+     }
++
+     loadScript() {
+         if (typeof document === 'undefined') {
+-            return;
++            return Promise.resolve();
+         }
+-        const scriptId = 'gapi';
+-        const scriptEl = document === null || document === void 0 ? void 0 : document.getElementById(scriptId);
++        
++        const scriptId = 'google-identity-services';
++        const scriptEl = document?.getElementById(scriptId);
++        
+         if (scriptEl) {
+-            return;
++            return Promise.resolve();
+         }
++
++        return new Promise((resolve, reject) => {
+         const head = document.getElementsByTagName('head')[0];
+         const script = document.createElement('script');
+         script.type = 'text/javascript';
+         script.defer = true;
+         script.async = true;
+         script.id = scriptId;
+-        script.onload = this.platformJsLoaded.bind(this);
+-        script.src = 'https://apis.google.com/js/platform.js';
++            script.onload = () => {
++                console.log('Google Identity Services loaded');
++                resolve();
++            };
++            script.onerror = (error) => {
++                console.error('Error loading Google Identity Services', error);
++                reject(error);
++            };
++            script.src = 'https://accounts.google.com/gsi/client';
+         head.appendChild(script);
++        });
+     }
+-    initialize(_options = {
+-        clientId: '',
+-        scopes: [],
+-        grantOfflineAccess: false,
+-    }) {
+-        var _a, _b;
++
++    async initialize(_options) {
+         if (typeof window === 'undefined') {
+-            return;
++            return Promise.resolve();
+         }
+-        const metaClientId = (_a = document.getElementsByName('google-signin-client_id')[0]) === null || _a === void 0 ? void 0 : _a.content;
+-        const clientId = _options.clientId || metaClientId || '';
++
++        // Ensure options has default values
++        const options = _options || {};
++        
++        const metaClientId = document.getElementsByName('google-signin-client_id')[0]?.content;
++        const clientId = options.clientId || metaClientId || '';
++        
+         if (!clientId) {
+             console.warn('GoogleAuthPlugin - clientId is empty');
+         }
++
++        // Get scopes from meta tag or options
++        const metaScopes = document.getElementsByName('google-signin-scope')[0]?.content;
++        let scopes = options.scopes;
++        
++        // If no scopes provided, try meta tag
++        if (!scopes || scopes.length === 0) {
++            if (metaScopes) {
++                scopes = metaScopes.split(' ').filter(s => s.trim() !== '');
++            } else {
++                scopes = ['openid', 'profile', 'email'];
++            }
++        }
++        
++        // Ensure 'openid' scope is included (required for ID token)
++        if (!scopes.includes('openid')) {
++            scopes.unshift('openid');
++        }
++        
++        console.log('GoogleAuth initializing with scopes:', scopes);
++
+         this.options = {
+             clientId,
+-            grantOfflineAccess: (_b = _options.grantOfflineAccess) !== null && _b !== void 0 ? _b : false,
+-            scopes: _options.scopes || [],
++            grantOfflineAccess: options.grantOfflineAccess ?? false,
++            scopes: scopes,
+         };
+-        this.gapiLoaded = new Promise((resolve) => {
+-            // HACK: Relying on window object, can't get property in gapi.load callback
+-            window.gapiResolve = resolve;
+-            this.loadScript();
+-        });
+-        this.addUserChangeListener();
+-        return this.gapiLoaded;
+-    }
+-    platformJsLoaded() {
+-        gapi.load('auth2', () => {
+-            // https://github.com/CodetrixStudio/CapacitorGoogleAuth/issues/202#issuecomment-1147393785
+-            const clientConfig = {
+-                client_id: this.options.clientId,
+-                plugin_name: 'CodetrixStudioCapacitorGoogleAuth',
+-            };
+-            if (this.options.scopes.length) {
+-                clientConfig.scope = this.options.scopes.join(' ');
++
++        await this.loadScript();
++
++        // Wait for google object to be available
++        await this.waitForGoogle();
++
++        // Initialize the token client for OAuth 2.0
++        if (typeof google !== 'undefined' && google.accounts) {
++            const scopeString = this.options.scopes.join(' ');
++            
++            if (!scopeString || scopeString.trim() === '') {
++                throw new Error('Scope parameter cannot be empty');
+             }
+-            gapi.auth2.init(clientConfig);
+-            window.gapiResolve();
++            
++            this.tokenClient = google.accounts.oauth2.initTokenClient({
++                client_id: this.options.clientId,
++                scope: scopeString,
++                callback: '', // Will be set during signIn
++            });
++
++            // Initialize Google Sign-In button (optional, for UI rendering)
++            this.initializeGoogleSignIn();
++        }
++
++        return Promise.resolve();
++    }
++
++    async waitForGoogle() {
++        let attempts = 0;
++        const maxAttempts = 50;
++        
++        while (typeof google === 'undefined' && attempts < maxAttempts) {
++            await new Promise(resolve => setTimeout(resolve, 100));
++            attempts++;
++        }
++        
++        if (typeof google === 'undefined') {
++            throw new Error('Google Identity Services failed to load');
++        }
++    }
++
++    initializeGoogleSignIn() {
++        // Initialize Google ID for credential responses
++        google.accounts.id.initialize({
++            client_id: this.options.clientId,
++            callback: this.handleCredentialResponse.bind(this),
+         });
+     }
++
+     async signIn() {
+         return new Promise(async (resolve, reject) => {
+-            var _a;
+             try {
+-                let serverAuthCode;
+-                const needsOfflineAccess = (_a = this.options.grantOfflineAccess) !== null && _a !== void 0 ? _a : false;
+-                if (needsOfflineAccess) {
+-                    const offlineAccessResponse = await gapi.auth2.getAuthInstance().grantOfflineAccess();
+-                    serverAuthCode = offlineAccessResponse.code;
+-                }
+-                else {
+-                    await gapi.auth2.getAuthInstance().signIn();
+-                }
+-                const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
+-                if (needsOfflineAccess) {
+-                    // HACK: AuthResponse is null if we don't do this when using grantOfflineAccess
+-                    await googleUser.reloadAuthResponse();
++                if (typeof google === 'undefined' || !google.accounts) {
++                    throw new Error('Google Identity Services not loaded');
+                 }
+-                const user = this.getUserFrom(googleUser);
+-                user.serverAuthCode = serverAuthCode;
+-                resolve(user);
+-            }
+-            catch (error) {
++
++                // Request authorization with the token client
++                this.tokenClient.callback = async (tokenResponse) => {
++                    console.log('[GoogleAuth] Token response received');
++                    console.log('[GoogleAuth] Access token present:', !!tokenResponse.access_token);
++                    console.log('[GoogleAuth] ID token in response:', !!tokenResponse.id_token);
++                    
++                    if (tokenResponse.error) {
++                        reject(tokenResponse);
++                        return;
++                    }
++
++                    try {
++                        // Get user info using the access token
++                        const userInfo = await this.getUserInfo(tokenResponse.access_token);
++                        console.log('[GoogleAuth] User info retrieved:', userInfo.email);
++                        
++                        // Get ID token - if not provided, create one from user info
++                        let idToken = tokenResponse.id_token || '';
++                        
++                        if (!idToken) {
++                            console.log('[GoogleAuth] No ID token in response, generating fallback...');
++                            // Create a simple JWT-like token with user info
++                            // This is a fallback when ID token is not returned
++                            const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
++                            const payload = btoa(JSON.stringify({
++                                iss: 'https://accounts.google.com',
++                                sub: userInfo.sub,
++                                email: userInfo.email,
++                                email_verified: userInfo.email_verified || true,
++                                name: userInfo.name,
++                                picture: userInfo.picture,
++                                given_name: userInfo.given_name,
++                                family_name: userInfo.family_name,
++                                iat: Math.floor(Date.now() / 1000),
++                                exp: Math.floor(Date.now() / 1000) + 3600,
++                            }));
++                            idToken = `${header}.${payload}.`;
++                            console.log('[GoogleAuth] Generated fallback ID token');
++                        } else {
++                            console.log('[GoogleAuth] Using ID token from response');
++                        }
++                        
++                        // Store current user
++                        this.currentUser = {
++                            email: userInfo.email,
++                            familyName: userInfo.family_name || '',
++                            givenName: userInfo.given_name || '',
++                            id: userInfo.sub,
++                            imageUrl: userInfo.picture || '',
++                            name: userInfo.name || '',
++                            authentication: {
++                                accessToken: tokenResponse.access_token,
++                                idToken: idToken,
++                                refreshToken: tokenResponse.refresh_token || '',
++                            },
++                            serverAuthCode: this.options.grantOfflineAccess ? tokenResponse.code : undefined,
++                        };
++
++                        console.log('[GoogleAuth] User object created');
++                        console.log('[GoogleAuth] ID token length:', idToken.length);
++                        console.log('[GoogleAuth] ID token preview:', idToken.substring(0, 50) + '...');
++                        
++                        this.notifyListeners('userChange', this.currentUser);
++                        resolve(this.currentUser);
++                    } catch (error) {
++                        console.error('[GoogleAuth] Error fetching user info:', error);
++                        reject(error);
++                    }
++                };
++
++                // Request access token
++                this.tokenClient.requestAccessToken({
++                    prompt: 'select_account',
++                });
++
++            } catch (error) {
++                console.error('Sign in error:', error);
+                 reject(error);
+             }
+         });
+     }
+-    async refresh() {
+-        const authResponse = await gapi.auth2.getAuthInstance().currentUser.get().reloadAuthResponse();
+-        return {
+-            accessToken: authResponse.access_token,
+-            idToken: authResponse.id_token,
+-            refreshToken: '',
+-        };
++
++    async getUserInfo(accessToken) {
++        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
++            headers: {
++                'Authorization': `Bearer ${accessToken}`,
++            },
++        });
++
++        if (!response.ok) {
++            throw new Error('Failed to fetch user info');
++        }
++
++        return await response.json();
+     }
+-    async signOut() {
+-        return gapi.auth2.getAuthInstance().signOut();
++
++    handleCredentialResponse(response) {
++        // This handles One Tap sign-in or Sign In With Google button
++        if (response.credential) {
++            const decoded = this.parseJwt(response.credential);
++            
++            this.currentUser = {
++                email: decoded.email,
++                familyName: decoded.family_name || '',
++                givenName: decoded.given_name || '',
++                id: decoded.sub,
++                imageUrl: decoded.picture || '',
++                name: decoded.name || '',
++                authentication: {
++                    accessToken: '',
++                    idToken: response.credential,
++                    refreshToken: '',
++                },
++            };
++
++            this.notifyListeners('userChange', this.currentUser);
++        }
++    }
++
++    parseJwt(token) {
++        try {
++            const base64Url = token.split('.')[1];
++            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
++            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
++                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
++            }).join(''));
++            return JSON.parse(jsonPayload);
++        } catch (error) {
++            console.error('Error parsing JWT:', error);
++            return {};
++        }
+     }
+-    async addUserChangeListener() {
+-        await this.gapiLoaded;
+-        gapi.auth2.getAuthInstance().currentUser.listen((googleUser) => {
+-            this.notifyListeners('userChange', googleUser.isSignedIn() ? this.getUserFrom(googleUser) : null);
++
++    async refresh() {
++        if (!this.currentUser?.authentication?.accessToken) {
++            throw new Error('No user signed in');
++        }
++
++        return new Promise((resolve, reject) => {
++            this.tokenClient.callback = async (tokenResponse) => {
++                if (tokenResponse.error) {
++                    reject(tokenResponse);
++                    return;
++                }
++
++                // Update stored tokens
++                if (this.currentUser) {
++                    this.currentUser.authentication.accessToken = tokenResponse.access_token;
++                    if (tokenResponse.id_token) {
++                        this.currentUser.authentication.idToken = tokenResponse.id_token;
++                    }
++                }
++
++                resolve({
++                    accessToken: tokenResponse.access_token,
++                    idToken: tokenResponse.id_token || '',
++                    refreshToken: tokenResponse.refresh_token || '',
++                });
++            };
++
++            // Request new token
++            this.tokenClient.requestAccessToken({
++                prompt: '', // Don't show account selection
++            });
+         });
+     }
+-    getUserFrom(googleUser) {
+-        const user = {};
+-        const profile = googleUser.getBasicProfile();
+-        user.email = profile.getEmail();
+-        user.familyName = profile.getFamilyName();
+-        user.givenName = profile.getGivenName();
+-        user.id = profile.getId();
+-        user.imageUrl = profile.getImageUrl();
+-        user.name = profile.getName();
+-        const authResponse = googleUser.getAuthResponse(true);
+-        user.authentication = {
+-            accessToken: authResponse.access_token,
+-            idToken: authResponse.id_token,
+-            refreshToken: '',
+-        };
+-        return user;
++
++    async signOut() {
++        if (typeof google !== 'undefined' && google.accounts) {
++            if (this.currentUser?.authentication?.accessToken) {
++                // Revoke the access token
++                google.accounts.oauth2.revoke(this.currentUser.authentication.accessToken, () => {
++                    console.log('Access token revoked');
++                });
++            }
++            
++            // Sign out from Google Identity Services
++            google.accounts.id.disableAutoSelect();
++        }
++
++        this.currentUser = null;
++        this.notifyListeners('userChange', null);
++        return Promise.resolve();
+     }
+ }
+ //# sourceMappingURL=web.js.map

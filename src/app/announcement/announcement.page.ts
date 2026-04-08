@@ -17,6 +17,7 @@ import {
   PopoverController,
   IonTextarea,
   LoadingController,
+  IonContent,
 } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { Share } from '@capacitor/share';
@@ -74,10 +75,12 @@ interface AnnouncementDetail extends Announcement {
 export class announcementPage {
   // --- Component Properties ---
 
-  // DOM Element Reference for auto-focus
+  // DOM Element References
   @ViewChild('replyTextarea', { static: false }) replyTextarea:
     | IonTextarea
     | undefined;
+  @ViewChild(IonContent, { static: false }) content: IonContent | undefined;
+  @ViewChild('infiniteScroll', { static: false }) infiniteScroll: any;
 
   // State & Data
   newsItems: Announcement[] = [];
@@ -113,6 +116,9 @@ export class announcementPage {
   // Interaction State
   replyingToCommentId: number | null = null;
   editingCommentId: number | null = null;
+  expandedCommentIds: Set<number> = new Set();
+  shownRepliesComments: Set<number> = new Set();
+  hidingRepliesComments: Set<number> = new Set();
 
   // Image Gallery
   imagesForGrid: string[] = [];
@@ -124,6 +130,19 @@ export class announcementPage {
   private loading: HTMLIonLoadingElement | null = null;
 
   private iconColorInterval: any;
+
+  // Track announcements already marked as read to prevent duplicate calls
+  private markedAsRead: Set<number> = new Set();
+
+  // State preservation for list view
+  private savedScrollPosition: number = 0;
+  private listDataLoaded: boolean = false;
+  private isReturningFromDetail: boolean = false;
+  private selectedArticleId: number | null = null;
+
+  // Debounce mechanism to prevent duplicate fetch
+  private lastFetchTimestamp: number = 0;
+  private fetchDebounceTime: number = 500; // ms
 
   constructor(
     private router: Router,
@@ -165,6 +184,10 @@ export class announcementPage {
   async ionViewWillEnter() {
     this.isCheckingAdmin = true;
     this.isLoading = true;
+
+    // Always reset loading states on page entry to prevent stuck states
+    this.resetLoadingStates();
+
     try {
       if (
         !(await this.authService.isAuthenticated()) ||
@@ -184,7 +207,18 @@ export class announcementPage {
         return;
       }
 
-      await this.loadAnnouncements();
+      if (!announcementId) {
+        // List view - conditionally reload data
+        if (!this.listDataLoaded || !this.isReturningFromDetail) {
+          await this.loadAnnouncements();
+          this.listDataLoaded = true;
+        } else {
+          // Returning from detail - restore scroll position and clear unread mark
+          setTimeout(() => this.restoreScrollPosition(), 100);
+          this.clearUnreadMarkForSelectedArticle();
+        }
+        this.isReturningFromDetail = false;
+      }
       if (announcementId) {
         await this.loadAnnouncementDetailsById(parseInt(announcementId, 10));
       }
@@ -215,6 +249,13 @@ export class announcementPage {
       this.backButtonSubscription.unsubscribe();
       this.backButtonSubscription = null;
     }
+
+    // If navigating away completely (not just between list/detail views),
+    // reset the cache flag to load fresh data on next entry
+    // Check if we're not in detail view mode by examining the selected article
+    if (!this.isReturningFromDetail && !this.selectedArticle) {
+      this.listDataLoaded = false;
+    }
   }
 
   /**
@@ -226,39 +267,125 @@ export class announcementPage {
     }
   }
 
-  colorUnreadIcon() {
-    const iconElement = document
-      .querySelectorAll('ion-segment-button')[1]
-      ?.querySelector('ion-icon');
+  // --- 3. Reply Hiding Logic ---
 
-    // First, check if the icon exists at all
-    if (!iconElement) return;
+  /**
+   * Hides expanded replies for a specific comment with animation.
+   * Context-aware: Scrolls parent into view if not visible, then smoothly collapses replies.
+   */
+  hideReplies(comment: Comment) {
+    if (!this.selectedArticle) return;
 
-    // === NEW PART ===
-    // Only proceed if it's the correct icon
-    if (iconElement.getAttribute('name') === 'mail-unread') {
-      if (iconElement.shadowRoot) {
-        const firstPath = iconElement.shadowRoot.querySelector(
-          'svg path:first-of-type',
-        ) as SVGPathElement;
+    const commentElement = document.querySelector(
+      `[data-comment-id="${comment.id}"]`,
+    ) as HTMLElement;
 
-        if (firstPath) {
-          firstPath.style.fill = 'red';
-          // Once we succeed, we can stop the interval
-          clearInterval(this.iconColorInterval);
+    // Check if parent comment is visible in viewport
+    if (commentElement) {
+      const rect = commentElement.getBoundingClientRect();
+      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+
+      if (!isVisible) {
+        // Find the actual button element and scroll to position it properly
+        const replyButton = commentElement.querySelector(
+          '.thread-reply-btn',
+        ) as HTMLElement;
+        if (replyButton) {
+          replyButton.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        } else {
+          // Fallback to the entire thread if button not found
+          commentElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
         }
-      }
-    } else {
-      // If the icon is 'mail', we should ensure the color is reset
-      if (iconElement.shadowRoot) {
-        const firstPath = iconElement.shadowRoot.querySelector(
-          'svg path:first-of-type',
-        ) as SVGPathElement;
-        if (firstPath) {
-          firstPath.style.fill = ''; // Resets the color to the default
-        }
+
+        // Longer delay to ensure smooth scroll completes fully
+        setTimeout(() => {
+          this.performHideReplies(comment);
+        }, 500);
+        return;
       }
     }
+
+    // Parent is visible, start hide animation immediately
+    this.performHideReplies(comment);
+  }
+
+  /**
+   * Performs the actual reply hiding animation and layout changes.
+   */
+  private performHideReplies(comment: Comment) {
+    const commentThread = document
+      .querySelector(`[data-comment-id="${comment.id}"]`)
+      ?.closest('.comment-thread') as HTMLElement;
+
+    if (commentThread) {
+      // Find the replies wrapper within this thread
+      const repliesWrapper = commentThread.querySelector(
+        '.replies-wrapper',
+      ) as HTMLElement;
+
+      if (repliesWrapper) {
+        // Calculate how much space the replies take
+        const repliesRect = repliesWrapper.getBoundingClientRect();
+        const repliesHeight = repliesRect.height;
+
+        if (repliesHeight > 0) {
+          // Save original height to collapse smoothly
+          const originalHeight = commentThread.offsetHeight;
+
+          // Start replies animation
+          this.startHideAnimation(comment);
+
+          // Simultaneously animate the entire comment thread collapsing
+          commentThread.style.height = `${originalHeight}px`;
+          commentThread.style.transition = 'height 0.3s ease-out';
+
+          setTimeout(() => {
+            const finalHeight = originalHeight - repliesHeight;
+            commentThread.style.height = `${finalHeight}px`;
+          }, 10); // Small delay to let transition apply
+
+          // Clean up after animation - remove height to restore natural layout
+          setTimeout(() => {
+            commentThread.style.height = '';
+            commentThread.style.transition = '';
+          }, 300);
+        } else {
+          this.startHideAnimation(comment);
+        }
+      } else {
+        this.startHideAnimation(comment);
+      }
+    } else {
+      this.startHideAnimation(comment);
+    }
+  }
+
+  /**
+   * Starts the hide animation for replies.
+   */
+  private startHideAnimation(comment: Comment) {
+    // Start the animate-out phase by adding the comment to hiding set
+    this.hidingRepliesComments.add(comment.id);
+
+    // Wait for animation to complete (300ms), then clean up data
+    setTimeout(() => {
+      // Reset replies to empty array (no replies shown)
+      comment.replies = [];
+
+      // Reset pagination state to show "Show replies" button
+      comment.hasMoreReplies = (comment.totalReplies || 0) > 0;
+
+      // Remove from expanded and shown comments tracking
+      this.expandedCommentIds.delete(comment.id);
+      this.shownRepliesComments.delete(comment.id);
+      this.hidingRepliesComments.delete(comment.id);
+    }, 300);
   }
 
   // --- 2. Data Loading & Page Setup ---
@@ -274,6 +401,14 @@ export class announcementPage {
    * Fetches the list of announcements from the service with pagination.
    */
   async loadAnnouncements(reset: boolean = true) {
+    // Prevent duplicate fetches (throttle)
+    const now = Date.now();
+    if (!reset && now - this.lastFetchTimestamp < this.fetchDebounceTime) {
+      return;
+    }
+
+    this.lastFetchTimestamp = now;
+
     try {
       if (reset) {
         this.currentPage = 1;
@@ -290,7 +425,17 @@ export class announcementPage {
         if (reset) {
           this.newsItems = result.announcements;
         } else {
-          this.newsItems = [...this.newsItems, ...result.announcements];
+          // Check for duplicates
+          const existingIds = new Set(
+            this.newsItems.map((item: Announcement) => item.id),
+          );
+          const newAnnouncements = result.announcements.filter(
+            (item: Announcement) => !existingIds.has(item.id),
+          );
+
+          if (newAnnouncements.length > 0) {
+            this.newsItems = [...this.newsItems, ...newAnnouncements];
+          }
         }
         this.hasMoreData = result.hasMore;
       } else {
@@ -301,6 +446,10 @@ export class announcementPage {
     } catch (error) {
       console.error('Error loading announcements:', error);
       this.presentToast('Gagal memuat senarai pengumuman.');
+      if (!reset) {
+        // If error loading more, disable further loading
+        this.hasMoreData = false;
+      }
     }
   }
 
@@ -308,20 +457,47 @@ export class announcementPage {
    * Loads more announcements for infinite scroll.
    */
   async loadMoreAnnouncements(event: any) {
-    if (this.isLoadingMore || !this.hasMoreData) {
+    // Check if we have more data to load
+    if (!this.hasMoreData) {
       event.target.complete();
       return;
     }
 
+    // Prevent concurrent loads
+    if (this.isLoadingMore) {
+      event.target.complete();
+      return;
+    }
+
+    // Check debounce timer
+    if (Date.now() - this.lastFetchTimestamp < this.fetchDebounceTime) {
+      event.target.complete();
+      return;
+    }
+
+    // Set loading state
     this.isLoadingMore = true;
-    this.currentPage++;
 
     try {
+      // Increment page first so we don't fetch the same data twice
+      this.currentPage++;
       await this.loadAnnouncements(false);
     } catch (error) {
+      // Rollback page increment on error
+      this.currentPage--;
       this.presentToast('Gagal memuat lebih banyak pengumuman.');
+      // Re-enable infinite scroll after 10 seconds to allow retry if network recovers
+      setTimeout(() => {
+        this.hasMoreData = true;
+      }, 10000);
     } finally {
       this.isLoadingMore = false;
+
+      // Ensure the infinite scroll component is re-enabled
+      if (this.infiniteScroll) {
+        this.infiniteScroll.disabled = false;
+      }
+
       event.target.complete();
     }
   }
@@ -348,6 +524,7 @@ export class announcementPage {
       if (fullAnnouncement) {
         if (resetComments) {
           this.selectedArticle = fullAnnouncement;
+          this.selectedArticleId = announcementId;
         } else {
           // Append new comments to existing ones
           if (
@@ -363,14 +540,23 @@ export class announcementPage {
           this.hasMoreComments = fullAnnouncement.hasMoreComments || false;
         }
         this.prepareImageGrid();
-        if (!fullAnnouncement.isRead) {
+        if (
+          !fullAnnouncement.isRead &&
+          !this.markedAsRead.has(announcementId)
+        ) {
           this.announcementService.markAsRead(announcementId).catch();
+          this.markedAsRead.add(announcementId);
           // Update the unread count in the service
           this.unreadAnnouncementsService.decrementUnreadCount();
         }
       } else {
-        // this.presentToast('Pengumuman tidak dijumpai.');
-        this.router.navigateByUrl('/tabs/announcement', { replaceUrl: true });
+        if (resetComments) {
+          // this.presentToast('Pengumuman tidak dijumpai.');
+          this.router.navigateByUrl('/tabs/announcement', { replaceUrl: true });
+        } else {
+          this.presentToast('Gagal memuat lebih banyak komen.');
+          this.hasMoreComments = false; // Disable infinite scroll when loading more comments fails
+        }
       }
     } catch (error) {
       this.presentToast('Gagal memuat detail pengumuman.');
@@ -397,6 +583,11 @@ export class announcementPage {
       await this.loadAnnouncementDetailsById(this.selectedArticle.id, false);
     } catch (error) {
       this.presentToast('Gagal memuat lebih banyak komen.');
+      this.hasMoreComments = false; // Disable further loading on error
+      // Re-enable infinite scroll after 10 seconds to allow retry if network recovers
+      setTimeout(() => {
+        this.hasMoreComments = true;
+      }, 10000);
     } finally {
       this.isLoadingMoreComments = false;
       event.target.complete();
@@ -416,6 +607,7 @@ export class announcementPage {
       const response = await this.announcementService.loadMoreReplies(
         comment.id,
         offset,
+        5, // Load 3 more replies at a time
       );
 
       if (response.success && response.replies) {
@@ -425,9 +617,80 @@ export class announcementPage {
         // Update pagination state
         comment.hasMoreReplies = response.hasMore;
         comment.totalReplies = response.total;
+
+        // Mark this comment as expanded
+        if (!response.hasMore) {
+          this.expandedCommentIds.add(comment.id);
+        }
       }
     } catch (error) {
       this.presentToast('Gagal memuat lebih banyak balasan.');
+    }
+  }
+
+  /**
+   * Checks if replies for a comment are currently being hidden (animated out).
+   */
+  isHidingReplies(commentId: number): boolean {
+    return this.hidingRepliesComments.has(commentId);
+  }
+
+  /**
+   * Gets the CSS class string for the replies wrapper based on its state.
+   */
+  getRepliesWrapperClass(commentId: number): string {
+    if (this.isHidingReplies(commentId)) {
+      return 'hiding';
+    }
+    return '';
+  }
+
+  /**
+   * Checks if a comment has been expanded (all replies loaded).
+   */
+  isCommentExpanded(commentId: number): boolean {
+    return this.expandedCommentIds.has(commentId);
+  }
+
+  /**
+   * Checks if replies for a comment are currently displayed.
+   */
+  isRepliesShown(commentId: number): boolean {
+    return this.shownRepliesComments.has(commentId);
+  }
+
+  /**
+   * Shows initial replies for a comment.
+   */
+  async showInitialReplies(comment: Comment) {
+    if (!this.selectedArticle || !comment.hasMoreReplies) return;
+
+    try {
+      // Load first 3 replies initially (mimic the original behavior but on-demand)
+      const response = await this.announcementService.loadMoreReplies(
+        comment.id,
+        0, // Start from the first reply
+        3, // Load 3 replies initially
+      );
+
+      if (response.success && response.replies) {
+        // Set the replies array with the loaded replies
+        comment.replies = response.replies;
+
+        // Update pagination state based on what was returned
+        comment.hasMoreReplies = response.hasMore;
+        comment.totalReplies = response.total;
+
+        // Mark this comment as having replies shown
+        this.shownRepliesComments.add(comment.id);
+
+        // Mark as expanded if all replies were loaded (uncommon for first load)
+        if (!response.hasMore) {
+          this.expandedCommentIds.add(comment.id);
+        }
+      }
+    } catch (error) {
+      this.presentToast('Gagal memuatkan balasan.');
     }
   }
 
@@ -441,6 +704,10 @@ export class announcementPage {
     this.replyingToCommentId = null;
     this.editingCommentId = null;
     this.editCommentText = '';
+    // Clear reply tracking states
+    this.expandedCommentIds.clear();
+    this.shownRepliesComments.clear();
+    this.hidingRepliesComments.clear();
   }
 
   // --- 3. UI Interaction & View Logic ---
@@ -448,7 +715,10 @@ export class announcementPage {
   /**
    * Navigates to the detail view for a selected article.
    */
-  selectArticle(item: Announcement) {
+  async selectArticle(item: Announcement) {
+    await this.saveScrollPosition();
+    this.isReturningFromDetail = true;
+    this.selectedArticleId = item.id;
     this.router.navigate(['/tabs/announcement', item.id]);
   }
 
@@ -456,8 +726,12 @@ export class announcementPage {
    * Deselects the current article, returning to the list view.
    */
   deselectArticle() {
+    this.isReturningFromDetail = true;
     this.router.navigateByUrl('/tabs/announcement', { replaceUrl: true });
     this.resetPageState();
+
+    // Clear unread mark for the selected article
+    this.clearUnreadMarkForSelectedArticle();
 
     // Refresh unread count when returning to list view from detail view
     setTimeout(async () => {
@@ -632,6 +906,41 @@ export class announcementPage {
     hours = hours % 12 || 12; // Converts 0 to 12
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes} ${ampm}`;
+  }
+
+  colorUnreadIcon() {
+    const iconElement = document
+      .querySelectorAll('ion-segment-button')[1]
+      ?.querySelector('ion-icon');
+
+    // First, check if the icon exists at all
+    if (!iconElement) return;
+
+    // === NEW PART ===
+    // Only proceed if it's the correct icon
+    if (iconElement.getAttribute('name') === 'mail-unread') {
+      if (iconElement.shadowRoot) {
+        const firstPath = iconElement.shadowRoot.querySelector(
+          'svg path:first-of-type',
+        ) as SVGPathElement;
+
+        if (firstPath) {
+          firstPath.style.fill = 'red';
+          // Once we succeed, we can stop the interval
+          clearInterval(this.iconColorInterval);
+        }
+      }
+    } else {
+      // If the icon is 'mail', we should ensure the color is reset
+      if (iconElement.shadowRoot) {
+        const firstPath = iconElement.shadowRoot.querySelector(
+          'svg path:first-of-type',
+        ) as SVGPathElement;
+        if (firstPath) {
+          firstPath.style.fill = ''; // Resets the color to the default
+        }
+      }
+    }
   }
 
   // --- 5. Comment & Reply Logic ---
@@ -981,7 +1290,12 @@ export class announcementPage {
    * Handles the pull-to-refresh action.
    */
   async handleRefresh(event: CustomEvent) {
+    // Reset all loading states on manual refresh
+    this.listDataLoaded = false;
+    this.isLoadingMore = false;
+
     await this.loadAnnouncements();
+    this.listDataLoaded = true;
     (event.target as HTMLIonRefresherElement).complete();
   }
 
@@ -1108,5 +1422,69 @@ export class announcementPage {
    */
   trackByCommentId(index: number, item: Comment): number {
     return item.id;
+  }
+
+  // --- Scroll Position Management ---
+
+  /**
+   * Saves the current scroll position of the list view.
+   */
+  private async saveScrollPosition() {
+    if (this.content) {
+      const scrollElement = await this.content.getScrollElement();
+      this.savedScrollPosition = scrollElement.scrollTop;
+    }
+  }
+
+  /**
+   * Restores the previously saved scroll position.
+   */
+  private async restoreScrollPosition() {
+    if (this.content && this.savedScrollPosition > 0) {
+      await this.content.scrollToPoint(0, this.savedScrollPosition, 0);
+    }
+  }
+
+  /**
+   * Resets all loading states to ensure infinite scroll can work properly.
+   */
+  private resetLoadingStates() {
+    this.isLoadingMore = false;
+
+    // Force infinite scroll to re-enable if it exists
+    setTimeout(() => {
+      if (this.infiniteScroll) {
+        this.infiniteScroll.disabled = false;
+      }
+    }, 100);
+  }
+
+  /**
+   * Clears the unread mark for the previously selected article when returning from detail view.
+   */
+  private clearUnreadMarkForSelectedArticle() {
+    if (this.selectedArticleId) {
+      // Find and update the article in the list
+      const articleIndex = this.newsItems.findIndex(
+        (item) => item.id === this.selectedArticleId,
+      );
+      if (articleIndex !== -1) {
+        this.newsItems[articleIndex].isRead = true;
+      }
+
+      // Also update in displayedNewsItems if it exists there
+      const displayedIndex = this.displayedNewsItems.findIndex(
+        (item) => item.id === this.selectedArticleId,
+      );
+      if (displayedIndex !== -1) {
+        this.displayedNewsItems[displayedIndex].isRead = true;
+      }
+
+      // Update the allRead flag
+      this.allRead = !this.newsItems.some((item) => !item.isRead);
+
+      // Reset the selected article ID
+      this.selectedArticleId = null;
+    }
   }
 }

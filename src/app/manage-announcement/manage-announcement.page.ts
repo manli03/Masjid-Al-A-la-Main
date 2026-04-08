@@ -1,11 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import {
   ModalController,
   AlertController,
   ViewWillEnter,
+  ViewWillLeave,
   ToastController,
   LoadingController, // Import LoadingController
+  IonContent,
 } from '@ionic/angular';
+import { OnDestroy } from '@angular/core';
 import { AddAnnouncementModalComponent } from '../component/add-announcement-modal/add-announcement-modal.component';
 import { EditAnnouncementModalComponent } from '../component/edit-announcement-modal/edit-announcement-modal.component';
 import { StorageService } from '../services/storage.service';
@@ -24,6 +27,7 @@ interface Announcement {
   date: string;
   commentsCount: number;
   likes: number;
+  isRead?: boolean; // Track if announcement has been read by current user
 }
 
 @Component({
@@ -31,7 +35,13 @@ interface Announcement {
   templateUrl: './manage-announcement.page.html',
   styleUrls: ['./manage-announcement.page.scss'],
 })
-export class ManageAnnouncementPage implements ViewWillEnter {
+export class ManageAnnouncementPage
+  implements ViewWillEnter, ViewWillLeave, OnDestroy
+{
+  // DOM Element References
+  @ViewChild(IonContent, { static: false }) content: IonContent | undefined;
+  @ViewChild('infiniteScroll', { static: false }) infiniteScroll: any;
+
   isAddModalOpen = false;
   isEditModalOpen = false;
   newsItems: Announcement[] = [];
@@ -46,6 +56,16 @@ export class ManageAnnouncementPage implements ViewWillEnter {
   hasMoreData = true;
   pageSize = 10;
 
+  // State preservation for manage list view
+  private savedScrollPosition: number = 0;
+  private listDataLoaded: boolean = false;
+  private isReturningFromDetail: boolean = false;
+  private selectedArticleId: number | null = null;
+
+  // Debounce mechanism to prevent duplicate fetch
+  private lastFetchTimestamp: number = 0;
+  private fetchDebounceTime: number = 500; // ms
+
   constructor(
     private modalController: ModalController,
     private alertController: AlertController,
@@ -59,21 +79,33 @@ export class ManageAnnouncementPage implements ViewWillEnter {
 
   async ionViewWillEnter() {
     this.isPageLoading = true;
-    console.log('Checking admin status in manage-announcement...');
+
+    // Always reset loading states on page entry to prevent stuck states
+    this.resetLoadingStates();
 
     this.currentUser = await this.storageService.get('user');
     const isAdmin = await this.authService.isAdmin();
     this.userIsAdmin = isAdmin;
 
     if (!isAdmin) {
-      console.log('User is NOT admin. Redirecting to /tabs/announcement...');
+      // User is not admin, redirect
       await this.router.navigate(['/tabs/announcement'], { replaceUrl: true });
       this.isPageLoading = false; // Ensure loading is turned off before redirecting
       return;
     }
 
-    console.log('User is admin. Allowing access.');
-    await this.loadAnnouncements();
+    // User is admin, proceed
+
+    // Conditionally reload data based on whether we're returning from detail view
+    if (!this.listDataLoaded || !this.isReturningFromDetail) {
+      await this.loadAnnouncements();
+      this.listDataLoaded = true;
+    } else {
+      // Returning from detail - restore scroll position and clear unread mark
+      setTimeout(() => this.restoreScrollPosition(), 100);
+      this.clearUnreadMarkForSelectedArticle();
+    }
+    this.isReturningFromDetail = false;
     this.isPageLoading = false;
   }
 
@@ -119,6 +151,14 @@ export class ManageAnnouncementPage implements ViewWillEnter {
   }
 
   async loadAnnouncements(reset: boolean = true) {
+    // Prevent duplicate fetches (throttle)
+    const now = Date.now();
+    if (!reset && now - this.lastFetchTimestamp < this.fetchDebounceTime) {
+      return;
+    }
+
+    this.lastFetchTimestamp = now;
+
     try {
       if (reset) {
         this.currentPage = 1;
@@ -126,12 +166,25 @@ export class ManageAnnouncementPage implements ViewWillEnter {
         this.newsItems = [];
       }
 
-      const result = await this.announcementService.getAnnouncements(this.currentPage, this.pageSize);
+      const result = await this.announcementService.getAnnouncements(
+        this.currentPage,
+        this.pageSize,
+      );
       if (result.announcements && result.announcements.length > 0) {
         if (reset) {
           this.newsItems = result.announcements;
         } else {
-          this.newsItems = [...this.newsItems, ...result.announcements];
+          // Check for duplicates
+          const existingIds = new Set(
+            this.newsItems.map((item: Announcement) => item.id),
+          );
+          const newAnnouncements = result.announcements.filter(
+            (item: Announcement) => !existingIds.has(item.id),
+          );
+
+          if (newAnnouncements.length > 0) {
+            this.newsItems = [...this.newsItems, ...newAnnouncements];
+          }
         }
         this.hasMoreData = result.hasMore;
       } else {
@@ -140,6 +193,10 @@ export class ManageAnnouncementPage implements ViewWillEnter {
     } catch (error) {
       console.error('Error loading announcements:', error);
       this.presentToast('Ralat memuatkan pengumuman. Sila cuba lagi.');
+      if (!reset) {
+        // If error loading more, disable further loading
+        this.hasMoreData = false;
+      }
     }
   }
 
@@ -147,25 +204,51 @@ export class ManageAnnouncementPage implements ViewWillEnter {
    * Loads more announcements for infinite scroll.
    */
   async loadMoreAnnouncements(event: any) {
-    if (this.isLoadingMore || !this.hasMoreData) {
+    // Check if we have more data to load
+    if (!this.hasMoreData) {
       event.target.complete();
       return;
     }
 
+    // Prevent concurrent loads
+    if (this.isLoadingMore) {
+      event.target.complete();
+      return;
+    }
+
+    // Check debounce timer
+    if (Date.now() - this.lastFetchTimestamp < this.fetchDebounceTime) {
+      event.target.complete();
+      return;
+    }
+
+    // Set loading state
     this.isLoadingMore = true;
-    this.currentPage++;
 
     try {
+      // Increment page first so we don't fetch the same data twice
+      this.currentPage++;
       await this.loadAnnouncements(false);
     } catch (error) {
+      // Rollback page increment on error
+      this.currentPage--;
       this.presentToast('Gagal memuat lebih banyak pengumuman.');
     } finally {
       this.isLoadingMore = false;
+
+      // Ensure the infinite scroll component is re-enabled
+      if (this.infiniteScroll) {
+        this.infiniteScroll.disabled = false;
+      }
+
       event.target.complete();
     }
   }
 
-  viewAnnouncementDetails(announcement: Announcement) {
+  async viewAnnouncementDetails(announcement: Announcement) {
+    await this.saveScrollPosition();
+    this.isReturningFromDetail = true;
+    this.selectedArticleId = announcement.id;
     this.router.navigate(['/tabs/announcement', announcement.id]);
   }
 
@@ -317,16 +400,19 @@ export class ManageAnnouncementPage implements ViewWillEnter {
   }
 
   async handleRefresh(event: CustomEvent) {
+    // Reset all loading states on manual refresh
+    this.listDataLoaded = false;
+    this.isLoadingMore = false;
+
     await this.loadAnnouncements();
+    this.listDataLoaded = true;
     (event.target as HTMLIonRefresherElement).complete();
   }
 
   handleImageError(event: Event, news: Announcement) {
     const imgElement = event.target as HTMLImageElement;
     if (news.imageUrl && news.imageUrl.startsWith('data:image/')) {
-      console.warn('Base64 image failed to load:', news.title);
-      const base64Size = (news.imageUrl.length * 3) / 4 / (1024 * 1024);
-      console.log(`Image size: ${base64Size.toFixed(2)}MB`);
+      // Handle base64 image failure
       imgElement.src = 'data:image/svg+xml;base64,...'; // Placeholder
       imgElement.classList.add('image-error');
       imgElement.style.padding = '40px';
@@ -344,5 +430,83 @@ export class ManageAnnouncementPage implements ViewWillEnter {
    */
   trackByAnnouncementId(index: number, item: Announcement): number {
     return item.id;
+  }
+
+  // --- Scroll Position Management ---
+
+  /**
+   * Saves the current scroll position of the manage list view.
+   */
+  private async saveScrollPosition() {
+    if (this.content) {
+      const scrollElement = await this.content.getScrollElement();
+      this.savedScrollPosition = scrollElement.scrollTop;
+    }
+  }
+
+  /**
+   * Restores the previously saved scroll position.
+   */
+  private async restoreScrollPosition() {
+    if (this.content && this.savedScrollPosition > 0) {
+      await this.content.scrollToPoint(0, this.savedScrollPosition, 0);
+    }
+  }
+
+  // --- Lifecycle Management ---
+
+  /**
+   * Runs when the page is about to leave. Manages state cleanup.
+   */
+  ionViewWillLeave() {
+    // If navigating away completely (not just to detail view),
+    // reset the cache flag to load fresh data on next entry
+    if (!this.isReturningFromDetail) {
+      this.listDataLoaded = false;
+    }
+  }
+
+  /**
+   * Resets all loading states to ensure infinite scroll can work properly.
+   */
+  private resetLoadingStates() {
+    this.isLoadingMore = false;
+
+    // Force infinite scroll to re-enable if it exists
+    setTimeout(() => {
+      if (this.infiniteScroll) {
+        this.infiniteScroll.disabled = false;
+      }
+    }, 100);
+  }
+
+  /**
+   * Clears the unread mark for the previously selected article when returning from detail view.
+   */
+  private clearUnreadMarkForSelectedArticle() {
+    if (this.selectedArticleId) {
+      // Find and update the article in the list
+      const articleIndex = this.newsItems.findIndex(
+        (item) => item.id === this.selectedArticleId,
+      );
+      if (articleIndex !== -1) {
+        this.newsItems[articleIndex].isRead = true;
+      }
+
+      // Reset the selected article ID
+      this.selectedArticleId = null;
+    }
+  }
+
+  /**
+   * Cleans up resources when the component is destroyed.
+   */
+  ngOnDestroy() {
+    // Cleanup any subscriptions or resources if needed
+    if (this.loading) {
+      this.loading.dismiss().catch(() => {
+        // Ignore dismiss errors
+      });
+    }
   }
 }

@@ -16,18 +16,18 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <!-- Add Announcement Button -->
-  <div class="addAnnouncementButton" *ngIf="newsItems.length > 0">
-    <ion-button color="primary" (click)="openModal('addAnnouncementModal')">
-      Tambah Pengumuman
-    </ion-button>
-  </div>
+  <!-- Add Announcement FAB Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary" (click)="openModal('addAnnouncementModal')">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
   <!-- News Articles List -->
   <ion-grid class="ion-no-padding">
     <ion-row>
       <ion-col size="12" size-md="5" *ngFor="let news of newsItems; trackBy: trackByAnnouncementId">
-        <div class="card shadow-sm mb-3">
+        <div class="card shadow-sm mb-3" [ngClass]="{'unread-item': !news.isRead}">
           <div class="image-container" (click)="viewAnnouncementDetails(news)">
             <img *ngIf="news.imageUrl" [src]="news.imageUrl" (error)="handleImageError($event, news)" />
             <div *ngIf="!news.imageUrl" class="image-placeholder">
@@ -36,7 +36,10 @@
             </div>
           </div>
           <ion-card-header (click)="viewAnnouncementDetails(news)">
-            <ion-card-title>{{ news.title }}</ion-card-title>
+            <div class="card-title-container">
+              <ion-card-title>{{ news.title }}</ion-card-title>
+              <div class="unread-indicator" *ngIf="!news.isRead"></div>
+              </div>
           </ion-card-header>
           <ion-card-content>
             <p>Penulis: {{ news.author }}</p>
@@ -73,7 +76,7 @@
   </div>
 
   <!-- Infinite scroll for announcements -->
-  <ion-infinite-scroll (ionInfinite)="loadMoreAnnouncements($event)" threshold="50px" *ngIf="hasMoreData">
+  <ion-infinite-scroll #infiniteScroll (ionInfinite)="loadMoreAnnouncements($event)" threshold="80px" *ngIf="hasMoreData">
     <ion-infinite-scroll-content loadingSpinner="bubbles" loadingText="Memuatkan lebih banyak...">
     </ion-infinite-scroll-content>
   </ion-infinite-scroll>
