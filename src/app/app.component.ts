@@ -15,6 +15,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import { PrayerNotificationsService } from './services/prayer-notifications.service';
 import { DarkModeHandlerService } from './services/dark-mode-handler.service';
 import { UnreadAnnouncementsService } from './services/unread-announcements.service';
+import { SplashService } from './services/splash.service';
 
 @Component({
   selector: 'app-root',
@@ -33,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private prayerNotificationsService: PrayerNotificationsService,
     private darkModeService: DarkModeHandlerService,
     private unreadAnnouncementsService: UnreadAnnouncementsService,
+    private splashService: SplashService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
@@ -58,14 +60,21 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     // Listen for homePageLoaded event
-    window.addEventListener('homePageLoaded', ((event: Event) => {
-      console.log('Home page loaded event received');
+    // Listen for page loaded events (components should dispatch 'pageLoaded' or 'homePageLoaded')
+    const handlePageLoaded = (event: Event) => {
+      console.log('Page loaded event received');
       const customEvent = event as CustomEvent;
-      if (customEvent.detail && customEvent.detail.loaded) {
-        console.log('Setting isAppLoaded to true from custom event');
+      if (customEvent?.detail?.loaded) {
+        // Simply mark app loaded; the LoadingComponent will enforce minimum display time
         this.isAppLoaded = true;
       }
-    }) as EventListener);
+    };
+
+    window.addEventListener(
+      'homePageLoaded',
+      handlePageLoaded as EventListener,
+    );
+    window.addEventListener('pageLoaded', handlePageLoaded as EventListener);
 
     // Listen for route changes
     this.router.events
@@ -75,30 +84,8 @@ export class AppComponent implements OnInit, OnDestroy {
         ),
       )
       .subscribe((event) => {
-        // Check if we're on the home page
-        this.isHomePage = event.url.includes('/tabs/home');
-        console.log('Current route is home page:', this.isHomePage);
-
-        if (this.isHomePage) {
-          console.log('On home page, setting timeout for loading screen');
-          // Wait for home page to signal it's fully loaded
-          // We'll use a timeout here as a fallback to ensure loading screen
-          // doesn't stay visible indefinitely if something goes wrong
-          setTimeout(() => {
-            console.log(
-              'Fallback timeout reached, forcing isAppLoaded to true',
-            );
-            this.isAppLoaded = true;
-          }, 10000); // 10s fallback timeout (longer than the 5s minimum + buffer)
-        } else {
-          // For non-home pages, show loading for exactly 3 seconds
-          console.log('Not on home page, will show loading for 3 seconds');
-          this.isAppLoaded = false;
-          setTimeout(() => {
-            console.log('2 second timer for non-home page complete');
-            this.isAppLoaded = true;
-          }, 3000);
-        }
+        // Show loading overlay until pageLoaded event sets `isAppLoaded`.
+        this.isAppLoaded = false;
       });
 
     // Force hide the loading screen after 12 seconds as an additional safety measure
@@ -124,7 +111,14 @@ export class AppComponent implements OnInit, OnDestroy {
         // Set loading state to false first
         this.isAppLoaded = false;
 
-        // Hide the splash screen
+        // Initialize splash service (loads cached splash and triggers background update)
+        try {
+          await this.splashService.init();
+        } catch (err) {
+          console.warn('SplashService.init failed', err);
+        }
+
+        // Now hide the native splash so the custom loading overlay can take over
         await SplashScreen.hide();
         console.log('Splash screen hidden, showing custom loading screen');
 
@@ -247,20 +241,26 @@ export class AppComponent implements OnInit, OnDestroy {
       );
 
       // This listener is triggered when a user receives a notification.
-      PushNotifications.addListener('pushNotificationReceived', async (notification) => {
-        console.log(
-          'Push notification received:',
-          JSON.stringify(notification),
-        );
+      PushNotifications.addListener(
+        'pushNotificationReceived',
+        async (notification) => {
+          console.log(
+            'Push notification received:',
+            JSON.stringify(notification),
+          );
 
-        // Refresh unread count when tabs become visible again
-        // This handles the case where user returns from announcement detail pages
-        try {
-          await this.unreadAnnouncementsService.refreshUnreadCount();
-        } catch (error) {
-          console.error('Error refreshing unread count on push notification received:', error);
-        }
-      });
+          // Refresh unread count when tabs become visible again
+          // This handles the case where user returns from announcement detail pages
+          try {
+            await this.unreadAnnouncementsService.refreshUnreadCount();
+          } catch (error) {
+            console.error(
+              'Error refreshing unread count on push notification received:',
+              error,
+            );
+          }
+        },
+      );
     }
   }
 
@@ -269,9 +269,13 @@ export class AppComponent implements OnInit, OnDestroy {
       App.addListener('appStateChange', async (state) => {
         if (state.isActive) {
           // App has resumed, check if we previously opened notification settings
-          const settingsOpened = localStorage.getItem('notificationSettingsOpened');
+          const settingsOpened = localStorage.getItem(
+            'notificationSettingsOpened',
+          );
           if (settingsOpened === 'true') {
-            console.log('App resumed after opening notification settings, checking permission...');
+            console.log(
+              'App resumed after opening notification settings, checking permission...',
+            );
             // Clear the flag
             localStorage.removeItem('notificationSettingsOpened');
             // Check permission and schedule notifications if enabled

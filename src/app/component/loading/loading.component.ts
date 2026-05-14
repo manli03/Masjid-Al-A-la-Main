@@ -5,90 +5,102 @@ import {
   OnChanges,
   SimpleChanges,
 } from '@angular/core';
+import { SplashService } from '../../services/splash.service';
 
 @Component({
   selector: 'app-loading',
   template: `
     <div class="loading-container" [class.hidden]="shouldHide">
-      <picture *ngIf="!isLandscape">
-        <!-- Portrait Mode -->
-        <!-- Modern tall screens - check aspect ratio and density -->
-        <source
-          media="(min-aspect-ratio: 9/19) and (max-aspect-ratio: 9/21) and (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
-          srcset="assets/loading/xxxhdpi_tall_portrait.png"
-        />
-        <source
-          media="(min-aspect-ratio: 9/19) and (max-aspect-ratio: 9/21) and (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
-          srcset="assets/loading/xxhdpi_tall_portrait.png"
-        />
-        <!-- Standard density-based images -->
-        <source
-          media="(min-resolution: 4dppx), (-webkit-min-device-pixel-ratio: 4)"
-          srcset="assets/loading/xxxhdpi_portrait.png"
-        />
-        <source
-          media="(min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
-          srcset="assets/loading/xxhdpi_portrait.png"
-        />
-        <source
-          media="(min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
-          srcset="assets/loading/xhdpi_portrait.png"
-        />
-        <source
-          media="(min-resolution: 1.5dppx), (-webkit-min-device-pixel-ratio: 1.5)"
-          srcset="assets/loading/hdpi_portrait.png"
-        />
-        <source
-          media="(min-resolution: 1dppx), (-webkit-min-device-pixel-ratio: 1)"
-          srcset="assets/loading/mdpi_portrait.png"
-        />
-        <!-- Default fallback -->
+      <ng-container *ngIf="dynamicSplash; else defaultPicture">
         <img
-          src="assets/loading/xxhdpi_portrait.png"
+          [src]="dynamicSplash"
           alt="Loading"
           class="loading-image"
+          (error)="onImageError()"
         />
-      </picture>
+      </ng-container>
 
-      <picture *ngIf="isLandscape">
-        <!-- Landscape Mode -->
-        <!-- Taller landscape screens (modern ultra-wide devices) -->
-        <source
-          media="(min-aspect-ratio: 21/9) and (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
-          srcset="assets/loading/xxxhdpi_tall_landscape.png"
-        />
-        <source
-          media="(min-aspect-ratio: 21/9) and (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
-          srcset="assets/loading/xxhdpi_tall_landscape.png"
-        />
-        <!-- Standard density-based landscape images -->
-        <source
-          media="(min-resolution: 4dppx), (-webkit-min-device-pixel-ratio: 4)"
-          srcset="assets/loading/xxxhdpi_landscape.png"
-        />
-        <source
-          media="(min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
-          srcset="assets/loading/xxhdpi_landscape.png"
-        />
-        <source
-          media="(min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
-          srcset="assets/loading/xhdpi_landscape.png"
-        />
-        <source
-          media="(min-resolution: 1.5dppx), (-webkit-min-device-pixel-ratio: 1.5)"
-          srcset="assets/loading/hdpi_landscape.png"
-        />
-        <source
-          media="(min-resolution: 1dppx), (-webkit-min-device-pixel-ratio: 1)"
-          srcset="assets/loading/mdpi_landscape.png"
-        />
-        <!-- Default fallback -->
-        <img
-          src="assets/loading/xxhdpi_landscape.png"
-          alt="Loading"
-          class="loading-image"
-        />
-      </picture>
+      <ng-template #defaultPicture>
+        <picture *ngIf="!isLandscape">
+          <!-- Portrait Mode -->
+          <!-- Modern tall screens - check aspect ratio and density -->
+          <source
+            media="(min-aspect-ratio: 9/19) and (max-aspect-ratio: 9/21) and (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
+            srcset="assets/loading/xxxhdpi_tall_portrait.png"
+          />
+          <source
+            media="(min-aspect-ratio: 9/19) and (max-aspect-ratio: 9/21) and (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
+            srcset="assets/loading/xxhdpi_tall_portrait.png"
+          />
+          <!-- Standard density-based images -->
+          <source
+            media="(min-resolution: 4dppx), (-webkit-min-device-pixel-ratio: 4)"
+            srcset="assets/loading/xxxhdpi_portrait.png"
+          />
+          <source
+            media="(min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
+            srcset="assets/loading/xxhdpi_portrait.png"
+          />
+          <source
+            media="(min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
+            srcset="assets/loading/xhdpi_portrait.png"
+          />
+          <source
+            media="(min-resolution: 1.5dppx), (-webkit-min-device-pixel-ratio: 1.5)"
+            srcset="assets/loading/hdpi_portrait.png"
+          />
+          <source
+            media="(min-resolution: 1dppx), (-webkit-min-device-pixel-ratio: 1)"
+            srcset="assets/loading/mdpi_portrait.png"
+          />
+          <!-- Default fallback -->
+          <img
+            src="assets/loading/xxhdpi_portrait.png"
+            alt="Loading"
+            class="loading-image"
+          />
+        </picture>
+
+        <picture *ngIf="isLandscape">
+          <!-- Landscape Mode -->
+          <!-- Taller landscape screens (modern ultra-wide devices) -->
+          <source
+            media="(min-aspect-ratio: 21/9) and (min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
+            srcset="assets/loading/xxxhdpi_tall_landscape.png"
+          />
+          <source
+            media="(min-aspect-ratio: 21/9) and (min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
+            srcset="assets/loading/xxhdpi_tall_landscape.png"
+          />
+          <!-- Standard density-based landscape images -->
+          <source
+            media="(min-resolution: 4dppx), (-webkit-min-device-pixel-ratio: 4)"
+            srcset="assets/loading/xxxhdpi_landscape.png"
+          />
+          <source
+            media="(min-resolution: 3dppx), (-webkit-min-device-pixel-ratio: 3)"
+            srcset="assets/loading/xxhdpi_landscape.png"
+          />
+          <source
+            media="(min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)"
+            srcset="assets/loading/xhdpi_landscape.png"
+          />
+          <source
+            media="(min-resolution: 1.5dppx), (-webkit-min-device-pixel-ratio: 1.5)"
+            srcset="assets/loading/hdpi_landscape.png"
+          />
+          <source
+            media="(min-resolution: 1dppx), (-webkit-min-device-pixel-ratio: 1)"
+            srcset="assets/loading/mdpi_landscape.png"
+          />
+          <!-- Default fallback -->
+          <img
+            src="assets/loading/xxhdpi_landscape.png"
+            alt="Loading"
+            class="loading-image"
+          />
+        </picture>
+      </ng-template>
     </div>
   `,
   styles: [
@@ -126,9 +138,10 @@ export class LoadingComponent implements OnInit, OnChanges {
   static isLoaded = false;
   startTime: number = 0;
   minDisplayTime = 3000; // 3 seconds minimum for home page
-  nonHomeDisplayTime = 2000; // 1 seconds fixed for non-home pages
+  dynamicSplash: string | null = null;
+  private safetyTimer: any = null;
 
-  constructor() {}
+  constructor(private splashService: SplashService) {}
 
   ngOnInit() {
     console.log(
@@ -141,8 +154,23 @@ export class LoadingComponent implements OnInit, OnChanges {
     // Record the start time when component initializes
     this.startTime = Date.now();
 
+    // Try to load cached remote splash (if any) and update in background
+    this.splashService.init().then((url) => {
+      if (url) {
+        this.dynamicSplash = url;
+      }
+    });
+
     // Force a reflow to ensure the loading screen covers everything
     document.body.style.overflow = 'hidden';
+
+    // Start safety timer to ensure the overlay is removed eventually
+    this.safetyTimer = setTimeout(() => {
+      if (!this.shouldHide) {
+        console.warn('Splash safety timeout reached, hiding overlay');
+        this.hide();
+      }
+    }, 12000);
 
     // Check initial orientation
     this.checkOrientation();
@@ -152,71 +180,71 @@ export class LoadingComponent implements OnInit, OnChanges {
       this.checkOrientation();
     });
 
-    // For non-home pages, show for exactly 3 seconds regardless of loaded state
-    if (!this.isHomePage) {
-      console.log(
-        'Non-home page detected, will show loading for 2 seconds fixed',
-      );
-      setTimeout(() => {
-        console.log('Non-home page timer complete, hiding loading screen');
-        this.shouldHide = true;
-        LoadingComponent.isLoaded = true;
-        // Release body overflow after transition
-        setTimeout(() => {
-          document.body.style.overflow = '';
-        }, 500);
-      }, this.nonHomeDisplayTime);
+    // Start time recorded; if the app is already loaded, evaluate hide logic
+    // after ensuring minimum display time.
+    if (this.loaded) {
+      this.handleLoadedChange();
     }
   }
 
-  ngOnChanges(changes: SimpleChanges) {
-    // For non-home pages, we don't need to respond to loaded changes
-    if (!this.isHomePage) {
-      return;
-    }
+  onImageError() {
+    console.warn(
+      'Dynamic splash image failed to load, falling back to bundled assets',
+    );
+    this.dynamicSplash = null;
+  }
 
-    // Only handle loaded changes for home page
+  ngOnChanges(changes: SimpleChanges) {
+    // Handle `loaded` changes for all pages: enforce minimum display time before hiding
     if (changes['loaded'] && changes['loaded'].currentValue === true) {
       console.log(
         'Loading component: loaded changed from',
         changes['loaded'].previousValue,
         'to',
         changes['loaded'].currentValue,
-        'for home page',
       );
 
-      // Calculate how much time has elapsed since component was initialized
-      const elapsedTime = Date.now() - this.startTime;
-
-      // If less than minDisplayTime has passed, wait for the remainder
-      if (elapsedTime < this.minDisplayTime) {
-        const remainingTime = this.minDisplayTime - elapsedTime;
-        console.log(
-          `Home page loading screen showing for ${remainingTime}ms more to ensure minimum display time`,
-        );
-
-        setTimeout(() => {
-          this.shouldHide = true;
-          LoadingComponent.isLoaded = true;
-          // When loaded becomes true, ensure we release body overflow after transition
-          setTimeout(() => {
-            document.body.style.overflow = '';
-          }, 500); // Match this to the transition time in CSS
-        }, remainingTime);
-      } else {
-        // If minDisplayTime has already passed, hide immediately
-        console.log(
-          'Minimum display time already elapsed, hiding home page loading screen',
-        );
-        this.shouldHide = true;
-        LoadingComponent.isLoaded = true;
-
-        // When loaded becomes true, ensure we release body overflow after transition
-        setTimeout(() => {
-          document.body.style.overflow = '';
-        }, 500); // Match this to the transition time in CSS
+      // If component hasn't finished init yet, defer handling until ngOnInit runs
+      if (this.startTime === 0) {
+        return;
       }
+
+      this.handleLoadedChange();
     }
+  }
+
+  private handleLoadedChange() {
+    // Only proceed if `loaded` is true
+    if (!this.loaded) return;
+
+    // Enforce minimum display time for all pages
+    const elapsedTime = Date.now() - this.startTime;
+    if (elapsedTime < this.minDisplayTime) {
+      const remaining = this.minDisplayTime - elapsedTime;
+      console.log(
+        `Waiting ${remaining}ms to satisfy min display time before hiding`,
+      );
+      setTimeout(() => {
+        if (this.loaded) this.hide();
+      }, remaining);
+    } else {
+      this.hide();
+    }
+  }
+
+  // Exposed so parent components can programmatically hide the loading overlay
+  public hide(): void {
+    if (this.shouldHide) return;
+    this.shouldHide = true;
+    LoadingComponent.isLoaded = true;
+    // Clear safety timer
+    if (this.safetyTimer) {
+      clearTimeout(this.safetyTimer);
+      this.safetyTimer = null;
+    }
+    setTimeout(() => {
+      document.body.style.overflow = '';
+    }, 500);
   }
 
   private checkOrientation() {

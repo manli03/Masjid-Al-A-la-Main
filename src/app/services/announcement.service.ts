@@ -339,44 +339,99 @@ export class AnnouncementService {
     if (error instanceof HttpErrorResponse) {
       console.error('HTTP error:', error.status, error.message);
 
-      // Check for specific error types
-      if (error.status === 413) {
-        // This is a content size error - show specific message
-        const errorBody = error.error;
-        let message = 'Saiz kandungan terlalu besar.';
-
-        if (errorBody && errorBody.message) {
-          message = errorBody.message;
-          if (errorBody.current_size && errorBody.max_size) {
-            const currentSizeMB = (errorBody.current_size / 1048576).toFixed(2);
-            const maxSizeMB = (errorBody.max_size / 1048576).toFixed(2);
-            message += ` (${currentSizeMB}MB melebihi had ${maxSizeMB}MB)`;
-          }
+      // Status 0 can mean different things: offline, CORS/network failure, or server unreachable.
+      if (error.status === 0) {
+        // If the browser is offline, show offline message
+        if (
+          typeof window !== 'undefined' &&
+          (window as any).navigator &&
+          !(window as any).navigator.onLine
+        ) {
+          await this.presentToast(
+            'Anda sedang luar talian. Sila sambung ke Internet dan cuba lagi.',
+            'warning',
+          );
+          return;
         }
 
-        await this.presentToast(message, 'danger', 5000);
+        // If the error.error is a ProgressEvent, it's likely a network/CORS failure
+        if (error.error instanceof ProgressEvent) {
+          await this.presentToast(
+            'Gagal berhubung. Sila semak sambungan rangkaian atau tetapan CORS pelayan.',
+            'danger',
+          );
+          return;
+        }
+
+        // Otherwise, treat as server unreachable (connection refused / no response)
+        await this.presentToast(
+          'Tidak dapat menghubungi pelayan. Sila cuba lagi sebentar.',
+          'danger',
+        );
         return;
       }
 
-      if (this.devMode && error.error) {
-        // For development, show the detailed error
-        if (error.error.dev_message) {
-          await this.showDevelopmentErrorToast(error.error);
-        } else {
-          await this.presentToast(
-            `Ralat ${error.status}: ${error.message}`,
-            'danger',
-          );
+      // Payload too large
+      if (error.status === 413) {
+        const errorBody = error.error || {};
+        let message = 'Saiz fail terlalu besar.';
+        if (errorBody.message) message = errorBody.message;
+        if (errorBody.current_size && errorBody.max_size) {
+          const currentMB = (errorBody.current_size / 1048576).toFixed(2);
+          const maxMB = (errorBody.max_size / 1048576).toFixed(2);
+          message = `Saiz fail ${currentMB}MB melebihi had ${maxMB}MB.`;
         }
-      } else {
+        await this.presentToast(message, 'danger', 6000);
+        return;
+      }
+
+      // Authentication / authorization
+      if (error.status === 401 || error.status === 403) {
         await this.presentToast(
-          'Ralat, sila semak rangkaian anda.',
+          'Aksi tidak dibenarkan. Sila log masuk semula.',
+          'warning',
+        );
+        return;
+      }
+
+      // Not found
+      if (error.status === 404) {
+        await this.presentToast('Sumber tidak ditemui.', 'warning');
+        return;
+      }
+
+      // Server errors
+      if (error.status >= 500) {
+        await this.presentToast(
+          'Ralat pelayan. Sila cuba semula sebentar lagi.',
           'danger',
         );
+        return;
+      }
+
+      // Client errors (other 4xx)
+      if (error.status >= 400) {
+        const msg =
+          error.error?.message ||
+          error.message ||
+          'Permintaan tidak dapat diproses.';
+        // In dev mode, show more details if available
+        if (this.devMode && error.error) {
+          if (error.error.dev_message) {
+            await this.showDevelopmentErrorToast(error.error);
+            return;
+          }
+          await this.presentToast(`Ralat ${error.status}: ${msg}`, 'danger');
+          return;
+        }
+
+        // Production: show concise message
+        await this.presentToast(msg, 'warning');
+        return;
       }
     } else {
       console.error('Unknown error:', error);
-      await this.presentToast('Ralat tidak diketahui telah berlaku.', 'danger');
+      await this.presentToast('Ralat tidak diketahui. Sila cuba lagi.', 'danger');
     }
   }
 
