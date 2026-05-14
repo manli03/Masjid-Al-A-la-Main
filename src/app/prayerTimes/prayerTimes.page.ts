@@ -213,11 +213,6 @@ export class prayerTimesPage implements OnInit {
       const detectedZone = await this.prayerTimesService.getCurrentLocation();
 
       if (detectedZone) {
-        this.prayerTimesService.presentToast(
-          `✅ Lokasi dikesan: ${this.prayerTimesService.zoneNames[detectedZone]}`,
-          'success',
-        );
-
         // Step 5: Update prayer times with the detected zone
         await this.prayerTimesService.refreshDataWithLocation(detectedZone);
 
@@ -293,7 +288,10 @@ export class prayerTimesPage implements OnInit {
       prayerTime.setSeconds(0);
 
       // Compare both date and time
-      const prayerDateTime = new Date(prayer.date + ' ' + prayer.time);
+      const prayerDateTime = new Date(this.currentDate);
+      prayerDateTime.setHours(hours);
+      prayerDateTime.setMinutes(minutes);
+      prayerDateTime.setSeconds(0);
       const timeDiff = prayerDateTime.getTime() - currentTime.getTime();
 
       // If the prayer time is in the future and closer than the current closest prayer time
@@ -363,12 +361,11 @@ export class prayerTimesPage implements OnInit {
 
   // Check if the given prayer's date is today's date
   isToday(prayerTime: string): boolean {
-    const prayerDate = new Date(prayerTime);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    prayerDate.setHours(0, 0, 0, 0);
+    return prayerTime === this.prayerTimesService.formatDate(new Date());
+  }
 
-    return today.toDateString() === prayerDate.toDateString();
+  formatApiDateForDisplay(date: string): string {
+    return this.prayerTimesService.formatApiDateForDisplay(date);
   }
 
   setClickedRow(prayer: any) {

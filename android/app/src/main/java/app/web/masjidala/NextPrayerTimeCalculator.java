@@ -8,10 +8,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
 
 public class NextPrayerTimeCalculator {
     private static final String TAG = "NextPrayerTimeCalc";
@@ -78,8 +76,7 @@ public class NextPrayerTimeCalculator {
      * @return The timestamp in milliseconds for the prayer on the target date, or 0 if not found.
      */
     private static long getPrayerTimeForSpecificDay(Date targetDate, String prayerName, JSONArray prayersJsonArray) {
-        SimpleDateFormat sdfDateMatcher = new SimpleDateFormat("dd-MMM-yyyy", Locale.ENGLISH);
-        String targetDateString = sdfDateMatcher.format(targetDate);
+        String targetDateString = NotificationUtils.formatPrayerApiDate(targetDate);
 
         try {
             for (int i = 0; i < prayersJsonArray.length(); i++) {

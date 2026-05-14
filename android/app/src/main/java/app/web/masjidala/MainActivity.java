@@ -3,7 +3,6 @@ package app.web.masjidala;
 import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,13 +15,9 @@ import android.util.Log;
 
 import com.getcapacitor.BridgeActivity;
 
-import java.util.Arrays;
-import java.util.List;
-
 public class MainActivity extends BridgeActivity {
     private static final String TAG = "MainActivity";
     private static final String PREF_NAME = "masjidala_prefs";
-    private static final String KEY_AUTOSTART_SHOWN = "autostart_shown";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,91 +62,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void showStartupDialogs() {
-        maybeShowAutostartSettingsOnce();
         maybeRequestExactAlarmPermissionOnce();
-    }
-
-    private void maybeShowAutostartSettingsOnce() {
-        SharedPreferences prefs = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        boolean alreadyShown = prefs.getBoolean(KEY_AUTOSTART_SHOWN, false);
-
-        List<String> allowedManufacturers = Arrays.asList(
-                "xiaomi", "oppo", "vivo", "letv", "asus", "huawei", "honor", "oneplus",
-                "itel", "tecno", "infinix"
-        );
-        String manufacturer = Build.MANUFACTURER.toLowerCase();
-
-        if (!allowedManufacturers.contains(manufacturer) || alreadyShown) {
-            maybeRequestBatteryOptimizationDisable();
-            return;
-        }
-
-        new AlertDialog.Builder(this)
-                .setTitle("Aktifkan Auto Start")
-                .setMessage("Untuk memastikan azan dimainkan selepas phone reboot, sila aktifkan Auto-Start untuk Masjid A'la dalam setting telefon anda.")
-                .setPositiveButton("Buka Setting", (dialog, which) -> {
-                    prefs.edit().putBoolean(KEY_AUTOSTART_SHOWN, true).apply();
-                    openAutoStartSettings(manufacturer);
-                })
-                .setNegativeButton("Abaikan", (dialog, which) -> maybeRequestBatteryOptimizationDisable())
-                .setCancelable(false)
-                .show();
-    }
-
-    private void openAutoStartSettings(String manufacturer) {
-        Intent intent = new Intent();
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-        try {
-            if (manufacturer.toLowerCase().contains("itel") ||
-                    manufacturer.toLowerCase().contains("tecno") ||
-                    manufacturer.toLowerCase().contains("infinix")) {
-
-                intent.setComponent(new ComponentName("com.transsion.phonemaster", "com.cyin.himgr.autostart.AutoStartActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("xiaomi")) {
-                intent.setComponent(new ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("oppo")) {
-                intent.setComponent(new ComponentName("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("vivo")) {
-                intent.setComponent(new ComponentName("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("letv")) {
-                intent.setComponent(new ComponentName("com.letv.android.letvsafe", "com.letv.android.letvsafe.AutobootManageActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("asus")) {
-                intent.setComponent(new ComponentName("com.asus.mobilemanager", "com.asus.mobilemanager.entry.FunctionActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("huawei")) {
-                intent.setComponent(new ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("honor")) {
-                intent.setComponent(new ComponentName("com.huawei.systemmanager", "com.huawei.systemmanager.optimize.process.ProtectActivity"));
-                startActivity(intent);
-
-            } else if (manufacturer.equalsIgnoreCase("oneplus")) {
-                intent.setComponent(new ComponentName("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"));
-                startActivity(intent);
-
-            } else {
-                // Unknown manufacturer: open general settings as fallback
-                startActivity(new Intent(Settings.ACTION_SETTINGS));
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Unable to open AutoStart settings on manufacturer: " + manufacturer);
-
-            Log.e(TAG, "Unable to open AutoStart settings: " + e.getMessage());
-            startActivity(new Intent(Settings.ACTION_SETTINGS));
-        }
     }
 
     private void maybeRequestBatteryOptimizationDisable() {

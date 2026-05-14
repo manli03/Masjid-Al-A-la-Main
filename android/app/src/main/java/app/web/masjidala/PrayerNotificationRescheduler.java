@@ -11,8 +11,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.HashMap;
@@ -151,16 +149,11 @@ public class PrayerNotificationRescheduler {
     // Helper method to convert date and time strings to milliseconds.
     // This is public static now, as NextPrayerTimeCalculator needs to call it.
     public static long convertToMillis(String dateStr, String timeStr) {
-        try {
-            // Your JSON prayer times currently store "HH:mm:ss" like format.
-            // If it's just HH:mm, change the SimpleDateFormat to "dd-MMM-yyyy HH:mm".
-            SimpleDateFormat sdf = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss", Locale.ENGLISH);
-            Date date = sdf.parse(dateStr + " " + timeStr);
-            return date != null ? date.getTime() : 0;
-        } catch (ParseException e) {
-            Log.e(TAG, "Date parse error for " + dateStr + " " + timeStr + ": " + e.getMessage());
-            return 0;
+        long millis = NotificationUtils.parsePrayerApiDateTimeMillis(dateStr, timeStr);
+        if (millis == 0) {
+            Log.e(TAG, "Date parse error for " + dateStr + " " + timeStr);
         }
+        return millis;
     }
 
     // This method sets the actual alarm using AlarmManager with setAlarmClock

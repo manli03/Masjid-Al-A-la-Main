@@ -920,9 +920,7 @@ export class PrayerNotificationsService {
   /**
    * Force reschedule all notifications
    */
-  async forceRescheduleNotifications(
-    showToasts: boolean = false,
-  ): Promise<void> {
+  async forceRescheduleNotifications(): Promise<void> {
     try {
       // First make sure we're not in the middle of processing queue
       if (this.processingQueue) {
@@ -941,15 +939,9 @@ export class PrayerNotificationsService {
 
       // Then schedule new ones
       await this.scheduleAllNotifications();
-
-      if (showToasts) {
-        await this.showToast('Notifikasi telah dijadualkan semula', 'success');
-      }
     } catch (error) {
       console.error('Error rescheduling notifications:', error);
-      if (showToasts) {
-        await this.showToast('Ralat menjadualkan semula notifikasi', 'danger');
-      }
+      await this.showToast('Ralat menjadualkan semula notifikasi', 'danger');
       throw error;
     }
   }

@@ -254,7 +254,7 @@ export class HomePage implements OnDestroy {
         this.prayerTimesService.zoneNames[zone] ||
         this.prayerTimesService.zoneNames['kdh01']; // Default to KDH01
       const today = new Date();
-      const formattedDate = this.formatDate(today);
+      const formattedDate = this.prayerTimesService.formatDate(today);
       const prayerData = savedData.prayers.find(
         (p: any) => p.date === formattedDate,
       );
@@ -291,17 +291,6 @@ export class HomePage implements OnDestroy {
       }, 2000);
       return false;
     }
-  }
-
-  private formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    };
-    const formattedDate = date.toLocaleDateString('en-MY', options);
-    const [day, month, year] = formattedDate.split(' ');
-    return `${day}-${month.slice(0, 3)}-${year}`; // Use english format since api use english format
   }
 
   private formatPrayerTime(time: string): string {
@@ -771,11 +760,6 @@ export class HomePage implements OnDestroy {
       const detectedZone = await this.prayerTimesService.getCurrentLocation();
 
       if (detectedZone) {
-        this.prayerTimesService.presentToast(
-          `✅ Lokasi dikesan: ${this.prayerTimesService.zoneNames[detectedZone]}`,
-          'success',
-        );
-
         // Step 5: Update prayer times with the detected zone
         await this.prayerTimesService.refreshDataWithLocation(detectedZone);
 

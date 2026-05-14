@@ -175,7 +175,7 @@
             <tr *ngFor="let prayer of yearlyPrayers"
               [ngClass]="{'current-day': isToday(prayer.date), 'clicked-row': clickedRow === prayer}"
               (click)="setClickedRow(prayer)">
-              <td>{{ prayer.date | date: 'MMM d' }}</td>
+              <td>{{ formatApiDateForDisplay(prayer.date) }}</td>
               <td>{{ convertTimeToDate(prayer.imsak) | date: 'h:mm a' }}</td>
               <td>{{ convertTimeToDate(prayer.fajr) | date: 'h:mm a' }}</td>
               <td>{{ convertTimeToDate(prayer.syuruk) | date: 'h:mm a' }}</td>

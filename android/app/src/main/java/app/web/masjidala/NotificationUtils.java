@@ -5,9 +5,75 @@ import android.content.SharedPreferences;
 
 import org.json.JSONObject;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class NotificationUtils {
+    private static final String[] PRAYER_API_MONTHS = {
+            "Jan", "Feb", "Mac", "Apr", "Mei", "Jun",
+            "Jul", "Ogos", "Sep", "Okt", "Nov", "Dis"
+    };
+
+    public static String formatPrayerApiDate(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+
+        int day = calendar.get(Calendar.DAY_OF_MONTH);
+        int month = calendar.get(Calendar.MONTH);
+        int year = calendar.get(Calendar.YEAR);
+
+        return String.format(Locale.ENGLISH, "%02d-%s-%04d", day, PRAYER_API_MONTHS[month], year);
+    }
+
+    public static long parsePrayerApiDateTimeMillis(String dateStr, String timeStr) {
+        if (dateStr == null || timeStr == null || dateStr.isEmpty() || timeStr.isEmpty()) {
+            return 0;
+        }
+
+        try {
+            String[] dateParts = dateStr.split("-");
+            String[] timeParts = timeStr.split(":");
+
+            if (dateParts.length != 3 || timeParts.length < 2) {
+                return 0;
+            }
+
+            int day = Integer.parseInt(dateParts[0]);
+            int month = getPrayerApiMonthIndex(dateParts[1]);
+            int year = Integer.parseInt(dateParts[2]);
+            int hour = Integer.parseInt(timeParts[0]);
+            int minute = Integer.parseInt(timeParts[1]);
+            int second = timeParts.length >= 3 ? Integer.parseInt(timeParts[2]) : 0;
+
+            if (month < 0) {
+                return 0;
+            }
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setLenient(false);
+            calendar.set(Calendar.YEAR, year);
+            calendar.set(Calendar.MONTH, month);
+            calendar.set(Calendar.DAY_OF_MONTH, day);
+            calendar.set(Calendar.HOUR_OF_DAY, hour);
+            calendar.set(Calendar.MINUTE, minute);
+            calendar.set(Calendar.SECOND, second);
+            calendar.set(Calendar.MILLISECOND, 0);
+
+            return calendar.getTimeInMillis();
+        } catch (IllegalArgumentException e) {
+            return 0;
+        }
+    }
+
+    private static int getPrayerApiMonthIndex(String monthName) {
+        for (int i = 0; i < PRAYER_API_MONTHS.length; i++) {
+            if (PRAYER_API_MONTHS[i].equalsIgnoreCase(monthName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     public static String getCurrentPrayerTime(Context context, String prayerName) {
         try {
@@ -17,8 +83,7 @@ public class NotificationUtils {
             if (yearlyPrayerTimesJson != null) {
                 JSONObject yearlyPrayerTimes = new JSONObject(yearlyPrayerTimesJson);
                 // Get today's date in dd-MMM-yyyy format
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MMM-yyyy", java.util.Locale.ENGLISH);
-                String todayDate = sdf.format(new java.util.Date());
+                String todayDate = formatPrayerApiDate(new Date());
 
                 // Find today's prayer data
                 org.json.JSONArray prayers = yearlyPrayerTimes.getJSONArray("prayers");

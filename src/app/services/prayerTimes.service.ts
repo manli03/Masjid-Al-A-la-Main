@@ -20,6 +20,21 @@ export interface Prayer {
   providedIn: 'root',
 })
 export class PrayerTimesService {
+  private readonly API_MONTHS = [
+    'Jan',
+    'Feb',
+    'Mac',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Ogos',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Dis',
+  ];
+
   private prayerApiUrl =
     'https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat'; // API URL to fetch prayer times
   private userZoneApiUrl = 'https://mpt.i906.my/api/prayer'; // API URL to fetch the zone code
@@ -220,7 +235,7 @@ export class PrayerTimesService {
     });
     this.presentToast('Data waktu solat telah dikemaskini!', 'success');
     console.log('Choosen prayer times saved successfully!');
-    this.prayerNotificationsService.forceRescheduleNotifications(true);
+    this.prayerNotificationsService.forceRescheduleNotifications();
   }
 
   // Retrieve saved yearly prayer times from Preferences
@@ -395,14 +410,64 @@ export class PrayerTimesService {
 
   // Helper function to format Date to 'dd-MMM-yyyy'
   formatDate(date: Date): string {
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: '2-digit',
-    };
-    const formattedDate = date.toLocaleDateString('en-MY', options);
-    const [day, month, year] = formattedDate.split(' ');
-    return `${day}-${month.slice(0, 3)}-${year}`; // Use english format since api use english format
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = this.API_MONTHS[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+
+  parseApiDate(dateStr: string): Date | null {
+    const [day, month, year] = dateStr.split('-');
+    const dayNumber = Number(day);
+    const monthIndex = this.API_MONTHS.indexOf(month);
+    const yearNumber = Number(year);
+
+    if (!day || monthIndex === -1 || !year) {
+      return null;
+    }
+
+    const date = new Date(yearNumber, monthIndex, dayNumber);
+
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getFullYear() !== yearNumber ||
+      date.getMonth() !== monthIndex ||
+      date.getDate() !== dayNumber
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
+  formatApiDateForDisplay(dateStr: string): string {
+    const date = this.parseApiDate(dateStr);
+    return date
+      ? date.toLocaleDateString('ms-MY', { month: 'short', day: 'numeric' })
+      : dateStr;
+  }
+
+  private parseApiDateTime(dateStr: string, timeStr: string): Date | null {
+    const date = this.parseApiDate(dateStr);
+
+    if (!date) {
+      return null;
+    }
+
+    const [hours, minutes, seconds = 0] = timeStr
+      .split(':')
+      .map((num) => parseInt(num, 10));
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes) || Number.isNaN(seconds)) {
+      return null;
+    }
+
+    date.setHours(hours, minutes, seconds, 0);
+    return date;
   }
 
   // Helper function to check if data exists for a specific date
@@ -433,16 +498,13 @@ export class PrayerTimesService {
 
     // Iterate through the list of prayers and find the closest one by both date and time
     for (const prayer of prayers) {
-      const [hours, minutes] = prayer.time
-        .split(':')
-        .map((num) => parseInt(num, 10));
-      const prayerTime = new Date();
-      prayerTime.setHours(hours);
-      prayerTime.setMinutes(minutes);
-      prayerTime.setSeconds(0);
-
       // Compare both date and time
-      const prayerDateTime = new Date(prayer.date + ' ' + prayer.time);
+      const prayerDateTime = this.parseApiDateTime(prayer.date, prayer.time);
+
+      if (!prayerDateTime) {
+        continue;
+      }
+
       const timeDiff = prayerDateTime.getTime() - currentDate.getTime();
 
       // If the prayer time is in the future and closer than the current closest prayer time
@@ -482,8 +544,9 @@ export class PrayerTimesService {
     return {
       closestPrayer: closestPrayer.name,
       remainingTime,
-      closestPrayerTime: new Date(
-        closestPrayer.date + ' ' + closestPrayer.time,
+      closestPrayerTime: this.parseApiDateTime(
+        closestPrayer.date,
+        closestPrayer.time,
       ),
     };
   }
@@ -540,7 +603,7 @@ export class PrayerTimesService {
     return {
       prayers,
       hijriDate: currentHijriDate,
-      currentDate: new Date(selectedPrayer.date),
+      currentDate: this.parseApiDate(selectedPrayer.date) || currentDate,
     };
   }
 
@@ -617,12 +680,7 @@ export class PrayerTimesService {
 
   // Check if the given prayer's date is today's date
   isToday(prayerTime: string): boolean {
-    const prayerDate = new Date(prayerTime);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    prayerDate.setHours(0, 0, 0, 0);
-
-    return today.toDateString() === prayerDate.toDateString();
+    return prayerTime === this.formatDate(new Date());
   }
 
   // Get current location and return zone code
