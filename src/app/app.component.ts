@@ -111,14 +111,8 @@ export class AppComponent implements OnInit, OnDestroy {
         // Set loading state to false first
         this.isAppLoaded = false;
 
-        // Initialize splash service (loads cached splash and triggers background update)
-        try {
-          await this.splashService.init();
-        } catch (err) {
-          console.warn('SplashService.init failed', err);
-        }
-
         // Now hide the native splash so the custom loading overlay can take over
+        // Note: SplashService.init() is called by LoadingComponent, not here
         await SplashScreen.hide();
         console.log('Splash screen hidden, showing custom loading screen');
 

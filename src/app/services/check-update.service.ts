@@ -8,7 +8,7 @@ import { lastValueFrom } from 'rxjs';
 })
 export class CheckUpdateService {
   private apkUrl =
-    'https://bit.ly/AppMasjidAla';
+    'https://oc-manli.duckdns.org/masjidala/latest-masjidala.apk';
   private updateJsonUrl = 'https://oc-manli.duckdns.org/masjidala/update.json';
   private localUpdatePath = 'assets/update.json';
   private embeddedModified: string | null = null;
@@ -18,7 +18,9 @@ export class CheckUpdateService {
   async checkForUpdate() {
     try {
       // Load local embedded version
-      const local: any = await lastValueFrom(this.http.get(this.localUpdatePath));
+      const local: any = await lastValueFrom(
+        this.http.get(this.localUpdatePath),
+      );
       this.embeddedModified = local.lastPreviousUpdate;
 
       if (!this.embeddedModified) {
@@ -29,7 +31,7 @@ export class CheckUpdateService {
       // Load server update info
       const headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
       const remote: any = await lastValueFrom(
-        this.http.get(this.updateJsonUrl, { headers })
+        this.http.get(this.updateJsonUrl, { headers }),
       );
 
       const serverModified = remote?.lastPreviousUpdate;
