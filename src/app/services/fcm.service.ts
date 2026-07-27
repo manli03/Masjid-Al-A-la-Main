@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { environment } from 'src/environments/environment';
 import { StorageService } from './storage.service';
 import { firstValueFrom } from 'rxjs';
@@ -116,13 +117,30 @@ export class FcmService {
       console.error('User not logged in, cannot send token to server');
       return;
     }
-    const userId = await this.getUserIdFromDatabase(); // Fetch user ID from database
+    
+    // Get the ID token from secure storage directly (avoids circular dependency with AuthService)
+    let idToken: string | null = null;
+    try {
+      const result = await SecureStoragePlugin.get({ key: 'idToken' });
+      if (result && result.value) {
+        idToken = JSON.parse(result.value);
+      }
+    } catch (e) {
+      console.error('Could not get ID token from secure storage');
+    }
+    
+    if (!idToken) {
+      console.error('No auth token available, cannot send FCM token');
+      return;
+    }
+    
     const response = await fetch(`${this.apiUrl}/store_token.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ token, userId }),
+      body: JSON.stringify({ token }),
     });
 
     const responseJson = await response.json();
@@ -130,32 +148,6 @@ export class FcmService {
       console.log('Token sent to server successfully');
     } else {
       console.error('Failed to send token to server:', responseJson.message);
-    }
-  }
-
-  private async getUserIdFromDatabase(): Promise<string> {
-    const user = await this.storageService.get('user');
-
-    try {
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, {
-          action: 'get_user_details',
-          email: user.email,
-        }),
-      );
-
-      if (response.success && response.user) {
-        console.info('User ID from database:', response.user.id);
-        return response.user.id;
-      } else if (response.error === 'Pengguna tidak dijumpai') {
-        return '';
-      } else {
-        console.error('Error checking user id from database:', response.error);
-        return '';
-      }
-    } catch (error) {
-      console.error('Error checking user id from database:', error);
-      return '';
     }
   }
 }

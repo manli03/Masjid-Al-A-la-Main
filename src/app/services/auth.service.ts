@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 import { Platform } from '@ionic/angular';
 import { StorageService } from './storage.service';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { FcmService } from './fcm.service';
@@ -19,6 +19,7 @@ export class AuthService {
     null;
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
   private profileCompletionCache: boolean | null = null;
+  private currentIdToken: string | null = null;
 
   constructor(
     private platform: Platform,
@@ -40,11 +41,21 @@ export class AuthService {
       const user = await this.storageService.get('user');
       if (user && user.email) {
         try {
-          const response = await firstValueFrom(
-            this.http.post<any>(`${this.apiUrl}/auth.php`, {
-              action: 'verify_token',
-              email: user.email,
-            }),
+          // Try to get auth headers - if no token available, skip the API call
+          const idToken = await this.getIdToken();
+          if (!idToken) {
+            console.log('No ID token available yet during initialization, skipping verify_token call');
+            return;
+          }
+          
+          const headers = new HttpHeaders().set('Authorization', `Bearer ${idToken}`);
+          // Also send token in body as fallback for Android
+          const body = { action: 'verify_token', _token: idToken };
+          const response: any = await firstValueFrom(
+            this.http.post(`${this.apiUrl}/auth.php`, 
+              body,
+              { headers, observe: 'body' as 'body' }
+            ),
           );
 
           this.profileCompletionCache =
@@ -237,11 +248,16 @@ export class AuthService {
       // Clear FCM token on logout if possible
       if (userEmail) {
         try {
+          const idToken = await this.getIdToken();
+          let headers = new HttpHeaders();
+          if (idToken) {
+            headers = headers.set('Authorization', `Bearer ${idToken}`);
+          }
           await firstValueFrom(
-            this.http.post(`${this.apiUrl}/auth.php`, {
-              action: 'logout_clear_token',
-              email: userEmail,
-            }),
+            this.http.post(`${this.apiUrl}/auth.php`, 
+              { action: 'logout_clear_token', _token: idToken },
+              { headers }
+            ),
           );
         } catch (error) {
           console.warn('Error clearing FCM token on logout:', error);
@@ -342,15 +358,17 @@ export class AuthService {
         throw new Error('User not authenticated');
       }
 
-      // Add action and email to the data
+      const idToken = await this.getIdToken();
+      // Add action and data
       const data = {
         ...profileData,
         action: 'update_profile',
-        email: user.email,
+        _token: idToken,
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, data),
+      const headers = await this.getAuthHeaders();
+      const response: any = await firstValueFrom(
+        this.http.post<any>(`${this.apiUrl}/auth.php`, data, { headers }),
       );
 
       if (response.success) {
@@ -399,11 +417,19 @@ export class AuthService {
 
     // If cache is null (not yet initialized), check from database
     try {
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, {
-          action: 'verify_token',
-          email: user.email,
-        }),
+      const idToken = await this.getIdToken();
+      if (!idToken) {
+        // No token available - use local data to determine profile completeness
+        this.profileCompletionCache = !!(user.phone && user.birthdate && user.name);
+        return this.profileCompletionCache;
+      }
+      
+      const headers = new HttpHeaders().set('Authorization', `Bearer ${idToken}`);
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/auth.php`, 
+          { action: 'verify_token', _token: idToken },
+          { headers, observe: 'body' as 'body' }
+        ),
       );
 
       const isComplete = !!(
@@ -443,11 +469,19 @@ export class AuthService {
     }
 
     try {
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, {
-          action: 'verify_token',
-          email: user.email,
-        }),
+      const idToken = await this.getIdToken();
+      if (!idToken) {
+        // No token available - return false for admin (non-critical, can be rechecked after refresh)
+        console.log('No ID token available for admin check, returning false');
+        return false;
+      }
+      
+      const headers = new HttpHeaders().set('Authorization', `Bearer ${idToken}`);
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/auth.php`, 
+          { action: 'verify_token', _token: idToken },
+          { headers, observe: 'body' as 'body' }
+        ),
       );
 
       const isAdmin =
@@ -483,14 +517,17 @@ export class AuthService {
         throw new Error('Only admins can promote other users');
       }
 
+      const idToken = await this.getIdToken();
       const data = {
         action: 'promote_admin',
         adminEmail: user.email,
         userEmail: userEmail,
+        _token: idToken,
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/auth.php`, data),
+      const headers = await this.getAuthHeaders();
+      const response: any = await firstValueFrom(
+        this.http.post<any>(`${this.apiUrl}/auth.php`, data, { headers }),
       );
 
       if (response.success) {
@@ -514,5 +551,63 @@ export class AuthService {
     const user = await this.storageService.get('user');
     // The user is considered authenticated if the 'user' object is not null.
     return user !== null;
+  }
+
+  /**
+   * Get the Google ID token for authenticating API requests.
+   * This token is sent in the Authorization header as a Bearer token.
+   * 
+   * @returns The Google ID token string, or null if not available
+   */
+  async getIdToken(): Promise<string | null> {
+    // Try in-memory cache first
+    if (this.currentIdToken) {
+      return this.currentIdToken;
+    }
+
+    // Try secure storage
+    const storedToken = await this.storageService.getSecure('idToken');
+    if (storedToken) {
+      this.currentIdToken = storedToken;
+      return storedToken;
+    }
+
+    // Try to refresh from Google Auth
+    try {
+      // For web: silent sign-in may provide a fresh token
+      const googleUser = await GoogleAuth.refresh();
+      if (googleUser && googleUser.idToken) {
+        this.currentIdToken = googleUser.idToken;
+        await this.storageService.setSecure('idToken', googleUser.idToken);
+        return googleUser.idToken;
+      }
+    } catch (error) {
+      console.warn('Could not refresh Google token:', error);
+    }
+
+    return null;
+  }
+
+  /**
+   * Update the stored ID token (called after sign-in)
+   */
+  async setIdToken(token: string): Promise<void> {
+    this.currentIdToken = token;
+    await this.storageService.setSecure('idToken', token);
+  }
+
+  /**
+   * Create HTTP headers with the Authorization Bearer token
+   * for authenticated API requests.
+   */
+  async getAuthHeaders(): Promise<HttpHeaders> {
+    let headers = new HttpHeaders();
+    
+    const token = await this.getIdToken();
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+    
+    return headers;
   }
 }

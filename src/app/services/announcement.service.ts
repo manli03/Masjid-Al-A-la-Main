@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { StorageService } from './storage.service';
+import { AuthService } from './auth.service';
 import { firstValueFrom } from 'rxjs';
 import { ToastService } from './toast.service';
 import { PrayerNotificationsService } from './prayer-notifications.service';
@@ -17,9 +18,44 @@ export class AnnouncementService {
   constructor(
     private http: HttpClient,
     private storageService: StorageService,
+    private authService: AuthService,
     private toastService: ToastService,
     private prayerNotificationsService: PrayerNotificationsService,
   ) {}
+
+  /**
+   * Get HTTP headers with Authorization Bearer token
+   */
+  private async getAuthHeaders(): Promise<HttpHeaders> {
+    return this.authService.getAuthHeaders();
+  }
+
+  /**
+   * Make an authenticated POST request
+   * Sends the token both in the Authorization header AND in the request body
+   * as _token (for servers/stacks that strip the Authorization header).
+   */
+  private async authPost(url: string, body: any): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    // Also include token in body as fallback for Android/CORS issues
+    const idToken = await this.authService.getIdToken();
+    const augmentedBody = { ...body, _token: idToken };
+    const result = await firstValueFrom(
+      this.http.post(url, augmentedBody, { headers, observe: 'body' as 'body' })
+    );
+    return result;
+  }
+
+  /**
+   * Make an authenticated GET request
+   */
+  private async authGet(url: string): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    const result = await firstValueFrom(
+      this.http.get(url, { headers, observe: 'body' as 'body' })
+    );
+    return result;
+  }
 
   async getAnnouncements(page: number = 1, limit: number = 10) {
     try {
@@ -32,7 +68,10 @@ export class AnnouncementService {
         url += `&email=${encodeURIComponent(user.email)}`;
       }
 
-      const response = await firstValueFrom(this.http.get<any>(url));
+      const headers = await this.getAuthHeaders();
+      const response: any = await firstValueFrom(
+        this.http.get(url, { headers, observe: 'body' as 'body' })
+      );
       if (response.success) {
         // Handle both paginated and non-paginated responses
         const announcements = response.announcements || [];
@@ -62,7 +101,10 @@ export class AnnouncementService {
         url += `&email=${encodeURIComponent(user.email)}`;
       }
 
-      const response = await firstValueFrom(this.http.get<any>(url));
+      const headers = await this.getAuthHeaders();
+      const response: any = await firstValueFrom(
+        this.http.get(url, { headers, observe: 'body' as 'body' })
+      );
       if (response.success) {
         return response.announcement;
       } else {
@@ -77,19 +119,14 @@ export class AnnouncementService {
 
   async toggleLike(announcementId: number) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const likeData = {
         action: 'like',
         announcementId,
-        email: user.email,
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/announcements.php`, likeData),
+      const response = await this.authPost(
+        `${this.apiUrl}/announcements.php`, 
+        likeData
       );
       if (response.success) {
         return response;
@@ -98,24 +135,19 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async createAnnouncement(data: any) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // The data parameter is now expected to be a FormData object.
-      // The email should be appended to the FormData in the component.
-      // data.email = user.email; // This is now done in the component
-
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/announcements.php`, data),
+      const headers = await this.getAuthHeaders();
+      // FormData needs special handling - headers must not set Content-Type
+      // as the browser will set it with the boundary for multipart/form-data
+      const httpOptions: any = { headers, observe: 'body' as 'body' };
+      
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/announcements.php`, data, httpOptions),
       );
       if (response.success) {
         return response;
@@ -124,26 +156,22 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error creating announcement:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async updateAnnouncement(id: number, data: any) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
+      // Ensure FormData includes the id
+      if (data instanceof FormData) {
+        data.set('id', id.toString());
       }
-
-      // The data parameter is now expected to be a FormData object.
-      // The email and id should be appended to the FormData in the component.
-      // data.email = user.email;
-      // data.id = id;
-
-      const response = await firstValueFrom(
-        // The endpoint for update is now just the base URL, differentiated by POST data.
-        this.http.post<any>(`${this.apiUrl}/announcements.php`, data),
+      
+      const headers = await this.getAuthHeaders();
+      const httpOptions: any = { headers, observe: 'body' as 'body' };
+      
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/announcements.php`, data, httpOptions),
       );
       if (response.success) {
         return response;
@@ -152,24 +180,15 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error updating announcement:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async deleteAnnouncement(id: number) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/announcements.php`, {
-          action: 'delete',
-          id,
-          email: user.email,
-        }),
+      const response = await this.authPost(
+        `${this.apiUrl}/announcements.php`, 
+        { action: 'delete', id }
       );
       if (response.success) {
         return response;
@@ -178,7 +197,6 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
@@ -189,14 +207,8 @@ export class AnnouncementService {
     parentCommentId?: number,
   ) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const payload: any = {
         announcementId,
-        email: user.email,
         comment,
         action: 'add',
       };
@@ -205,8 +217,9 @@ export class AnnouncementService {
         payload.parentCommentId = parentCommentId;
       }
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/comments.php`, payload),
+      const response = await this.authPost(
+        `${this.apiUrl}/comments.php`, 
+        payload
       );
       if (response.success) {
         return response;
@@ -215,26 +228,20 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async deleteComment(commentId: number) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const payload = {
         commentId,
-        email: user.email,
         action: 'delete',
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/comments.php`, payload),
+      const response = await this.authPost(
+        `${this.apiUrl}/comments.php`, 
+        payload
       );
       if (response.success) {
         return response;
@@ -243,27 +250,21 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async updateComment(commentId: number, commentText: string) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const payload = {
         commentId,
-        email: user.email,
         comment: commentText,
         action: 'update',
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/comments.php`, payload),
+      const response = await this.authPost(
+        `${this.apiUrl}/comments.php`, 
+        payload
       );
       if (response.success) {
         return response;
@@ -272,26 +273,20 @@ export class AnnouncementService {
       }
     } catch (error) {
       console.error('Error updating comment:', error);
-      // await this.handleHttpError(error);
       throw error;
     }
   }
 
   async markAsRead(announcementId: number) {
     try {
-      const user = await this.storageService.get('user');
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
       const data = {
         action: 'mark_read',
         announcementId,
-        email: user.email,
       };
 
-      const response = await firstValueFrom(
-        this.http.post<any>(`${this.apiUrl}/announcements.php`, data),
+      const response = await this.authPost(
+        `${this.apiUrl}/announcements.php`, 
+        data
       );
 
       if (response.success) {
@@ -316,8 +311,9 @@ export class AnnouncementService {
         .set('offset', offset.toString())
         .set('limit', limit.toString());
 
-      const response = await firstValueFrom(
-        this.http.get<any>(`${this.apiUrl}/announcements.php`, { params }),
+      const headers = await this.getAuthHeaders();
+      const response: any = await firstValueFrom(
+        this.http.get(`${this.apiUrl}/announcements.php`, { params, headers, observe: 'body' as 'body' }),
       );
 
       if (response.success) {

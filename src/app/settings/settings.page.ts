@@ -87,11 +87,12 @@ export class SettingsPage implements OnInit, ViewWillEnter {
         this.membershipNumber = userData.membershipNumber || 'Not assigned';
 
         try {
-          const response = await firstValueFrom(
-            this.http.post<any>(`${this.apiUrl}/auth.php`, {
-              action: 'get_user_details',
-              email: userData.email,
-            }),
+          const headers = await this.authService.getAuthHeaders();
+          const response: any = await firstValueFrom(
+            this.http.post(`${this.apiUrl}/auth.php`, 
+              { action: 'get_user_details' },
+              { headers, observe: 'body' as 'body' }
+            ),
           );
 
           if (response.success && response.user) {
