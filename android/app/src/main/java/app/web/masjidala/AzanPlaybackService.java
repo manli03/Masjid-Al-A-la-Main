@@ -284,7 +284,11 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         releaseAudioFocus();
 
         // Stop foreground and service
-        stopForeground(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            stopForeground(Service.STOP_FOREGROUND_REMOVE);
+        } else {
+            stopForeground(true);
+        }
         stopSelf();
 
         // Create completion notification after stopping (non-blocking)
@@ -312,6 +316,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         }
     }
 
+    @SuppressWarnings("deprecation")
     private boolean requestAudioFocus() {
         if (audioManager == null) {
             return false;
@@ -338,6 +343,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         return hasAudioFocus;
     }
 
+    @SuppressWarnings("deprecation")
     private void releaseAudioFocus() {
         if (audioManager != null && hasAudioFocus) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && audioFocusRequest != null) {
@@ -358,6 +364,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         return selectedSound;
     }
 
+    @SuppressWarnings("DiscouragedApi")
     private int getResourceId(String resourceName) {
         try {
             return getResources().getIdentifier(resourceName, "raw", getPackageName());

@@ -148,6 +148,7 @@ public class AndroidAudio extends Plugin {
         }
     }
 
+    @SuppressWarnings("DiscouragedApi")
     private int getResourceId(String resourceName) {
         try {
             // Get the raw resource ID from the name
