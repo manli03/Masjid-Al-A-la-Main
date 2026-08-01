@@ -37,7 +37,7 @@ public class PrayerNotificationRescheduler {
             JSONObject notifSettings = new JSONObject(notifJson);
             JSONArray enabledPrayers = notifSettings.optJSONArray("enabledPrayers");
             int advanceMinutes = notifSettings.optInt("notificationAdvance", 0);
-            String mainChannelId = "azan_playback_channel";
+            String mainChannelId = NotificationUtils.AZAN_PLAYBACK_CHANNEL_ID;
 
             if (enabledPrayers == null || enabledPrayers.length() == 0) {
                 Log.w(TAG, "No enabled prayers found. Skipping rescheduling.");

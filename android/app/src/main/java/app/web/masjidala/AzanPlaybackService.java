@@ -1,7 +1,6 @@
 package app.web.masjidala;
 
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
@@ -12,7 +11,6 @@ import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -25,7 +23,7 @@ import org.json.JSONObject;
 
 public class AzanPlaybackService extends Service implements MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener {
     private static final String TAG = "AzanPlaybackService";
-    private static final String CHANNEL_ID = "azan_playback_channel";
+    private static final String CHANNEL_ID = NotificationUtils.AZAN_PLAYBACK_CHANNEL_ID;
     private static final int NOTIFICATION_ID = 1001;
 
     // Actions
@@ -392,34 +390,9 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
     }
 
     private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Azan Playback",
-                    NotificationManager.IMPORTANCE_HIGH // Changed to HIGH for floating
-            );
-            channel.setDescription("Controls for azan playback");
-
-            // Set a default alarm sound to enable floating
-            channel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-                    new AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ALARM)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build());
-
-            channel.enableVibration(true);
-            channel.setShowBadge(true);
-
-            // Additional settings for heads-up notifications
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                channel.setAllowBubbles(true);
-            }
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
+        // Shared utility ensures both azan and silent channels exist before use.
+        // Safe to call multiple times and required before posting on Android O+.
+        NotificationUtils.ensureNotificationChannels(this);
     }
 
     private Notification createNotification() {
@@ -548,8 +521,7 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
         );
 
         // Use silent channel for completion notification
-        String silentChannelId = CHANNEL_ID + "_silent";
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, silentChannelId)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationUtils.AZAN_PLAYBACK_CHANNEL_ID_SILENT)
                 .setSmallIcon(R.drawable.ic_stat_prayertimes_icon)
                 .setColor(ContextCompat.getColor(this, R.color.notification_color))
                 .setContentTitle(title)
@@ -568,23 +540,8 @@ public class AzanPlaybackService extends Service implements MediaPlayer.OnComple
     }
 
     private void createSilentNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String silentChannelId = CHANNEL_ID + "_silent";
-            NotificationChannel channel = new NotificationChannel(
-                    silentChannelId,
-                    "Azan Completion",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            channel.setDescription("Silent notifications for azan completion");
-            channel.setSound(null, null); // No sound
-            channel.setVibrationPattern(null); // No vibration
-            channel.setShowBadge(true);
-
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
+        // Shared utility ensures both azan and silent channels exist before use.
+        NotificationUtils.ensureNotificationChannels(this);
     }
 
 

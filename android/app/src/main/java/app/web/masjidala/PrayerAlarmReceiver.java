@@ -31,6 +31,11 @@ public class PrayerAlarmReceiver extends BroadcastReceiver {
             String prayerName = intent.getStringExtra("prayer_name");
             int advanceMinutes = intent.getIntExtra("advance_minutes", 0);
 
+            // Ensure notification channels exist BEFORE posting any notification.
+            // On Android O+ (API 26+) posting to a non-existent channel causes:
+            // "No Channel found for pkg=..., channelId=... " and the notification is dropped.
+            NotificationUtils.ensureNotificationChannels(context);
+
             // Check user's sound preference
             String selectedAzanSound = getSelectedAzanSound(context);
             boolean hasSoundEnabled = !"none".equals(selectedAzanSound);

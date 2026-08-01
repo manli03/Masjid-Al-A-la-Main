@@ -1,7 +1,12 @@
 package app.web.masjidala;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
+import android.os.Build;
 
 import org.json.JSONObject;
 
@@ -10,10 +15,70 @@ import java.util.Date;
 import java.util.Locale;
 
 public class NotificationUtils {
+    public static final String AZAN_PLAYBACK_CHANNEL_ID = "azan_playback_channel";
+    public static final String AZAN_PLAYBACK_CHANNEL_ID_SILENT = AZAN_PLAYBACK_CHANNEL_ID + "_silent";
+
     private static final String[] PRAYER_API_MONTHS = {
             "Jan", "Feb", "Mac", "Apr", "Mei", "Jun",
             "Jul", "Ogos", "Sep", "Okt", "Nov", "Dis"
     };
+
+    /**
+     * Idempotently creates (if not already created) the notification channels used by this app.
+     * This MUST be called before any notification is posted to avoid the
+     * "No Channel found for pkg=..., channelId=... " error on Android O+.
+     *
+     * Safe to call multiple times: Android ignores re-creation of an existing channel
+     * (except name/description updates), so calling this in every code path is harmless.
+     */
+    public static void ensureNotificationChannels(Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return; // Notification channels are only required on API 26+
+        }
+
+        NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+        if (notificationManager == null) {
+            return;
+        }
+
+        // Main azan playback channel (heads-up + sound for azan playback / prayer alerts)
+        NotificationChannel azanChannel = new NotificationChannel(
+                AZAN_PLAYBACK_CHANNEL_ID,
+                "Azan Playback",
+                NotificationManager.IMPORTANCE_HIGH
+        );
+        azanChannel.setDescription("Controls for azan playback");
+
+        // Set a default alarm sound to enable floating / heads-up
+        azanChannel.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build());
+
+        azanChannel.enableVibration(true);
+        azanChannel.setShowBadge(true);
+
+        // Additional settings for heads-up notifications
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            azanChannel.setAllowBubbles(true);
+        }
+
+        notificationManager.createNotificationChannel(azanChannel);
+
+        // Silent channel for completion / reappearing notifications (no sound, no vibration)
+        NotificationChannel silentChannel = new NotificationChannel(
+                AZAN_PLAYBACK_CHANNEL_ID_SILENT,
+                "Azan Completion",
+                NotificationManager.IMPORTANCE_DEFAULT
+        );
+        silentChannel.setDescription("Silent notifications for azan completion");
+        silentChannel.setSound(null, null); // No sound
+        silentChannel.setVibrationPattern(null); // No vibration
+        silentChannel.setShowBadge(true);
+
+        notificationManager.createNotificationChannel(silentChannel);
+    }
 
     public static String formatPrayerApiDate(Date date) {
         Calendar calendar = Calendar.getInstance();
