@@ -245,7 +245,7 @@ export class AuthService {
       await GoogleAuth.signOut();
       console.log('User signed out from Google successfully.');
 
-      // Clear FCM token on logout if possible
+      // Clear FCM token on logout if possible (per-device)
       if (userEmail) {
         try {
           const idToken = await this.getIdToken();
@@ -253,9 +253,12 @@ export class AuthService {
           if (idToken) {
             headers = headers.set('Authorization', `Bearer ${idToken}`);
           }
+          // Send the current device's FCM token so the backend removes
+          // only this device's token, keeping other devices registered.
+          const fcmToken = await this.fcmService.getLocalFcmToken();
           await firstValueFrom(
             this.http.post(`${this.apiUrl}/auth.php`, 
-              { action: 'logout_clear_token', _token: idToken },
+              { action: 'logout_clear_token', _token: idToken, fcmToken },
               { headers }
             ),
           );

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Capacitor } from '@capacitor/core';
+import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { SecureStoragePlugin } from 'capacitor-secure-storage-plugin';
 import { environment } from 'src/environments/environment';
@@ -110,6 +111,23 @@ export class FcmService {
     console.log('Delivered notifications', notificationList);
   }
 
+  /**
+   * Get the FCM token of the current device, if available.
+   * The token is stored locally when registration succeeds so that
+   * logout can tell the backend which device's token to remove.
+   */
+  public async getLocalFcmToken(): Promise<string | null> {
+    try {
+      const result = await SecureStoragePlugin.get({ key: 'fcmToken' });
+      if (result && result.value) {
+        return JSON.parse(result.value);
+      }
+    } catch (e) {
+      // No token stored yet
+    }
+    return null;
+  }
+
   private async sendTokenToServer(token: string) {
     // Check if user is logged in
     const user = await this.storageService.get('user');
@@ -133,18 +151,42 @@ export class FcmService {
       console.error('No auth token available, cannot send FCM token');
       return;
     }
-    
+
+    // Collect device metadata for better token management/multi-device support
+    let deviceInfo: { name: string; platform: string } = {
+      name: Capacitor.getPlatform(),
+      platform: Capacitor.getPlatform(),
+    };
+    try {
+      const info = await Device.getInfo();
+      deviceInfo = {
+        name: `${info.model || 'Unknown device'}`, // e.g. "Pixel 7"
+        platform: `${info.platform}/${info.osVersion || 'unknown'}`, // e.g. "android/13"
+      };
+    } catch (e) {
+      console.warn('Could not retrieve device info, using fallback:', e);
+    }
+
     const response = await fetch(`${this.apiUrl}/store_token.php`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${idToken}`,
       },
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token, deviceInfo }),
     });
 
     const responseJson = await response.json();
     if (responseJson.success) {
+      // Store the token locally so logout can remove only this device's token
+      try {
+        await SecureStoragePlugin.set({
+          key: 'fcmToken',
+          value: JSON.stringify(token),
+        });
+      } catch (e) {
+        console.warn('Could not store FCM token locally:', e);
+      }
       console.log('Token sent to server successfully');
     } else {
       console.error('Failed to send token to server:', responseJson.message);
