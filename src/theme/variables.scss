@@ -1,66 +1,180 @@
 // For information on how to create your own theme, please see:
 // http://ionicframework.com/docs/theming/
+
 :root {
+	/* ═══════════════════════════════════════════════
+	   ORIGINAL GREEN PRIMARY PALETTE
+	   ═══════════════════════════════════════════════ */
 	--ion-color-primary: #00bd68;
-	--ion-color-primary-rgb: 0,189,104;
+	--ion-color-primary-rgb: 0, 189, 104;
 	--ion-color-primary-contrast: #000000;
-	--ion-color-primary-contrast-rgb: 0,0,0;
+	--ion-color-primary-contrast-rgb: 0, 0, 0;
 	--ion-color-primary-shade: #00a65c;
 	--ion-color-primary-tint: #1ac477;
 
 	--ion-color-secondary: #00ac5f;
-	--ion-color-secondary-rgb: 0,172,95;
+	--ion-color-secondary-rgb: 0, 172, 95;
 	--ion-color-secondary-contrast: #000000;
-	--ion-color-secondary-contrast-rgb: 0,0,0;
+	--ion-color-secondary-contrast-rgb: 0, 0, 0;
 	--ion-color-secondary-shade: #009754;
 	--ion-color-secondary-tint: #1ab46f;
 
 	--ion-color-tertiary: #39b17b;
-	--ion-color-tertiary-rgb: 57,177,123;
+	--ion-color-tertiary-rgb: 57, 177, 123;
 	--ion-color-tertiary-contrast: #000000;
-	--ion-color-tertiary-contrast-rgb: 0,0,0;
+	--ion-color-tertiary-contrast-rgb: 0, 0, 0;
 	--ion-color-tertiary-shade: #329c6c;
 	--ion-color-tertiary-tint: #4db988;
 
 	--ion-color-success: #2dd55b;
-	--ion-color-success-rgb: 45,213,91;
+	--ion-color-success-rgb: 45, 213, 91;
 	--ion-color-success-contrast: #000000;
-	--ion-color-success-contrast-rgb: 0,0,0;
+	--ion-color-success-contrast-rgb: 0, 0, 0;
 	--ion-color-success-shade: #28bb50;
 	--ion-color-success-tint: #42d96b;
 
 	--ion-color-warning: #ffc409;
-	--ion-color-warning-rgb: 255,196,9;
+	--ion-color-warning-rgb: 255, 196, 9;
 	--ion-color-warning-contrast: #000000;
-	--ion-color-warning-contrast-rgb: 0,0,0;
+	--ion-color-warning-contrast-rgb: 0, 0, 0;
 	--ion-color-warning-shade: #e0ac08;
 	--ion-color-warning-tint: #ffca22;
 
 	--ion-color-danger: #c5000f;
-	--ion-color-danger-rgb: 197,0,15;
+	--ion-color-danger-rgb: 197, 0, 15;
 	--ion-color-danger-contrast: #ffffff;
-	--ion-color-danger-contrast-rgb: 255,255,255;
+	--ion-color-danger-contrast-rgb: 255, 255, 255;
 	--ion-color-danger-shade: #ad000d;
 	--ion-color-danger-tint: #cb1a27;
 
 	--ion-color-light: #f6f8fc;
-	--ion-color-light-rgb: 246,248,252;
+	--ion-color-light-rgb: 246, 248, 252;
 	--ion-color-light-contrast: #000000;
-	--ion-color-light-contrast-rgb: 0,0,0;
+	--ion-color-light-contrast-rgb: 0, 0, 0;
 	--ion-color-light-shade: #d8dade;
 	--ion-color-light-tint: #f7f9fc;
 
 	--ion-color-medium: #5f5f5f;
-	--ion-color-medium-rgb: 95,95,95;
+	--ion-color-medium-rgb: 95, 95, 95;
 	--ion-color-medium-contrast: #ffffff;
-	--ion-color-medium-contrast-rgb: 255,255,255;
+	--ion-color-medium-contrast-rgb: 255, 255, 255;
 	--ion-color-medium-shade: #545454;
 	--ion-color-medium-tint: #6f6f6f;
 
 	--ion-color-dark: #2f2f2f;
-	--ion-color-dark-rgb: 47,47,47;
+	--ion-color-dark-rgb: 47, 47, 47;
 	--ion-color-dark-contrast: #ffffff;
-	--ion-color-dark-contrast-rgb: 255,255,255;
+	--ion-color-dark-contrast-rgb: 255, 255, 255;
 	--ion-color-dark-shade: #292929;
 	--ion-color-dark-tint: #444444;
+
+	/* ═══════════════════════════════════════════════
+	   APP DESIGN TOKENS
+	   ═══════════════════════════════════════════════ */
+
+	// Radius scale
+	--app-radius-sm: 12px;
+	--app-radius-md: 16px;
+	--app-radius-lg: 20px;
+	--app-radius-xl: 24px;
+	--app-radius-2xl: 32px;
+	--app-radius-full: 999px;
+
+	// Spacing scale (8pt system)
+	--app-space-1: 4px;
+	--app-space-2: 8px;
+	--app-space-3: 12px;
+	--app-space-4: 16px;
+	--app-space-5: 20px;
+	--app-space-6: 24px;
+	--app-space-7: 28px;
+	--app-space-8: 32px;
+
+	// Elevation shadows
+	--app-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05),
+		0 1px 3px rgba(16, 24, 40, 0.04);
+	--app-shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.08),
+		0 2px 6px -2px rgba(16, 24, 40, 0.04);
+	--app-shadow-lg: 0 12px 24px -8px rgba(16, 24, 40, 0.12),
+		0 6px 12px -6px rgba(16, 24, 40, 0.06);
+	--app-shadow-xl: 0 20px 48px -12px rgba(16, 24, 40, 0.18),
+		0 12px 24px -8px rgba(16, 24, 40, 0.08);
+
+	// Surface colors
+	--app-bg: #f4f6f8;
+	--app-card-bg: rgba(255, 255, 255, 0.86);
+	--app-card-bg-solid: #ffffff;
+	--app-card-border: rgba(16, 24, 40, 0.04);
+
+	// Text colors
+	--app-text-primary: #111827;
+	--app-text-secondary: #6b7280;
+	--app-text-tertiary: #9ca3af;
+
+	// Green accents (based on original #00bd68)
+	--app-emerald-50: #e8fbf1;
+	--app-emerald-100: #cbf5e0;
+	--app-emerald-200: #a7f3d0;
+	--app-emerald-500: #00bd68;
+	--app-emerald-600: #00a65c;
+	--app-emerald-700: #008c4e;
+	--app-emerald-800: #007040;
+	--app-emerald-900: #005934;
+
+	// Typography
+	--app-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+		'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DARK MODE — Original green accent + premium surfaces
+   ═══════════════════════════════════════════════════════════ */
+.ion-palette-dark {
+	// Green accent (slightly brighter for dark backgrounds)
+	--ion-color-primary: #00bd68;
+	--ion-color-primary-rgb: 0, 189, 104;
+	--ion-color-primary-contrast: #000000;
+	--ion-color-primary-contrast-rgb: 0, 0, 0;
+	--ion-color-primary-shade: #00a65c;
+	--ion-color-primary-tint: #1ac477;
+
+	--ion-color-secondary: #00ac5f;
+	--ion-color-secondary-rgb: 0, 172, 95;
+	--ion-color-secondary-contrast: #000000;
+	--ion-color-secondary-contrast-rgb: 0, 0, 0;
+	--ion-color-secondary-shade: #009754;
+	--ion-color-secondary-tint: #1ab46f;
+
+	--ion-color-tertiary: #39b17b;
+	--ion-color-tertiary-rgb: 57, 177, 123;
+	--ion-color-tertiary-contrast: #000000;
+	--ion-color-tertiary-contrast-rgb: 0, 0, 0;
+	--ion-color-tertiary-shade: #329c6c;
+	--ion-color-tertiary-tint: #4db988;
+
+	// App surfaces
+	--app-bg: #0d1117;
+	--app-card-bg: rgba(22, 27, 34, 0.72);
+	--app-card-bg-solid: #161b22;
+	--app-card-border: rgba(255, 255, 255, 0.06);
+
+	--app-text-primary: #e6e9ed;
+	--app-text-secondary: #9aa4b2;
+	--app-text-tertiary: #6b7280;
+
+	// Green accents (brighter for dark mode)
+	--app-emerald-50: #0d2b20;
+	--app-emerald-100: #124230;
+	--app-emerald-200: #1a5c42;
+	--app-emerald-500: #00bd68;
+	--app-emerald-600: #00a65c;
+	--app-emerald-700: #008c4e;
+	--app-emerald-800: #007040;
+	--app-emerald-900: #005934;
+
+	// Shadows (deeper in dark mode)
+	--app-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--app-shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+	--app-shadow-lg: 0 16px 32px -8px rgba(0, 0, 0, 0.5);
+	--app-shadow-xl: 0 24px 64px -16px rgba(0, 0, 0, 0.6);
 }

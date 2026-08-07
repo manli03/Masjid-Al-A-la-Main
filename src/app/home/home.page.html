@@ -1,154 +1,231 @@
-<ion-content class="ion-padding">
+<ion-content class="home-content">
   <!-- Loading Overlay -->
   <div *ngIf="isDetectingLocation" class="loading-overlay">
-    <ion-spinner style="zoom: 2;"></ion-spinner>
-    <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
+    <ion-spinner></ion-spinner>
+    <p>Mengesan lokasi...</p>
   </div>
 
-  <img src="../../assets/loading/image.png" alt="App Background" class="background-image" />
+  <!-- Decorative Background Glows -->
+  <div class="bg-decor" aria-hidden="true">
+    <div class="bg-glow bg-glow--one"></div>
+    <div class="bg-glow bg-glow--two"></div>
+    <div class="bg-glow bg-glow--three"></div>
+  </div>
+
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
-  <!-- Header -->
-  <div class="d-flex align-items-center justify-content-between header-location"
-    style="position: relative; width: 100%; margin: 0;">
-    <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
-      <!-- Location Name -->
-      <div (click)="selectLocation()" class="d-flex align-items-center location" style="padding: 10px; margin: 15px 0;">
-        <ion-icon name="location-outline"
-          style="font-size: 24px; margin: 0 10px 0 5px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
-        <span *ngIf="loaded; else skeletonLocation"
-          style="font-weight: 500; max-width: 60vw; display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-          Zon: {{ currentLocation }}
+
+  <div class="home-shell">
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header class="home-header header-location">
+      <button type="button" class="location-chip" (click)="selectLocation()"
+        aria-label="Pilih lokasi">
+        <span class="location-chip__icon">
+          <ion-icon name="location-outline"></ion-icon>
+        </span>
+        <span class="location-chip__text" *ngIf="loaded; else skeletonLocation">
+          {{ currentLocation }}
         </span>
         <ng-template #skeletonLocation>
-          <ion-skeleton-text [animated]="true" style="width: 60vw; height: 20px;"></ion-skeleton-text>
+          <ion-skeleton-text [animated]="true" class="skeleton-location"></ion-skeleton-text>
+        </ng-template>
+      </button>
+
+      <button type="button" class="icon-btn" (click)="openNotificationSettings()"
+        aria-label="Tetapan notifikasi">
+        <ion-icon name="notifications-outline"></ion-icon>
+      </button>
+    </header>
+
+    <!-- ═══════════════ HERO — CURRENT PRAYER ═══════════════ -->
+    <section class="hero" (click)="navigateToPrayerTimes()" (keydown.enter)="navigateToPrayerTimes()"
+      (keydown.space)="navigateToPrayerTimes()" role="link" tabindex="0" aria-label="Lihat waktu solat penuh">
+      <div class="hero__pattern" aria-hidden="true"></div>
+
+      <div class="hero__body">
+        <!-- Greeting / current prayer status -->
+        <div class="hero__badge">
+          <img src="../../assets/icon/heart.svg" alt="" class="hero__badge-icon" />
+          <span *ngIf="loaded; else skeletonHeroText">{{ getPrayerHeaderText() }}</span>
+          <ng-template #skeletonHeroText>
+            <ion-skeleton-text [animated]="true" class="skeleton-hero-text"></ion-skeleton-text>
+          </ng-template>
+        </div>
+
+        <p class="hero__hijri" *ngIf="loaded; else skeletonHijri">{{ currentHijriDate }}</p>
+        <ng-template #skeletonHijri>
+          <ion-skeleton-text [animated]="true" class="skeleton-hijri"></ion-skeleton-text>
+        </ng-template>
+
+        <div class="hero__time" *ngIf="loaded; else skeletonTime">{{ currentTime }}</div>
+        <ng-template #skeletonTime>
+          <ion-skeleton-text [animated]="true" class="skeleton-time"></ion-skeleton-text>
+        </ng-template>
+        <p class="hero__time-label">Waktu Semasa</p>
+
+        <!-- Progress of current prayer -->
+        <div class="hero__progress" *ngIf="loaded && currentPrayer">
+          <div class="hero__progress-track">
+            <div class="hero__progress-fill" [style.width.%]="(1 - currentPrayerRatio) * 100"></div>
+          </div>
+        </div>
+
+        <!-- Next prayer & countdown -->
+        <div class="next-prayer" *ngIf="loaded && upcomingPrayer; else skeletonNext">
+          <div class="next-prayer__icon">
+            <ion-icon name="moon-outline"></ion-icon>
+          </div>
+          <div class="next-prayer__info">
+            <span class="next-prayer__label">Seterusnya</span>
+            <span class="next-prayer__name">
+              {{ upcomingPrayer.name }} · {{ prayerTimes[upcomingPrayer.name.toLowerCase()] }}
+            </span>
+            <span class="next-prayer__countdown">
+              <ng-container *ngIf="upcomingPrayer.name.toLowerCase() === 'zuhur'; else tamatText">
+                Bermula dalam {{ nextPrayerCountdown }}
+              </ng-container>
+              <ng-template #tamatText>
+                <ng-container *ngIf="currentPrayer">
+                  {{ currentPrayer.name }} tamat dalam {{ nextPrayerCountdown }}
+                </ng-container>
+              </ng-template>
+            </span>
+          </div>
+          <div class="next-prayer__arrow">
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </div>
+        </div>
+        <ng-template #skeletonNext>
+          <ion-skeleton-text [animated]="true" class="skeleton-next"></ion-skeleton-text>
         </ng-template>
       </div>
-    </div>
-    <!-- Notification Icon -->
-    <div class="d-flex justify-content-end bell"
-      style="position: absolute; right: 0; font-size: 24px; color: var(--ion-color-primary);">
-      <ion-icon name="notifications-outline" style="vertical-align: middle;"
-        (click)="openNotificationSettings()"></ion-icon>
-    </div>
-  </div>
+    </section>
 
-  <!-- Prayer Header Section (This structure supports the multi-line fix) -->
-  <div class="prayer-header" (click)="navigateToPrayerTimes()">
-    <!-- This div groups the icon and the text -->
-    <div class="prayer-header-content">
-      <img src="../../assets/icon/heart.svg" alt="Heart Icon" class="heart-icon" />
-      <span class="prayer-header-text" *ngIf="loaded; else skeletonPrayerHeader">{{ getPrayerHeaderText() }}</span>
-      <ng-template #skeletonPrayerHeader>
-        <ion-skeleton-text [animated]="true" style="width: 200px; height: 20px;"></ion-skeleton-text>
-        <ion-skeleton-text [animated]="true" style="width: 150px; height: 20px; margin-top: 5px;"></ion-skeleton-text>
-      </ng-template>
-    </div>
-    <!-- This is the arrow button, a direct flex child -->
-    <div class="circle-button">
-      <ion-icon name="chevron-forward-outline"></ion-icon>
-    </div>
-  </div>
+    <!-- ═══════════════ PRAYER TIMES ═══════════════ -->
+    <section class="card prayer-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="card-title__icon">
+            <ion-icon name="time-outline"></ion-icon>
+          </span>
+          <div>
+            <h5>Waktu Solat Hari Ini</h5>
+            <p class="card-subtitle">Waktu solat mengikut kawasan anda</p>
+          </div>
+        </div>
+      </div>
 
-  <!-- Current Time Section -->
-  <div class="prayer-time" (click)="navigateToPrayerTimes()">
-    <div class="section-header">
-      <ion-icon name="time-outline"
-        style="vertical-align: top; margin-bottom: 10px; margin-right: 8px; font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
-      <h5 style="display: inline-block; vertical-align: top;">Waktu Solat Hari Ini</h5>
-    </div>
-    <ion-row>
-      <ion-col>
-        <span *ngIf="loaded; else skeletonDate">{{ currentHijriDate }}</span>
-        <ng-template #skeletonDate>
-          <ion-skeleton-text [animated]="true" style="width: 100px;"></ion-skeleton-text>
-        </ng-template>
-        <h1 *ngIf="loaded; else skeletonTime" style="white-space: nowrap;">{{ currentTime }}</h1>
-        <ng-template #skeletonTime>
-          <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
-        </ng-template>
-        <p *ngIf="loaded; else skeletonRemaining">{{ remainingTime }}</p>
-        <ng-template #skeletonRemaining>
-          <ion-skeleton-text [animated]="true" style="width: 80px;"></ion-skeleton-text>
-        </ng-template>
-      </ion-col>
-      <ion-col class="text-end">
-        <img *ngIf="loaded; else skeletonIcon" alt="Drum icon" src="../../assets/icon/homegong.png" width="100"
-          height="auto" />
-        <ng-template #skeletonIcon>
-          <ion-skeleton-text [animated]="true" style="width: 100px; height: 100px;"></ion-skeleton-text>
-        </ng-template>
-      </ion-col>
-    </ion-row>
+      <div class="prayer-list">
+        <ng-container *ngFor="let prayer of prayerNames">
+          <div class="prayer-row"
+            *ngIf="prayer.toLowerCase() !== 'syuruk'"
+            [class.prayer-row--current]="getPrayerStatus(prayer) === 'current'"
+            [class.prayer-row--passed]="getPrayerStatus(prayer) === 'passed'"
+            (click)="navigateToPrayerTimes()" role="button" tabindex="0"
+            (keydown.enter)="navigateToPrayerTimes()">
 
-    <div style="border-bottom: 1px solid #ccc; margin: 15px 0;"></div>
+            <div class="prayer-row__icon">
+              <img *ngIf="loaded; else skeletonPrayerIcon"
+                [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' icon'" />
+              <ng-template #skeletonPrayerIcon>
+                <ion-skeleton-text [animated]="true" class="skeleton-prayer-icon"></ion-skeleton-text>
+              </ng-template>
+            </div>
 
-    <!-- Prayer Times -->
-    <ion-row>
-      <ng-container *ngFor="let prayer of prayerNames">
-        <ion-col *ngIf="prayer.toLowerCase() !== 'syuruk'">
-          <p style="display: block; text-align: center; margin-bottom: 10px;">
-            <b *ngIf="loaded; else skeletonPrayer" [ngStyle]="getPrayerStyle(prayer)">{{ prayer }}</b>
-            <ng-template #skeletonPrayer>
-              <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
+            <div class="prayer-row__name">
+              <span class="prayer-row__name-text" *ngIf="loaded; else skeletonPrayerText">{{ prayer }}</span>
+              <ng-template #skeletonPrayerText>
+                <ion-skeleton-text [animated]="true" class="skeleton-prayer-text"></ion-skeleton-text>
+              </ng-template>
+
+              <span class="prayer-state" *ngIf="loaded && getPrayerStatus(prayer) === 'current'">
+                <span class="prayer-state__dot"></span>
+                Sedang berlangsung
+              </span>
+            </div>
+
+            <div class="prayer-row__time" *ngIf="loaded; else skeletonPrayerTime">
+              {{ prayerTimes[prayer.toLowerCase()] }}
+            </div>
+            <ng-template #skeletonPrayerTime>
+              <ion-skeleton-text [animated]="true" class="skeleton-prayer-time"></ion-skeleton-text>
             </ng-template>
-          </p>
-          <img *ngIf="loaded; else skeletonPrayerIcon" [src]="getPrayerIconSrc(prayer)" [alt]="prayer + ' Icon'"
-            style="display: block; margin: 0 auto; width: 24px; height: 24px;" />
-          <ng-template #skeletonPrayerIcon>
-            <ion-skeleton-text [animated]="true" style="width: 24px; height: 24px;"></ion-skeleton-text>
-          </ng-template>
-          <p *ngIf="loaded; else skeletonPrayerTime" [ngStyle]="getPrayerStyle(prayer)"
-            style="display: block; text-align: center; margin-top: 10px;">
-            {{ prayerTimes[prayer.toLowerCase()] }}
-          </p>
-          <ng-template #skeletonPrayerTime>
-            <ion-skeleton-text [animated]="true" style="width: 50px;"></ion-skeleton-text>
-          </ng-template>
-        </ion-col>
-      </ng-container>
-    </ion-row>
-  </div>
+          </div>
+        </ng-container>
+      </div>
+    </section>
 
-  <!-- Prayer Tracker -->
-  <div class="prayer-tracker">
-    <div class="section-header">
-      <ion-icon name="notifications-outline"
-        style="vertical-align: top; margin-bottom: 10px; margin-right: 8px; font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
-      <h5 style="display: inline-block; vertical-align: top;">Set Peringatan Solat</h5>
-    </div>
-    <ion-row class="tracker-icons" style="display: flex; justify-content: space-around; margin: 15px 0;">
-      <ion-col (click)="togglePrayerNotification('subuh')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Subuh')">
-        <ion-icon [name]="prayerNotification['subuh'] ? 'notifications' : 'notifications-outline'"
-          [ngClass]="{'active': prayerNotification['subuh']}" class="prayer-notification-icon"></ion-icon>
-        <span style="display: block; text-align: center;">Subuh</span>
-      </ion-col>
-      <ion-col (click)="togglePrayerNotification('dhuhr')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Zuhur')">
-        <ion-icon [name]="prayerNotification['dhuhr'] ? 'notifications' : 'notifications-outline'"
-          [ngClass]="{'active': prayerNotification['dhuhr']}" class="prayer-notification-icon"></ion-icon>
-        <span style="display: block; text-align: center;">Zuhur</span>
-      </ion-col>
-      <ion-col (click)="togglePrayerNotification('asr')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Asar')">
-        <ion-icon [name]="prayerNotification['asr'] ? 'notifications' : 'notifications-outline'"
-          [ngClass]="{'active': prayerNotification['asr']}" class="prayer-notification-icon"></ion-icon>
-        <span style="display: block; text-align: center;">Asar</span>
-      </ion-col>
-      <ion-col (click)="togglePrayerNotification('maghrib')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Maghrib')">
-        <ion-icon [name]="prayerNotification['maghrib'] ? 'notifications' : 'notifications-outline'"
-          [ngClass]="{'active': prayerNotification['maghrib']}" class="prayer-notification-icon"></ion-icon>
-        <span style="display: block; text-align: center;">Maghrib</span>
-      </ion-col>
-      <ion-col (click)="togglePrayerNotification('isha')" style="text-align: center;" [class.disabled]="isPrayerDisabled('Isyak')">
-        <ion-icon [name]="prayerNotification['isha'] ? 'notifications' : 'notifications-outline'"
-          [ngClass]="{'active': prayerNotification['isha']}" class="prayer-notification-icon"></ion-icon>
-        <span style="display: block; text-align: center;">Isyak</span>
-      </ion-col>
-    </ion-row>
-  </div>
+    <!-- ═══════════════ PRAYER REMINDERS ═══════════════ -->
+    <section class="card reminder-card">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="card-title__icon">
+            <ion-icon name="notifications-outline"></ion-icon>
+          </span>
+          <div>
+            <h5>Set Peringatan Solat</h5>
+            <p class="card-subtitle">Aktifkan peringatan untuk setiap solat</p>
+          </div>
+        </div>
+      </div>
 
-  <!-- Qibla Compass -->
-  <div class="qibla-compass">
-    <app-qibla-compass></app-qibla-compass>
+      <div class="reminder-grid">
+        <button type="button" class="reminder-item"
+          [class.reminder-item--disabled]="isPrayerDisabled('Subuh')"
+          (click)="togglePrayerNotification('subuh')">
+          <span class="reminder-toggle"
+            [class.reminder-toggle--active]="prayerNotification['subuh']">
+            <ion-icon [name]="prayerNotification['subuh'] ? 'notifications' : 'notifications-outline'"></ion-icon>
+          </span>
+          <span class="reminder-label">Subuh</span>
+        </button>
+
+        <button type="button" class="reminder-item"
+          [class.reminder-item--disabled]="isPrayerDisabled('Zuhur')"
+          (click)="togglePrayerNotification('dhuhr')">
+          <span class="reminder-toggle"
+            [class.reminder-toggle--active]="prayerNotification['dhuhr']">
+            <ion-icon [name]="prayerNotification['dhuhr'] ? 'notifications' : 'notifications-outline'"></ion-icon>
+          </span>
+          <span class="reminder-label">Zuhur</span>
+        </button>
+
+        <button type="button" class="reminder-item"
+          [class.reminder-item--disabled]="isPrayerDisabled('Asar')"
+          (click)="togglePrayerNotification('asr')">
+          <span class="reminder-toggle"
+            [class.reminder-toggle--active]="prayerNotification['asr']">
+            <ion-icon [name]="prayerNotification['asr'] ? 'notifications' : 'notifications-outline'"></ion-icon>
+          </span>
+          <span class="reminder-label">Asar</span>
+        </button>
+
+        <button type="button" class="reminder-item"
+          [class.reminder-item--disabled]="isPrayerDisabled('Maghrib')"
+          (click)="togglePrayerNotification('maghrib')">
+          <span class="reminder-toggle"
+            [class.reminder-toggle--active]="prayerNotification['maghrib']">
+            <ion-icon [name]="prayerNotification['maghrib'] ? 'notifications' : 'notifications-outline'"></ion-icon>
+          </span>
+          <span class="reminder-label">Maghrib</span>
+        </button>
+
+        <button type="button" class="reminder-item"
+          [class.reminder-item--disabled]="isPrayerDisabled('Isyak')"
+          (click)="togglePrayerNotification('isha')">
+          <span class="reminder-toggle"
+            [class.reminder-toggle--active]="prayerNotification['isha']">
+            <ion-icon [name]="prayerNotification['isha'] ? 'notifications' : 'notifications-outline'"></ion-icon>
+          </span>
+          <span class="reminder-label">Isyak</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ═══════════════ QIBLA COMPASS ═══════════════ -->
+    <section class="card qibla-card">
+      <app-qibla-compass></app-qibla-compass>
+    </section>
   </div>
 </ion-content>

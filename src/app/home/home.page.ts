@@ -24,6 +24,7 @@ export class HomePage implements OnDestroy {
   currentHijriDate: string = '';
   currentTime: string = '';
   remainingTime: string = '';
+  nextPrayerCountdown: string = '';
   prayerTimes: { [key: string]: string } = {}; // For display (12‑hour formatted)
   rawPrayerTimes: { [key: string]: string } = {}; // For calculations (24‑hour strings)
   private intervalId: any;
@@ -434,24 +435,49 @@ export class HomePage implements OnDestroy {
       );
       if (diff === 0) {
         this.remainingTime = 'sekarang';
+        this.nextPrayerCountdown = 'sekarang';
       } else if (hoursRemaining > 0 || minutesRemaining > 0) {
+        const countdownText = `${
+          hoursRemaining ? hoursRemaining + ' jam ' : ''
+        }${minutesRemaining} minit`;
+        this.nextPrayerCountdown = countdownText;
+
         let currentPrayer = this.currentPrayer?.name;
         if (closestPrayer.name.toLowerCase() === 'zuhur') {
           currentPrayer = 'Zuhur';
-          this.remainingTime = `${currentPrayer} akan bermula dalam ${
-            hoursRemaining ? hoursRemaining + ' jam ' : ''
-          }${minutesRemaining} minit`;
+          this.remainingTime = `${currentPrayer} akan bermula dalam ${countdownText}`;
         } else {
-          this.remainingTime = `${this.currentPrayer?.name} akan tamat dalam ${
-            hoursRemaining ? hoursRemaining + ' jam ' : ''
-          }${minutesRemaining} minit`;
+          this.remainingTime = `${this.currentPrayer?.name} akan tamat dalam ${countdownText}`;
         }
       } else {
         this.remainingTime = 'sekarang';
+        this.nextPrayerCountdown = 'sekarang';
       }
     } else {
       this.remainingTime = 'Tiada solat seterusnya hari ini';
+      this.nextPrayerCountdown = '—';
     }
+  }
+
+  /**
+   * Get the status of a prayer: 'current', 'passed', or 'upcoming'
+   */
+  getPrayerStatus(prayerName: string): 'current' | 'passed' | 'upcoming' {
+    if (!this.loaded || !this.currentPrayer) {
+      return 'upcoming';
+    }
+    const currentIndex = this.prayerNames.indexOf(this.currentPrayer.name);
+    const prayerIndex = this.prayerNames.indexOf(prayerName);
+    const now = this.currentDate;
+    const subuhDate = this.getSubuhDate();
+
+    if (prayerName === this.currentPrayer.name) {
+      return 'current';
+    }
+    if (prayerIndex < currentIndex && now >= subuhDate) {
+      return 'passed';
+    }
+    return 'upcoming';
   }
 
   // Return a header text based on the current prayer.

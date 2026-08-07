@@ -1,39 +1,106 @@
-// Keep existing styles for .compass-div, .compass-frame, etc.
+// Qibla Compass — premium styling matching home page
 
-// Section Header Style (scoped to this component)
+// Text color base (suitable contrast in light + dark mode)
+.qibla-text {
+  color: #6b7280;
+  color: var(--app-text-secondary, #6b7280);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.qibla-heading {
+  color: #374151;
+  color: var(--app-text-primary, #374151);
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+.qibla-aligned {
+  color: #00bd68;
+  color: var(--app-emerald-500, #00bd68);
+  font-weight: bold;
+}
+
+.qibla-state {
+  text-align: center;
+  padding: 10px;
+
+  p {
+    margin-bottom: 15px;
+  }
+}
+
+.qibla-gif {
+  max-width: 80%;
+  height: auto;
+  margin: 10px auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.qibla-btn-spacing {
+  margin-top: 15px;
+}
+
+.compass-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// Section Header Style
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: 15px; // Space below the header
-  // The qibla-compass card in home.page.html provides overall padding
+  gap: var(--app-space-3);
+  margin-bottom: var(--app-space-4);
 
   ion-icon {
-    font-size: 24px;
-    margin-right: 8px;
-    color: var(--ion-color-primary); // Or your desired color
+    font-size: 20px;
+    margin: 0;
+    color: var(--app-emerald-600);
+    background: var(--app-emerald-50);
+    border-radius: var(--app-radius-md);
+    padding: 8px;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
   }
 
   h5 {
     margin: 0;
-    font-weight: 500;
-    line-height: 1.2;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--app-text-primary);
+    line-height: 1.3;
   }
 }
 
-// Dark mode for section header within this component if needed
+// Dark mode overrides
 :host-context(.ion-palette-dark) {
   .section-header {
     ion-icon {
-      // color: #fff; // Example if primary doesn't contrast well
+      color: #00bd68;
+      color: var(--app-emerald-500, #00bd68);
+      background: rgba(0, 189, 104, 0.12);
     }
-    h5 {
-      // color: #fff; // Example
-    }
+  }
+
+  // Use explicit light colors so text is always visible on dark cards
+  .qibla-text {
+    color: #d1d5db;
+    color: var(--app-text-secondary, #d1d5db);
+  }
+
+  .qibla-heading {
+    color: #f9fafb;
+    color: var(--app-text-primary, #f9fafb);
   }
 }
 
 .compass-div {
-  background-color: rgba(255, 255, 255, 0); // Transparent background
+  background-color: rgba(255, 255, 255, 0);
 }
 
 .compass-frame {
@@ -43,16 +110,15 @@
   width: 280px;
   height: 280px;
   margin: 0 auto;
-  border: 8px solid #3a3a3a; // Default border color
+  border: 8px solid #3a3a3a;
   border-radius: 50%;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--app-shadow-lg), inset 0 0 24px rgba(0, 0, 0, 0.15);
   padding: 10px;
   transition: border-color 0.3s ease;
-  background-color: #f0f0f0; // Light background for the compass dial area itself
+  background-color: #f0f0f0;
 
   &.aligned {
-    // Using & for nesting
-    border-color: #4caf50; // Green color when aligned
+    border-color: var(--app-emerald-500);
   }
 }
 
@@ -75,9 +141,9 @@
   color: #ff0000;
   background-color: #ffe6e6;
   border: 1px solid #ffcccc;
-  padding: 10px; // Adjusted padding
-  border-radius: 5px;
-  margin: 10px 0; // Adjusted margin
+  padding: 10px;
+  border-radius: var(--app-radius-md);
+  margin: 10px 0;
   font-weight: bold;
   text-align: center;
 }
@@ -116,14 +182,16 @@
 
 /* Dark mode styles */
 :host-context(.ion-palette-dark) {
-  // .compass-div background is already transparent
   .compass-frame {
-    border-color: #555; // Darker border for dark mode
-    background-color: #aaaaaa; // Darker background for compass dial
+    border-color: #3a4750;
+    background-color: #2a2f36;
+    box-shadow: var(--app-shadow-lg), inset 0 0 24px rgba(0, 0, 0, 0.4);
+
     &.aligned {
-      border-color: #4caf50; // Keep green for aligned
+      border-color: var(--app-emerald-500);
     }
   }
+
   .errorMessage {
     color: #ffdddd;
     background-color: #442222;

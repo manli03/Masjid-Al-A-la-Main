@@ -8,8 +8,8 @@
   </div>
 
   <!-- 1. Initial State: Button to Start -->
-  <div *ngIf="uiState === 'initial'" style="text-align: center; padding: 20px;">
-    <p style="margin-bottom: 15px;">Sila tekan butang dibawah untuk menggunakan kompas.</p>
+  <div *ngIf="uiState === 'initial'" class="qibla-state">
+    <p class="qibla-text">Sila tekan butang dibawah untuk menggunakan kompas.</p>
     <ion-button (click)="startCalibrationProcess()" expand="block" color="primary">
       <ion-icon name="sync-circle-outline" slot="start"></ion-icon>
       Gunakan Kompas
@@ -17,16 +17,14 @@
   </div>
 
   <!-- 2. Calibration State: Instructions and GIF -->
-  <div *ngIf="uiState === 'calibrating'" style="text-align: center; padding: 10px;">
-    <!-- Removed: <h2><ion-icon name="sync-outline" style="font-size: 24px;vertical-align: middle;"></ion-icon> Kalibrasi Kompas</h2> -->
-    <p style="margin-bottom: 10px;">Sila gerakkan peranti anda dalam corak angka 8 seperti yang ditunjukkan di bawah
+  <div *ngIf="uiState === 'calibrating'" class="qibla-state">
+    <p class="qibla-text">Sila gerakkan peranti anda dalam corak angka 8 seperti yang ditunjukkan di bawah
       sehingga kompas muncul.</p>
-    <img [src]="calibrationGifUrl" alt="Calibration Instructions"
-      style="max-width: 80%; height: auto; margin: 10px auto; display: block; border-radius: 8px;">
+    <img [src]="calibrationGifUrl" alt="Calibration Instructions" class="qibla-gif">
     <div class="errorMessage" *ngIf="errorMessageCompass && uiState === 'calibrating'">
       <p>{{ errorMessageCompass }}</p>
     </div>
-    <ion-button (click)="manualCompleteCalibration()" expand="block" color="success" style="margin-top: 15px;">
+    <ion-button (click)="manualCompleteCalibration()" expand="block" color="success" class="qibla-btn-spacing">
       <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
       Selesai Kalibrasi
     </ion-button>
@@ -43,7 +41,7 @@
       </ion-row>
       -->
       <ion-row>
-        <ion-col style="display: flex; flex-direction: column; align-items: center;">
+        <ion-col class="compass-col">
           <div class="compass-frame" [ngClass]="{'aligned': isQiblaAligned}">
             <div class="compass-container">
               <ion-img [src]="qiblaImageUrl" class="compass-image" alt="Qibla Compass"
@@ -51,8 +49,8 @@
               </ion-img>
             </div>
           </div>
-          <p style="margin-top: 10px; font-size: 1.1em;">Haluan: {{ displayHeading | number: '1.0-0' }}°</p>
-          <p *ngIf="isQiblaAligned" style="color: #4caf50; font-weight: bold;">✓ Selari dengan Kiblat</p>
+          <p class="qibla-text qibla-heading">Haluan: {{ displayHeading | number: '1.0-0' }}°</p>
+          <p *ngIf="isQiblaAligned" class="qibla-aligned">✓ Selari dengan Kiblat</p>
         </ion-col>
       </ion-row>
     </div>

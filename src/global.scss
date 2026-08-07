@@ -39,18 +39,28 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 
 ion-button {
-  border-radius: 8px;
+  border-radius: 12px;
+  --border-radius: 12px;
+  font-weight: 600;
+}
+
+ion-app {
+  background-color: var(--app-bg, #f5f5f5);
 }
 
 ion-content,
 ion-toolbar {
-  --background: #f5f5f5;
+  --background: var(--app-bg, #f5f5f5);
 }
 
 .ion-palette-dark {
+  ion-app {
+    background-color: var(--app-bg, #121212);
+  }
+
   ion-content,
   ion-toolbar {
-    --background: #121212;
+    --background: var(--app-bg, #121212);
   }
 }
 

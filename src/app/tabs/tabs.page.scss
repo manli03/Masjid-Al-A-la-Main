@@ -1,4 +1,55 @@
+ion-tab-bar {
+  --background: var(--app-bg);
+  --border: 1px solid var(--app-card-border);
+  --color: var(--app-text-secondary);
+  --color-selected: var(--app-emerald-600);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 -4px 24px rgba(16, 24, 40, 0.06);
+  padding: 4px 8px;
+  height: 64px;
+  border-radius: 20px 20px 0 0;
+}
+
+ion-tab-button {
+  --color: var(--app-text-secondary);
+  --color-selected: var(--app-emerald-600);
+  border-radius: 16px;
+  margin: 0 2px;
+  transition: all 0.2s ease;
+}
+
+ion-tab-button::part(native) {
+  border-radius: 16px;
+}
+
+ion-tab-button ion-icon {
+  font-size: 22px;
+}
+
+ion-tab-button ion-label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
 ion-tab-button.active {
-  --color: var(--ion-color-primary);
-  /* You can add any additional styling for the active button here */
+  --color: var(--app-emerald-600);
+}
+
+ion-tab-button.active::part(native) {
+  background: var(--app-emerald-50);
+}
+
+:host-context(.ion-palette-dark) {
+  ion-tab-bar {
+    --background: var(--app-bg);
+    --border: 1px solid var(--app-card-border);
+    --color: var(--app-text-secondary);
+    --color-selected: var(--app-emerald-500);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3);
+  }
+
+  ion-tab-button.active::part(native) {
+    background: rgba(0, 189, 104, 0.12);
+  }
 }
