@@ -1,6 +1,6 @@
 {
   "name": "Masjid-Al-A'la",
-  "version": "1.1.4",
+  "version": "1.2.2",
   "author": "Ionic Framework",
   "homepage": "https://ionicframework.com/",
   "scripts": {
@@ -43,7 +43,6 @@
     "@hugotomazi/capacitor-navigation-bar": "^4.0.1",
     "@ionic/angular": "^8.4.1",
     "@jcesarmobile/ssl-skip": "0.4.0",
-    "bootstrap": "^5.3.3",
     "capacitor-native-settings": "^7.0.0",
     "capacitor-plugin-safe-area": "^4.0.0",
     "capacitor-secure-storage-plugin": "^0.11.0",
@@ -83,7 +82,10 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "patch-package": "^8.0.1",
-    "typescript": "~5.4.0"
+    "typescript": "~5.4.0",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20"
   },
   "description": "An Ionic project"
 }

@@ -27,7 +27,7 @@
   <ion-grid class="ion-no-padding">
     <ion-row>
       <ion-col size="12" size-md="5" *ngFor="let news of newsItems; trackBy: trackByAnnouncementId">
-        <div class="card shadow-sm mb-3" [ngClass]="{'unread-item': !news.isRead}">
+        <div class="card shadow-[0_.125rem_.25rem_rgba(0,0,0,0.075)] mb-4" [ngClass]="{'unread-item': !news.isRead}">
           <div class="image-container" (click)="viewAnnouncementDetails(news)">
             <img *ngIf="news.imageUrl" [src]="news.imageUrl" (error)="handleImageError($event, news)" />
             <div *ngIf="!news.imageUrl" class="image-placeholder">

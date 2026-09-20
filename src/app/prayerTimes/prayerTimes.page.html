@@ -48,14 +48,14 @@
     </ng-template>
   </div>
 
-  <div class="container">
-    <div class="date-container d-flex justify-content-between align-items-center">
+  <div class="page-container">
+    <div class="date-container flex justify-between items-center">
       <div class="arrow" style="cursor: pointer; margin-left: 10px;" [ngClass]="{'disabled': !canNavigatePrevious()}"
         (click)="!canNavigatePrevious() || goToPreviousDay()">
         <ion-icon name="chevron-back"></ion-icon>
       </div>
 
-      <div class="date-text text-center mx-3">
+      <div class="date-text text-center mx-4">
         <h2 class="mb-0" *ngIf="loaded; else skeletonCurrentDate">{{ currentDate | date: 'dd MMMM, yyyy' }}</h2>
         <ng-template #skeletonCurrentDate>
           <ion-skeleton-text [animated]="true" style="width: 150px;"></ion-skeleton-text>
@@ -108,7 +108,7 @@
               </ng-template>
             </td>
             <td class="dark prayer-action-cell">
-              <button class="btn btn-reminder icon-only"
+              <button class="btn-reminder icon-only"
                 [ngClass]="{'active': prayer.notificationEnabled, 'disabled': isPrayerDisabled(prayer.name)}"
                 *ngIf="loaded; else skeletonReminderButton" (click)="setReminder(prayer.name)">
                 <ion-icon [name]="prayer.notificationEnabled ? 'notifications' : 'notifications-outline'"
@@ -155,7 +155,7 @@
         </ng-template>
       </div>
     </div>
-    <div class="container" *ngIf="yearlyPrayers.length > 0; else noData">
+    <div class="page-container" *ngIf="yearlyPrayers.length > 0; else noData">
       <div class="table-container" style="overflow-x: auto; white-space: nowrap;">
         <table class="tables">
           <thead class="fixed-header">

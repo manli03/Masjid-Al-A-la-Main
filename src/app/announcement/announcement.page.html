@@ -1,7 +1,7 @@
 <!-- Header section of the page -->
 <ion-header class="ion-no-border">
   <ion-toolbar [ngClass]="{'selected-toolbar': selectedArticle}">
-    <div class="d-flex align-items-center" style="position: relative;">
+    <div class="flex items-center" style="position: relative;">
       <div *ngIf="selectedArticle" style="display: flex; align-items: center; cursor: pointer; margin-left: 20px;"
         (click)="deselectArticle()">
         <ion-icon style="font-size: 24px;" name="arrow-back"></ion-icon>

@@ -25,7 +25,7 @@
   margin: 0 10px;
 }
 
-.container {
+.page-container {
   margin-bottom: calc(var(--ion-safe-area-bottom, 0px) + 20px);
 }
 
@@ -295,7 +295,7 @@ thead.fixed-header {
 .yearly-view-wrapper .header {
   flex-shrink: 0;
 }
-.yearly-view-wrapper .container {
+.yearly-view-wrapper .page-container {
   flex-grow: 1;
   overflow: hidden;
   display: flex;

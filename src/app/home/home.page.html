@@ -10,11 +10,11 @@
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
   <!-- Header -->
-  <div class="d-flex align-items-center justify-content-between header-location"
+  <div class="flex items-center justify-between header-location"
     style="position: relative; width: 100%; margin: 0;">
-    <div class="d-flex align-items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
+    <div class="flex items-center" style="width: auto; max-width: calc(100% - 30px); margin: 0; padding: 0;">
       <!-- Location Name -->
-      <div (click)="selectLocation()" class="d-flex align-items-center location" style="padding: 10px; margin: 15px 0;">
+      <div (click)="selectLocation()" class="flex items-center location" style="padding: 10px; margin: 15px 0;">
         <ion-icon name="location-outline"
           style="font-size: 24px; margin: 0 10px 0 5px; color: var(--ion-color-primary); vertical-align: middle;"></ion-icon>
         <span *ngIf="loaded; else skeletonLocation"
@@ -27,7 +27,7 @@
       </div>
     </div>
     <!-- Notification Icon -->
-    <div class="d-flex justify-content-end bell"
+    <div class="flex justify-end bell"
       style="position: absolute; right: 0; font-size: 24px; color: var(--ion-color-primary);">
       <ion-icon name="notifications-outline" style="vertical-align: middle;"
         (click)="openNotificationSettings()"></ion-icon>
@@ -73,7 +73,7 @@
           <ion-skeleton-text [animated]="true" style="width: 80px;"></ion-skeleton-text>
         </ng-template>
       </ion-col>
-      <ion-col class="text-end">
+      <ion-col class="text-right">
         <img *ngIf="loaded; else skeletonIcon" alt="Drum icon" src="../../assets/icon/homegong.png" width="100"
           height="auto" />
         <ng-template #skeletonIcon>

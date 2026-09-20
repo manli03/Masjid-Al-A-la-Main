@@ -19,48 +19,48 @@
     <ion-spinner></ion-spinner>
   </div>
 
-  <div class="container" *ngIf="!isLoading">
+  <div class="page-container" *ngIf="!isLoading">
     <!-- Profile Header -->
     <div class="text-center profile-header">
-      <img [src]="userProfile.imageUrl" alt="Profile picture of a person" class="rounded-circle mb-3 profile-img" />
+      <img [src]="userProfile.imageUrl" alt="Profile picture of a person" class="rounded-full mb-4 profile-img" />
       <h5>{{ userProfile.name }}</h5>
-      <p class="member-status mb-4">{{ isAdminValue ? 'Admin' : 'Ahli Berdaftar' }}</p>
+      <p class="member-status mb-6">{{ isAdminValue ? 'Admin' : 'Ahli Berdaftar' }}</p>
     </div>
 
     <!-- Account Information Card -->
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-[0_.125rem_.25rem_rgba(0,0,0,0.075)] mb-4">
       <div class="card-body">
         <h6 class="card-title">Maklumat Akaun</h6>
-        <div class="row mb-3">
-          <div class="col-6">Nombor Keahlian</div>
-          <div class="col-6 text-end">{{ membershipNumber }}</div>
+        <div class="flex flex-wrap -mx-3 mb-4">
+          <div class="w-1/2 px-3">Nombor Keahlian</div>
+          <div class="w-1/2 px-3 text-right">{{ membershipNumber }}</div>
         </div>
-        <div class="row mb-3">
-          <div class="col-6">Akaun Dicipta</div>
-          <div class="col-6 text-end">{{ accountCreated }}</div>
+        <div class="flex flex-wrap -mx-3 mb-4">
+          <div class="w-1/2 px-3">Akaun Dicipta</div>
+          <div class="w-1/2 px-3 text-right">{{ accountCreated }}</div>
         </div>
-        <div class="row">
-          <div class="col-6">Peringatan Solat</div>
-          <div class="col-6 text-end">{{ prayerNotifications.join(', ') }}</div>
+        <div class="flex flex-wrap -mx-3">
+          <div class="w-1/2 px-3">Peringatan Solat</div>
+          <div class="w-1/2 px-3 text-right">{{ prayerNotifications.join(', ') }}</div>
         </div>
       </div>
     </div>
 
     <!-- Personal Details Card -->
-    <div class="card shadow-sm mb-3">
+    <div class="card shadow-[0_.125rem_.25rem_rgba(0,0,0,0.075)] mb-4">
       <div class="card-body">
         <h6 class="card-title">Maklumat Peribadi</h6>
-        <div class="row mb-3">
-          <div class="col-5">Nama Penuh</div>
-          <div class="col-7 text-end">{{ userProfile.name }}</div>
+        <div class="flex flex-wrap -mx-3 mb-4">
+          <div class="w-5/12 px-3">Nama Penuh</div>
+          <div class="w-7/12 px-3 text-right">{{ userProfile.name }}</div>
         </div>
-        <div class="row mb-3">
-          <div class="col-5">Tarikh Lahir</div>
-          <div class="col-7 text-end">{{ userProfile.birthdate | date:'d MMMM yyyy' }}</div>
+        <div class="flex flex-wrap -mx-3 mb-4">
+          <div class="w-5/12 px-3">Tarikh Lahir</div>
+          <div class="w-7/12 px-3 text-right">{{ userProfile.birthdate | date:'d MMMM yyyy' }}</div>
         </div>
-        <div class="row mb-3">
-          <div class="col-5">Nombor Telefon</div>
-          <div class="col-7 text-end">{{ userProfile.phone }}</div>
+        <div class="flex flex-wrap -mx-3 mb-4">
+          <div class="w-5/12 px-3">Nombor Telefon</div>
+          <div class="w-7/12 px-3 text-right">{{ userProfile.phone }}</div>
         </div>
       </div>
     </div>
@@ -70,7 +70,7 @@
 </ion-content>
 
 <style>
-  .container {
+  .page-container {
     max-width: 600px;
     margin-top: 20px;
   }
