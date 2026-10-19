@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { PopoverController } from '@ionic/angular';
 
 @Component({
@@ -6,14 +6,12 @@ import { PopoverController } from '@ionic/angular';
   templateUrl: './comment-options-popover.component.html',
   styleUrls: ['./comment-options-popover.component.scss'],
 })
-export class CommentOptionsPopoverComponent implements OnInit {
+export class CommentOptionsPopoverComponent {
   // These values will be passed in from the announcement page
   @Input() isOwner: boolean = false;
   @Input() isAdmin: boolean = false;
 
   constructor(private popoverController: PopoverController) {}
-
-  ngOnInit() {}
 
   /**
    * Dismisses the popover and sends back the selected action ('edit' or 'delete').

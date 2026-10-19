@@ -1,21 +1,30 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { PrayerTimesService, Prayer } from '../services/prayerTimes.service';
-import { ModalController, Platform, AlertController } from '@ionic/angular';
-import { Router } from '@angular/router';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  EventEmitter,
+  Output,
+  ViewChild,
+} from '@angular/core';
+import { PrayerTimesService, Prayer } from '../../services/prayerTimes.service';
+import { ModalController } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
-import { PrayerNotificationsService } from '../services/prayer-notifications.service';
-import { NotificationSettingsComponent } from './notification-settings/notification-settings.component';
+import { PrayerNotificationsService } from '../../services/prayer-notifications.service';
+import { NotificationSettingsComponent } from '../notification-settings/notification-settings.component';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import * as htmlToImage from 'html-to-image';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 @Component({
-  selector: 'app-prayerTimes',
-  templateUrl: './prayerTimes.page.html',
-  styleUrls: ['./prayerTimes.page.scss'],
+  selector: 'app-prayer-times',
+  templateUrl: './prayer-times.component.html',
+  styleUrls: ['./prayer-times.component.scss'],
 })
-export class prayerTimesPage implements OnInit {
+export class PrayerTimesComponent implements OnInit, OnDestroy {
+  @Output() close = new EventEmitter<void>();
+
   @ViewChild('yearlyTable', { static: false }) yearlyTable!: ElementRef;
   // Add ViewChild for the shareable content div to ensure it exists before trying to access it
   @ViewChild('prayerTimesToShareContainer', { static: false })
@@ -40,19 +49,17 @@ export class prayerTimesPage implements OnInit {
   closestPrayerTime: any;
   sameData: boolean = false;
   notificationsEnabled: boolean = false;
-  backButtonSubscription: any;
-  justDeselected: any;
   isProcessingNotifications: boolean = false;
   disabledPrayers: Set<string> = new Set();
   processingSubscription: any;
+  disabledPrayersSubscription: any;
+  private darkModeObserver?: MutationObserver;
 
   constructor(
+    private hostElement: ElementRef<HTMLElement>,
     private prayerTimesService: PrayerTimesService,
-    private router: Router,
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
-    private platform: Platform,
-    private alertController: AlertController,
   ) {}
 
   async ngOnInit() {
@@ -69,11 +76,12 @@ export class prayerTimesPage implements OnInit {
       );
 
     // Subscribe to disabled prayers
-    this.prayerNotificationsService.disabledPrayers$.subscribe(
+    this.disabledPrayersSubscription =
+      this.prayerNotificationsService.disabledPrayers$.subscribe(
       (disabledPrayers) => {
         this.disabledPrayers = disabledPrayers;
       },
-    );
+      );
 
     // Then initialize prayer times which will trigger notification status update
     await this.initializePrayerTimes();
@@ -81,50 +89,21 @@ export class prayerTimesPage implements OnInit {
     this.checkDarkMode();
   }
 
-  // Handle page resume
-  ionViewWillEnter() {
-    this.loaded = false;
-    this.initializePrayerTimes();
-
-    // Back button logic
-    this.backButtonSubscription =
-      this.platform.backButton.subscribeWithPriority(10, () => {
-        if (this.justDeselected) {
-          // If we just deselected, consume this back press and reset the flag
-          console.log('Consumed back press after deselection.');
-          this.justDeselected = false;
-          return; // Stop further processing in this handler
-        }
-        if (this.showYearlyPrayerTimes) {
-          this.backToMainPrayerTimes();
-          this.justDeselected = true; // Set the flag to indicate we just deselected
-        } else {
-          this.router.navigateByUrl('/tabs/home');
-        }
-      });
-  }
-
-  ionViewWillLeave() {
-    // Unsubscribe to avoid multiple subscriptions when entering the announcement page
-    if (this.backButtonSubscription) {
-      this.backButtonSubscription.unsubscribe();
-      this.backButtonSubscription = null;
-    }
-  }
-
   ngOnDestroy() {
+    this.setParentContentScrolling(true);
+
     // Stop the interval when the component is destroyed to prevent memory leaks
     if (this.intervalId) {
       clearInterval(this.intervalId);
       console.log('Interval cleared');
     }
-    // Clean up subscription to prevent memory leaks
-    if (this.backButtonSubscription) {
-      this.backButtonSubscription.unsubscribe();
-    }
     if (this.processingSubscription) {
       this.processingSubscription.unsubscribe();
     }
+    if (this.disabledPrayersSubscription) {
+      this.disabledPrayersSubscription.unsubscribe();
+    }
+    this.darkModeObserver?.disconnect();
   }
 
   private checkDarkMode() {
@@ -133,13 +112,13 @@ export class prayerTimesPage implements OnInit {
       document.documentElement.classList.contains('ion-palette-dark');
 
     // Create a MutationObserver to watch for changes to the ion-palette-dark class
-    const observer = new MutationObserver(() => {
+    this.darkModeObserver = new MutationObserver(() => {
       this.isDarkMode =
         document.documentElement.classList.contains('ion-palette-dark');
     });
 
     // Observe changes to the document element class list
-    observer.observe(document.documentElement, {
+    this.darkModeObserver.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['class'],
     });
@@ -347,13 +326,28 @@ export class prayerTimesPage implements OnInit {
   // Toggle the visibility of the yearly prayer times table
   viewYearlyPrayerTimes() {
     this.showYearlyPrayerTimes = true;
+    this.setParentContentScrolling(false);
     setTimeout(() => {
       if (this.yearlyTable) {
         // Scroll to the current day row when the view is shown
         const currentDayRow =
           this.yearlyTable.nativeElement.querySelector('.current-day');
         if (currentDayRow) {
-          currentDayRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const tableContainer = currentDayRow.closest(
+            '.yearly-table-container',
+          ) as HTMLElement | null;
+
+          if (tableContainer) {
+            const targetTop =
+              currentDayRow.offsetTop -
+              tableContainer.clientHeight / 2 +
+              currentDayRow.offsetHeight / 2;
+
+            tableContainer.scrollTo({
+              top: Math.max(0, targetTop),
+              behavior: 'smooth',
+            });
+          }
         }
       }
     }, 100);
@@ -389,6 +383,17 @@ export class prayerTimesPage implements OnInit {
   // Navigate back to the main prayer times
   backToMainPrayerTimes() {
     this.showYearlyPrayerTimes = false;
+    this.setParentContentScrolling(true);
+  }
+
+  private setParentContentScrolling(enabled: boolean) {
+    const content = this.hostElement.nativeElement.closest('ion-content') as
+      | HTMLIonContentElement
+      | null;
+
+    if (content) {
+      content.scrollY = enabled;
+    }
   }
 
   // Go to the previous day
@@ -533,10 +538,6 @@ export class prayerTimesPage implements OnInit {
     }, 1000);
   }
 
-  navigateTo(path: string) {
-    this.router.navigateByUrl(path);
-  }
-
   // Method to open the notification settings modal
   async openNotificationSettings() {
     try {
@@ -662,7 +663,7 @@ export class prayerTimesPage implements OnInit {
 
       // Create and style the prayer icon
       const icon = document.createElement('img');
-      icon.src = `../../assets/icon/${prayer.name.toLowerCase()}-white.svg`;
+      icon.src = `assets/icon/${prayer.name.toLowerCase()}-white.svg`;
       icon.alt = `${prayer.name} icon`;
       icon.style.width = '20px';
       icon.style.height = '20px';

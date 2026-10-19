@@ -1,4 +1,4 @@
-import { Component, OnInit, NgZone } from '@angular/core';
+import { Component, NgZone } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { StorageService } from '../services/storage.service';
 import { AuthService } from '../services/auth.service';
@@ -9,7 +9,7 @@ import { AlertController } from '@ionic/angular';
   templateUrl: './announcement-loading.page.html',
   styleUrls: ['./announcement-loading.page.scss'],
 })
-export class AnnouncementLoadingPage implements OnInit {
+export class AnnouncementLoadingPage {
   private navigationInProgress = false;
 
   constructor(
@@ -20,8 +20,6 @@ export class AnnouncementLoadingPage implements OnInit {
     private alertController: AlertController,
     private ngZone: NgZone,
   ) {}
-
-  ngOnInit() {}
 
   ionViewWillEnter() {
     if (!this.navigationInProgress) {

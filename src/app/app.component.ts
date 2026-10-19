@@ -38,7 +38,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ) {
     (window as any).handleDeepLink = (path: string) => {
       console.log('Native deep link received from constructor:', path);
-      this.router.navigateByUrl(path);
+      this.navigateToDeepLink(path);
     };
     this.initializeApp();
   }
@@ -159,13 +159,28 @@ export class AppComponent implements OnInit, OnDestroy {
         console.log('App opened with URL:', event.url);
         const route = new URL(event.url).pathname;
         console.log('Parsed route:', route);
-        if (route === '/prayerTimes') {
-          this.router.navigateByUrl(route);
-        } else {
-          this.handleOpenUrl(event.url);
-        }
+        this.navigateToDeepLink(route, event.url);
       });
     }
+  }
+
+  private navigateToDeepLink(path: string, originalUrl?: string) {
+    const normalizedPath = path.replace(/\/+$/, '').toLowerCase();
+
+    if (normalizedPath === '/prayertimes') {
+      // Prayer times now live inside the home page, so preserve the legacy
+      // notification/deep-link path while opening that component directly.
+      return this.router.navigate(['/tabs/home'], {
+        queryParams: { openPrayerTimes: 'true' },
+      });
+    }
+
+    if (originalUrl) {
+      this.handleOpenUrl(originalUrl);
+      return;
+    }
+
+    return this.router.navigateByUrl(path);
   }
 
   private handleOpenUrl(url: string) {

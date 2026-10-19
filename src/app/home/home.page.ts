@@ -1,5 +1,4 @@
 import { Component, OnDestroy, Output, EventEmitter } from '@angular/core';
-import { Router } from '@angular/router';
 import {
   Platform,
   ActionSheetController,
@@ -9,8 +8,9 @@ import {
 import { ToastService } from '../services/toast.service';
 import { PrayerTimesService } from '../services/prayerTimes.service';
 import { PrayerNotificationsService } from '../services/prayer-notifications.service';
-import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
+import { NotificationSettingsComponent } from '../component/notification-settings/notification-settings.component';
 import { Device } from '@capacitor/device';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -18,6 +18,7 @@ import { Device } from '@capacitor/device';
   styleUrls: ['./home.page.scss'],
 })
 export class HomePage implements OnDestroy {
+  showPrayerTimes: boolean = false;
   loaded: boolean = false;
   prayerNames = ['Subuh', 'Syuruk', 'Zuhur', 'Asar', 'Maghrib', 'Isyak'];
   currentLocation: string = 'Memuatkan lokasi...';
@@ -46,12 +47,12 @@ export class HomePage implements OnDestroy {
   private backButtonSubscription: any;
   private currentToast: HTMLIonToastElement | null = null;
   private processingSubscription: any;
+  private prayerTimesRouteSubscription: any;
   firstLoad: boolean = false;
 
   @Output() homePageLoaded = new EventEmitter<boolean>();
 
   constructor(
-    private router: Router,
     private prayerTimesService: PrayerTimesService,
     private platform: Platform,
     private toastService: ToastService,
@@ -59,10 +60,27 @@ export class HomePage implements OnDestroy {
     private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
     private alertController: AlertController,
-  ) {}
+    private route: ActivatedRoute,
+    private router: Router,
+  ) {
+    // The home tab can stay mounted while the app is running. React to query
+    // parameter changes so a notification tap opens prayer times even when
+    // Ionic does not re-enter the page.
+    this.prayerTimesRouteSubscription = this.route.queryParamMap.subscribe(
+      (params) => {
+        if (params.get('openPrayerTimes') === 'true') {
+          this.showPrayerTimes = true;
+        }
+      },
+    );
+  }
 
   async ionViewDidEnter() {
     console.log('Home page entered, starting to load data');
+
+    if (this.route.snapshot.queryParamMap.get('openPrayerTimes') === 'true') {
+      this.showPrayerTimes = true;
+    }
 
     const info = await Device.getInfo();
     if (info.androidSDKVersion && info.androidSDKVersion >= 35) {
@@ -87,6 +105,11 @@ export class HomePage implements OnDestroy {
       // Subscribe to the hardware back button on the Home page
       this.backButtonSubscription =
         this.platform.backButton.subscribeWithPriority(10, async () => {
+          if (this.showPrayerTimes) {
+            this.showPrayerTimes = false;
+            return;
+          }
+
           if (!this.currentToast) {
             this.currentToast = await this.toastService.presentToastImmediate(
               'Tekan kembali lagi untuk keluar',
@@ -236,6 +259,22 @@ export class HomePage implements OnDestroy {
     }
   }
 
+  openPrayerTimes() {
+    this.showPrayerTimes = true;
+  }
+
+  closePrayerTimes() {
+    this.showPrayerTimes = false;
+    if (this.route.snapshot.queryParamMap.has('openPrayerTimes')) {
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { openPrayerTimes: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+  }
+
   ngOnDestroy() {
     if (this.intervalId) clearInterval(this.intervalId);
     if (this.backButtonSubscription) {
@@ -243,6 +282,9 @@ export class HomePage implements OnDestroy {
     }
     if (this.processingSubscription) {
       this.processingSubscription.unsubscribe();
+    }
+    if (this.prayerTimesRouteSubscription) {
+      this.prayerTimesRouteSubscription.unsubscribe();
     }
   }
 
@@ -426,7 +468,7 @@ export class HomePage implements OnDestroy {
     closestPrayer: { name: string; time: string },
   ) {
     if (closestPrayer && diff >= 0) {
-      // Adjust by adding one minute (as in prayerTimes.page)
+      // Adjust by adding one minute to match the prayer-times component.
       let adjustedDiff = diff + 1000 * 60;
       const hoursRemaining = Math.floor(adjustedDiff / (1000 * 3600));
       const minutesRemaining = Math.floor(
@@ -794,10 +836,6 @@ export class HomePage implements OnDestroy {
   // Helper method to show toast messages
   async presentToast(message: string, color: string) {
     await this.toastService.presentToast(message, color);
-  }
-
-  navigateToPrayerTimes() {
-    this.router.navigate(['/prayerTimes']);
   }
 
   async handleRefresh(event: CustomEvent) {

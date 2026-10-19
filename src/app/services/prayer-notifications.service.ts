@@ -860,8 +860,10 @@ export class PrayerNotificationsService {
       'localNotificationActionPerformed',
       (notification) => {
         console.log('Notification action performed', notification);
-        // Navigate to prayer times page when notification is tapped
-        this.router.navigate(['/prayerTimes']);
+        // Prayer times now live on the homepage as a component.
+        this.router.navigate(['/tabs/home'], {
+          queryParams: { openPrayerTimes: 'true' },
+        });
       },
     );
   }

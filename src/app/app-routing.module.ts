@@ -21,13 +21,6 @@ const routes: Routes = [
       import('./settings/settings.module').then((m) => m.SettingsPageModule),
     canActivate: [authGuard],
   },
-  {
-    path: 'prayerTimes',
-    loadChildren: () =>
-      import('./prayerTimes/prayerTimes.module').then(
-        (m) => m.prayerTimesPageModule,
-      ),
-  },
 ];
 
 @NgModule({

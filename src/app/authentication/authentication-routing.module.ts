@@ -8,10 +8,6 @@ const routes: Routes = [
     path: '',
     component: AuthenticationPage
   },
-  {
-    path: 'tabs',
-    loadChildren: () => import('../prayerTimes/prayerTimes.module').then(m => m.prayerTimesPageModule)
-  }
 ];
 
 @NgModule({

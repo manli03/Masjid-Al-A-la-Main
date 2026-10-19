@@ -1,9 +1,12 @@
 <ion-content class="ion-padding">
-  <!-- Loading Overlay -->
-  <div *ngIf="isDetectingLocation" class="loading-overlay">
-    <ion-spinner style="zoom: 2;"></ion-spinner>
-    <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
-  </div>
+  <app-prayer-times *ngIf="showPrayerTimes" (close)="closePrayerTimes()"></app-prayer-times>
+
+  <ng-container *ngIf="!showPrayerTimes">
+    <!-- Loading Overlay -->
+    <div *ngIf="isDetectingLocation" class="loading-overlay">
+      <ion-spinner style="zoom: 2;"></ion-spinner>
+      <p style="color: white; margin-top: 10px; font-weight: 500;">Mengesan lokasi...</p>
+    </div>
 
   <img src="../../assets/loading/image.png" alt="App Background" class="background-image" />
   <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
@@ -35,7 +38,7 @@
   </div>
 
   <!-- Prayer Header Section (This structure supports the multi-line fix) -->
-  <div class="prayer-header" (click)="navigateToPrayerTimes()">
+  <div class="prayer-header" (click)="openPrayerTimes()">
     <!-- This div groups the icon and the text -->
     <div class="prayer-header-content">
       <img src="../../assets/icon/heart.svg" alt="Heart Icon" class="heart-icon" />
@@ -52,7 +55,7 @@
   </div>
 
   <!-- Current Time Section -->
-  <div class="prayer-time" (click)="navigateToPrayerTimes()">
+  <div class="prayer-time" (click)="openPrayerTimes()">
     <div class="section-header">
       <ion-icon name="time-outline"
         style="vertical-align: top; margin-bottom: 10px; margin-right: 8px; font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
@@ -151,4 +154,5 @@
   <div class="qibla-compass">
     <app-qibla-compass></app-qibla-compass>
   </div>
+  </ng-container>
 </ion-content>

@@ -14,7 +14,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { firstValueFrom } from 'rxjs';
 import { Preferences } from '@capacitor/preferences';
-import { NotificationSettingsComponent } from '../prayerTimes/notification-settings/notification-settings.component';
+import { NotificationSettingsComponent } from '../component/notification-settings/notification-settings.component';
 
 @Component({
   selector: 'app-profile',
