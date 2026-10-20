@@ -7,15 +7,15 @@ import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { filter } from 'rxjs/operators';
 import { StatusBar } from '@capacitor/status-bar';
-import { CheckUpdateService } from './services/check-update.service';
+import { CheckUpdateService } from './core/startup/check-update.service';
 import { SafeArea } from 'capacitor-plugin-safe-area';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
 import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
-import { PrayerNotificationsService } from './services/prayer-notifications.service';
-import { DarkModeHandlerService } from './services/dark-mode-handler.service';
-import { UnreadAnnouncementsService } from './services/unread-announcements.service';
-import { SplashService } from './services/splash.service';
+import { PrayerNotificationsService } from './features/prayer/services/prayer-notifications.service';
+import { DarkModeHandlerService } from './core/appearance/dark-mode-handler.service';
+import { UnreadAnnouncementsService } from './features/announcements/services/unread-announcements.service';
+import { SplashService } from './core/startup/splash.service';
 
 @Component({
   selector: 'app-root',
