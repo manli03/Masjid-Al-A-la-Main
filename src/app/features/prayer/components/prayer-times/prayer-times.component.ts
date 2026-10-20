@@ -13,6 +13,7 @@ import { ModalController } from '@ionic/angular';
 import * as htmlToImage from 'html-to-image';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Capacitor } from '@capacitor/core';
 
 @Component({
   selector: 'app-prayer-times',
@@ -151,52 +152,51 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
 
   // Calculate remaining time for the closest prayer
   calculateRemainingTime() {
-    this.updateCurrentPrayer();
-
     const currentTime = new Date();
-    let closestPrayerTime: Prayer | null = null;
-    let minTimeDiff = Infinity;
-    let prayerDate = '';
-
-    // Iterate through the list of prayers and find the closest one by both date and time
-    this.prayers.forEach((prayer) => {
-      const [hours, minutes] = prayer.time
-        .split(':')
-        .map((num) => parseInt(num, 10));
-      const prayerTime = new Date();
-      prayerTime.setHours(hours);
-      prayerTime.setMinutes(minutes);
-      prayerTime.setSeconds(0);
-
-      // Compare both date and time
-      const prayerDateTime = new Date(this.currentDate);
-      prayerDateTime.setHours(hours);
-      prayerDateTime.setMinutes(minutes);
-      prayerDateTime.setSeconds(0);
-      const timeDiff = prayerDateTime.getTime() - currentTime.getTime();
-
-      // If the prayer time is in the future and closer than the current closest prayer time
-      if (timeDiff > 0 && timeDiff < minTimeDiff) {
-        minTimeDiff = timeDiff;
-        closestPrayerTime = prayer;
-        prayerDate = prayer.date;
-      }
-    });
-
-    // If no prayer times are found for the current date, fetch prayer times for the next day
-    if (!closestPrayerTime || minTimeDiff < 0) {
-      // Check for tomorrow's prayer times
-      const nextDay = new Date(this.currentDate);
-      nextDay.setDate(this.currentDate.getDate() + 1);
-      this.currentDate = nextDay;
-      this.updateCurrentPrayer();
-
-      // Fetch next day's prayer times
+    const today = new Date(currentTime);
+    today.setHours(0, 0, 0, 0);
+    if (this.currentDate < today) {
+      this.currentDate = currentTime;
       this.fetchTodayPrayerTimes();
-      return; // Exit the function as we're moving to the next day's prayer times
     }
 
-    // If a closest prayer time is found for today, calculate the remaining time
+    this.updateCurrentPrayer();
+
+    let closestPrayerTime: Prayer | null = null;
+    let minTimeDiff = Infinity;
+
+    // Iterate through the list of prayers and find the closest one by both date and time
+    const findNextPrayer = (prayers: Prayer[], date: Date) => {
+      for (const prayer of prayers) {
+        const [hours, minutes] = prayer.time
+          .split(':')
+          .map((num) => parseInt(num, 10));
+        const prayerDateTime = new Date(date);
+        prayerDateTime.setHours(hours, minutes, 0, 0);
+        const timeDiff = prayerDateTime.getTime() - currentTime.getTime();
+
+        if (timeDiff > 0 && timeDiff < minTimeDiff) {
+          minTimeDiff = timeDiff;
+          closestPrayerTime = prayer;
+        }
+      }
+    };
+    findNextPrayer(this.prayers, this.currentDate);
+
+    // Use tomorrow's times for the countdown without changing the displayed schedule.
+    if (!closestPrayerTime) {
+      const nextDay = new Date(this.currentDate);
+      nextDay.setDate(this.currentDate.getDate() + 1);
+      const nextDayPrayers = this.prayerTimesService.getTodayPrayerTimes(
+        this.yearlyPrayers,
+        nextDay,
+      );
+      if (nextDayPrayers) {
+        findNextPrayer(nextDayPrayers.prayers, nextDay);
+      }
+    }
+
+    // Calculate the remaining time to the next prayer.
     if (closestPrayerTime) {
       this.closestPrayer = (closestPrayerTime as Prayer).name;
       this.closestPrayerTime = this.convertTimeToDate(
@@ -221,6 +221,8 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
         this.remainingTime = 'sekarang';
       }
     } else {
+      this.closestPrayer = null;
+      this.closestPrayerTime = null;
       this.remainingTime = 'Tiada solat terdekat pada masa ini';
     }
     this.loaded = true;
@@ -255,6 +257,17 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       ) {
         activePrayer = prayer.name;
         latestPrayerMinutes = prayerMinutes;
+      }
+    }
+
+    // Isyak continues across midnight until today's Subuh begins.
+    if (!activePrayer && this.prayers.some((prayer) => prayer.name === 'Isyak')) {
+      const subuh = this.prayers.find((prayer) => prayer.name === 'Subuh');
+      if (subuh) {
+        const [hours, minutes] = subuh.time.split(':').map(Number);
+        if (currentMinutes < hours * 60 + minutes) {
+          activePrayer = 'Isyak';
+        }
       }
     }
 
@@ -396,6 +409,8 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
   }
 
   async sharePrayerTimes() {
+    if (this.isLoading) return;
+
     if (!this.loaded || this.prayers.length === 0) {
       await this.prayerTimesService.presentToast(
         'Data waktu solat belum dimuatkan atau tiada.',
@@ -527,41 +542,40 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
 
       const dataUrl = await htmlToImage.toPng(shareContentElement, {
         pixelRatio: 2, // For better quality on high DPI screens
+        style: Capacitor.isNativePlatform() ? {} : { borderRadius: '0' },
         // Ensure styles are applied by the browser before capture
         // Explicitly set background if needed, though defined in the div's style
         // backgroundColor: '#ffffff',
       });
 
-      tempFileName = `waktu_solat_${new Date().getTime()}.png`;
-      const savedFile = await Filesystem.writeFile({
-        path: tempFileName,
-        data: dataUrl, // dataUrl is already base64
-        directory: Directory.Cache,
-      });
+      const filename = `waktu_solat_${Date.now()}.png`;
+      const title = `Waktu Solat ${formattedCurrentDate}`;
+      if (Capacitor.isNativePlatform()) {
+        tempFileName = filename;
+        const savedFile = await Filesystem.writeFile({
+          path: filename,
+          data: dataUrl,
+          directory: Directory.Cache,
+        });
 
-      await Share.share({
-        title: `Waktu Solat ${formattedCurrentDate}`,
-        text: `Berikut adalah waktu solat untuk ${this.location} pada ${formattedCurrentDate} (${this.currentHijriDate}).`,
-        url: savedFile.uri,
-        dialogTitle: 'Kongsi Waktu Solat',
-      });
-    } catch (error: any) {
+        await Share.share({
+          title,
+          text: `Berikut adalah waktu solat untuk ${this.location} pada ${formattedCurrentDate} (${this.currentHijriDate}).`,
+          files: [savedFile.uri],
+          dialogTitle: 'Kongsi Waktu Solat',
+        });
+      } else {
+        await this.sharePrayerTimesOnWeb(dataUrl, filename, title);
+      }
+    } catch (error) {
       console.error('Error sharing prayer times:', error);
-      if (
-        (error &&
-          error.message &&
-          error.message.toLowerCase().includes('share canceled')) ||
-        error.message.toLowerCase().includes('share dismissed')
-      ) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/cancel|dismiss|abort/i.test(message)) {
         await this.prayerTimesService.presentToast(
           'Perkongsian dibatalkan.',
           'medium',
         );
-      } else if (
-        error &&
-        error.message &&
-        error.message.toLowerCase().includes('activity not found')
-      ) {
+      } else if (/activity not found/i.test(message)) {
         await this.prayerTimesService.presentToast(
           'Tiada aplikasi untuk berkongsi ditemui.',
           'warning',
@@ -589,5 +603,26 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
         }
       }
     }
+  }
+
+  private async sharePrayerTimesOnWeb(dataUrl: string, filename: string, title: string) {
+    const blob = await (await fetch(dataUrl)).blob();
+    const file = new File([blob], filename, { type: 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ title, files: [file] });
+        return;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        // Image generation can outlast browser share permission; download instead.
+      }
+    }
+
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 }

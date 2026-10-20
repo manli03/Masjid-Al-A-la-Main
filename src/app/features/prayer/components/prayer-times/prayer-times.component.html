@@ -13,7 +13,7 @@
       aria-label="Lihat waktu solat tahunan">
       <ion-icon name="calendar-outline" slot="icon-only"></ion-icon>
     </ion-button>
-    <ion-button fill="clear" (click)="sharePrayerTimes()" [disabled]="!loaded || prayers.length === 0"
+    <ion-button fill="clear" (click)="sharePrayerTimes()" [disabled]="isLoading || !loaded || prayers.length === 0"
       aria-label="Kongsi waktu solat">
       <ion-icon name="share-social-outline" slot="icon-only"></ion-icon>
     </ion-button>
