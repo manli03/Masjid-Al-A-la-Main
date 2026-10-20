@@ -88,6 +88,15 @@
         </span>
       </a>
 
+      <section class="wisdom-card" aria-labelledby="wisdom-heading" *ngIf="dailyWisdom.dailyQuote$ | async as wisdom"
+        aria-live="polite">
+        <div class="wisdom-heading">
+          <h2 id="wisdom-heading" class="section-kicker">MUTIARA HARI INI</h2>
+          <span class="wisdom-mark" aria-hidden="true">“</span>
+        </div>
+        <blockquote>{{ wisdom.quote.text }}</blockquote>
+      </section>
+
       <p class="home-footnote">Waktu solat dipaparkan mengikut zon yang dipilih.</p>
     </main>
 

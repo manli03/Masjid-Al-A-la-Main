@@ -379,6 +379,39 @@
   line-height: 1.45;
 }
 
+.wisdom-card {
+  margin-top: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: var(--app-surface);
+}
+
+.wisdom-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wisdom-heading h2 {
+  margin: 0;
+}
+
+.wisdom-mark {
+  height: 24px;
+  color: var(--app-gold);
+  font: 2.8rem/1 Georgia, 'Times New Roman', serif;
+}
+
+.wisdom-card blockquote {
+  margin: 14px 0 10px;
+  color: var(--app-ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.15rem;
+  line-height: 1.6;
+}
+
 .location-overlay {
   position: fixed;
   z-index: 20;

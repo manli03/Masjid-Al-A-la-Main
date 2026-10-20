@@ -1,4 +1,5 @@
 import { Component, OnDestroy } from '@angular/core';
+import { DailyWisdomService } from './daily-wisdom.service';
 import {
   Platform,
   ModalController,
@@ -40,7 +41,12 @@ export class HomePage implements OnDestroy {
     private platform: Platform,
     private toastService: ToastService,
     private modalController: ModalController,
+    public dailyWisdom: DailyWisdomService,
   ) {}
+
+  ionViewWillEnter() {
+    void this.dailyWisdom.refresh();
+  }
 
   async ionViewDidEnter() {
     console.log('Home page entered, starting to load data');
@@ -375,6 +381,7 @@ export class HomePage implements OnDestroy {
   }
 
   async handleRefresh(event: CustomEvent) {
+    void this.dailyWisdom.refresh();
     this.loaded = false;
     const dataLoaded = await this.loadPrayerData();
     this.loaded = true;
