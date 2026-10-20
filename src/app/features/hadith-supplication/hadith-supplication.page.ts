@@ -1,8 +1,13 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
 import { Network } from '@capacitor/network';
-import { AlertController, Platform } from '@ionic/angular';
+import { Clipboard } from '@capacitor/clipboard';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { toPng } from 'html-to-image';
+import { AlertController, IonContent, IonSearchbar, Platform } from '@ionic/angular';
 import { Router, ActivatedRoute } from '@angular/router';
 // Import Capacitor Haptics
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
@@ -85,7 +90,151 @@ export class HadithSupplicationPage implements OnInit {
 
   //Hadith Properties
   searchText: string = '';
+  doaSearchText = '';
   selectedHadith: Hadith | null = null;
+  arabicFontSize = 20;
+  hadithCopied = false;
+  private copyResetTimer?: ReturnType<typeof setTimeout>;
+  isSharingImage = false;
+
+  private resetCopyState() {
+    clearTimeout(this.copyResetTimer);
+    this.hadithCopied = false;
+  }
+  readonly arabicPreviewHeight = 220;
+  arabicTextHeight = 220;
+  arabicOverflows = false;
+  arabicExpanded = false;
+  showHadithHeaderTitle = false;
+  private arabicResizeObserver?: ResizeObserver;
+  @ViewChild(IonContent) pageContent?: IonContent;
+  @ViewChild('detailTitle') detailTitle?: ElementRef<HTMLElement>;
+  @ViewChild('arabicText') set arabicTextElement(element: ElementRef<HTMLElement> | undefined) {
+    this.arabicResizeObserver?.disconnect();
+    if (!element) return;
+    this.arabicResizeObserver = new ResizeObserver(() => {
+      this.zone.run(() => {
+        this.arabicTextHeight = element.nativeElement.scrollHeight;
+        this.arabicOverflows = this.arabicTextHeight > this.arabicPreviewHeight + 1;
+      });
+    });
+    this.arabicResizeObserver.observe(element.nativeElement);
+  }
+
+  onDetailScroll(event: CustomEvent<{ scrollTop: number }>) {
+    if (!this.selectedHadith || !this.detailTitle) return;
+    const title = this.detailTitle.nativeElement;
+    const threshold = title.offsetTop + title.offsetHeight;
+    const position = event.detail.scrollTop;
+    if (position > threshold) this.showHadithHeaderTitle = true;
+    else if (position <= Math.max(8, threshold - 24)) this.showHadithHeaderTitle = false;
+  }
+
+  adjustArabicFontSize(change: number) {
+    this.arabicFontSize = Math.max(16, Math.min(36, this.arabicFontSize + change));
+  }
+
+  private get hadithShareText(): string {
+    const hadith = this.selectedHadith;
+    if (!hadith) return '';
+    return `${this.selectedBook} · Hadis ${hadith.hadith_number}\n${hadith.tajuk_hadith}\n\n${hadith.arabic_text}\n\n${hadith.perawi_melayu}\n\n${hadith.malay_translation}`;
+  }
+
+  async copyHadith() {
+    if (!this.selectedHadith) return;
+    const copiedHadith = this.selectedHadith;
+    try {
+      await Clipboard.write({ string: this.hadithShareText });
+      if (this.selectedHadith !== copiedHadith) return;
+      this.resetCopyState();
+      this.hadithCopied = true;
+      this.copyResetTimer = setTimeout(() => this.hadithCopied = false, 2000);
+    } catch {
+      const alert = await this.alertController.create({
+        header: 'Tidak dapat menyalin hadis',
+        message: 'Sila cuba lagi.',
+        buttons: ['OK'],
+      });
+      await alert.present();
+    }
+  }
+
+  async shareHadith() {
+    if (!this.selectedHadith) return;
+    const hadith = this.selectedHadith;
+    await this.shareAsImage(hadith.tajuk_hadith, `${this.selectedBook} · Hadis ${hadith.hadith_number}`,
+      hadith.arabic_text, [hadith.perawi_melayu, hadith.malay_translation], 'Hadis');
+  }
+
+  async shareDoa(doa: Dua) {
+    await this.shareAsImage(doa.doa, 'Doa', doa.ayat, [doa.latin, doa.artinya], 'Doa');
+  }
+
+  private async shareAsImage(title: string, source: string, arabic: string, paragraphs: string[], category: 'Hadis' | 'Doa') {
+    if (this.isSharingImage) return;
+    this.isSharingImage = true;
+    const card = document.createElement('article');
+    // Render the full text separately so collapsed Arabic and screen controls never appear in the image.
+    card.style.cssText = 'position:fixed;left:-10000px;top:0;width:720px;box-sizing:border-box;padding:44px;background:#10251e;color:#f8faf9;font-family:Arial,sans-serif;';
+    const addText = (tag: string, value: string, styles: string, language = 'ms') => {
+      const element = document.createElement(tag);
+      element.textContent = value;
+      element.lang = language;
+      element.style.cssText = `margin:0;overflow-wrap:anywhere;white-space:pre-wrap;${styles}`;
+      card.appendChild(element);
+      return element;
+    };
+    if (category === 'Hadis') {
+      addText('p', source, 'font-size:20px;line-height:1.5;color:#a6c7b6;margin-bottom:12px;');
+    }
+    addText('h1', title, 'font-size:32px;line-height:1.35;font-weight:700;margin-bottom:32px;');
+    const arabicElement = addText('p', arabic, 'font-size:30px;line-height:1.9;text-align:right;margin-bottom:30px;', 'ar');
+    arabicElement.dir = 'rtl';
+    paragraphs.filter(Boolean).forEach(paragraph =>
+      addText('p', paragraph, 'font-size:23px;line-height:1.65;margin-bottom:22px;'),
+    );
+    addText('p', `${category} · Masjid Al-A’la`, 'font-size:18px;line-height:1.5;color:#a6c7b6;border-top:1px solid #305344;padding-top:22px;margin-top:12px;');
+    document.body.appendChild(card);
+    try {
+      await document.fonts.ready;
+      const dataUrl = await toPng(card, { pixelRatio: 2, backgroundColor: '#10251e',
+        style: { position: 'static', left: 'auto', top: 'auto' } });
+      const filename = `${category.toLowerCase()}-${Date.now()}.png`;
+      if (Capacitor.isNativePlatform()) {
+        const saved = await Filesystem.writeFile({ path: filename, data: dataUrl, directory: Directory.Cache });
+        await Share.share({ title, files: [saved.uri], dialogTitle: 'Kongsi imej' });
+      } else {
+        const blob = await (await fetch(dataUrl)).blob();
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) {
+          try {
+            await navigator.share({ title, files: [file] });
+            return;
+          } catch (error) {
+            if (error instanceof Error && error.name === 'AbortError') return;
+            // Browsers may lose share permission while generating the image. Offer the PNG download.
+          }
+        }
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!/cancel|dismiss|abort/i.test(message)) {
+        const alert = await this.alertController.create({
+          header: 'Tidak dapat berkongsi imej', message: 'Sila cuba lagi.', buttons: ['OK'],
+        });
+        await alert.present();
+      }
+    } finally {
+      card.remove();
+      this.isSharingImage = false;
+    }
+  }
   hadiths: Hadith[] = []; // Use the Hadith interface
   chapters: Chapter[] = [];
   selectedBook: string = 'Sahih Bukhari'; // Default book
@@ -110,6 +259,73 @@ export class HadithSupplicationPage implements OnInit {
 
   //Segment Properties
   selectedSegment: string = 'hadith';
+  isAtTop = true;
+  showTabs = true;
+  showSearch = false;
+  private sectionScrollPositions: Record<string, number> = {};
+  private scrollDirection = 0;
+  private scrollDistance = 0;
+  @ViewChild('amalanSearch') amalanSearch?: IonSearchbar;
+
+  get activeSearchText(): string {
+    return this.selectedSegment === 'doa' ? this.doaSearchText : this.searchText;
+  }
+
+  set activeSearchText(value: string) {
+    if (this.selectedSegment === 'doa') this.doaSearchText = value;
+    else this.searchText = value;
+  }
+
+  get currentPageTitle(): string {
+    return this.selectedSegment === 'hadith' ? 'Hadis' :
+      this.selectedSegment === 'doa' ? 'Doa' : 'Tasbih';
+  }
+
+  onSectionScroll(event: Event, section: string) {
+    const scroller = event.target as HTMLElement;
+    // Clamp elastic overscroll so bouncing at either edge cannot reveal the tabs.
+    const position = Math.max(0, Math.min(scroller.scrollTop, scroller.scrollHeight - scroller.clientHeight));
+    const previous = this.sectionScrollPositions[section] ?? 0;
+    this.sectionScrollPositions[section] = position;
+    if (section !== this.selectedSegment) return;
+
+    this.isAtTop = position <= 8;
+    if (this.isAtTop) {
+      this.showTabs = true;
+      this.scrollDistance = 0;
+      this.scrollDirection = 0;
+      return;
+    }
+
+    const delta = position - previous;
+    if (Math.abs(delta) < 1) return;
+    const direction = Math.sign(delta);
+    if (direction !== this.scrollDirection) {
+      this.scrollDirection = direction;
+      this.scrollDistance = 0;
+    }
+    this.scrollDistance += Math.abs(delta);
+    if (direction > 0 && this.scrollDistance >= 12) this.showTabs = false;
+    if (direction < 0 && this.scrollDistance >= 48) this.showTabs = true;
+  }
+
+  toggleSearch() {
+    if (this.showSearch) {
+      this.closeSearch();
+      return;
+    }
+    this.showSearch = true;
+    setTimeout(() => {
+      if (this.showSearch) this.amalanSearch?.setFocus();
+    });
+  }
+
+  closeSearch() {
+    this.amalanSearch?.getInputElement().then(input => input.blur());
+    this.showSearch = false;
+    this.searchText = '';
+    this.doaSearchText = '';
+  }
 
   // Tasbih Properties
   tasbihCount: number = 0;
@@ -134,6 +350,7 @@ export class HadithSupplicationPage implements OnInit {
     private platform: Platform,
     private router: Router,
     private route: ActivatedRoute,
+    private zone: NgZone,
   ) {}
 
   async ngOnInit() {
@@ -174,6 +391,16 @@ export class HadithSupplicationPage implements OnInit {
       });
   }
 
+  ionViewDidEnter() {
+    window.dispatchEvent(
+      new CustomEvent('pageLoaded', {
+        detail: { loaded: true },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
   ionViewWillLeave() {
     // Unsubscribe to avoid multiple subscriptions when entering the announcement page
     if (this.backButtonSubscription) {
@@ -183,6 +410,8 @@ export class HadithSupplicationPage implements OnInit {
   }
 
   ngOnDestroy() {
+    this.resetCopyState();
+    this.arabicResizeObserver?.disconnect();
     // Clean up subscription to prevent memory leaks
     if (this.backButtonSubscription) {
       this.backButtonSubscription.unsubscribe();
@@ -355,7 +584,20 @@ export class HadithSupplicationPage implements OnInit {
     );
   }
 
+  filteredDuas(): Dua[] {
+    const query = this.doaSearchText.trim().toLocaleLowerCase();
+    if (!query) return this.duas;
+    return this.duas.filter(doa =>
+      [doa.doa, doa.ayat, doa.latin, doa.artinya].some(text =>
+        (text || '').toLocaleLowerCase().includes(query),
+      ),
+    );
+  }
+
   selectHadith(hadith: Hadith) {
+    this.arabicExpanded = false;
+    this.showHadithHeaderTitle = false;
+    this.resetCopyState();
     // Use the Hadith interface
     this.selectedHadith = hadith;
 
@@ -375,7 +617,16 @@ export class HadithSupplicationPage implements OnInit {
   }
 
   deselectHadith() {
+    this.resetCopyState();
+    this.showHadithHeaderTitle = false;
+    this.arabicExpanded = false;
     this.selectedHadith = null;
+    // The segment view is recreated when leaving a detail, starting at the top.
+    this.sectionScrollPositions = {};
+    this.isAtTop = true;
+    this.showTabs = true;
+    this.scrollDirection = 0;
+    this.scrollDistance = 0;
     // Remove query param when deselecting
     this.router.navigate([], {
       relativeTo: this.route,
@@ -385,6 +636,9 @@ export class HadithSupplicationPage implements OnInit {
   }
 
   navigateHadith(direction: string) {
+    this.arabicExpanded = false;
+    this.showHadithHeaderTitle = false;
+    this.resetCopyState();
     const currentIndex = this.hadiths.indexOf(this.selectedHadith!);
     let newIndex: number;
 
@@ -400,17 +654,17 @@ export class HadithSupplicationPage implements OnInit {
       }
     }
 
-    // Reset scroll position after navigating to a new Hadith
-    if (this.hadithContent) {
-      this.hadithContent.nativeElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }
+    // Reset before the next title can be promoted into the header.
+    void this.pageContent?.scrollToTop(0);
   }
 
   segmentChanged(ev: any) {
+    if (ev.detail.value !== this.selectedSegment) this.closeSearch();
     this.selectedSegment = ev.detail.value;
+    this.isAtTop = (this.sectionScrollPositions[this.selectedSegment] ?? 0) <= 8;
+    this.showTabs = true;
+    this.scrollDirection = 0;
+    this.scrollDistance = 0;
     // If we switch to 'doa' and the list is empty, trigger a load
     if (this.selectedSegment === 'doa' && this.duas.length === 0) {
       this.loadCachedDuas();

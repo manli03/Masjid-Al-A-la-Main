@@ -4,66 +4,132 @@
 
 .prayer-times-component {
   position: relative;
-  margin: -12px 0 24px;
+  margin: 0 0 24px;
+  color: var(--app-ink);
 }
 
 .component-toolbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(40px, 1fr) auto minmax(40px, 1fr);
   align-items: center;
-  justify-content: space-between;
-  min-height: 52px;
-  margin-inline: -16px;
-  padding: 0 20px;
-  color: var(--ion-text-color);
+  min-height: 54px;
+  padding: 0 2px;
+  color: var(--app-ink);
 }
 
 .component-toolbar h2 {
-  flex: 1;
+  grid-column: 2;
+  grid-row: 1;
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.3rem;
+  font-weight: 600;
   text-align: center;
 }
 
 .component-toolbar > ion-button {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+}
+
+.component-toolbar > ion-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
   flex: 0 0 auto;
+  margin: 0;
+  --color: var(--ion-color-primary);
+  --min-width: 40px;
+  --padding-start: 0;
+  --padding-end: 0;
 }
 
 .toolbar-actions {
   display: flex;
-  gap: 2px;
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0;
+}
+
+.toolbar-actions ion-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  margin: 0;
+  --color: var(--ion-color-primary);
+  --min-width: 40px;
+  --padding-start: 0;
+  --padding-end: 0;
 }
 
 .component-content {
   position: relative;
 }
 
-/* Styling for common sections (both current and yearly prayer times) */
 .header {
-  background-color: rgb(0, 172, 95);
-  color: white;
-  text-align: center;
-  margin-inline: -16px;
-  padding: 20px 16px 60px;
   position: relative;
+  overflow: hidden;
+  margin: 8px 0 0;
+  padding: 18px 16px 55px;
+  border-radius: 18px;
+  color: #ffffff;
+  background: var(--app-home-cover);
+  text-align: center;
 }
 
-.header img {
+.header::after {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  opacity: 0.1;
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(17, 46, 35, 0.78), rgba(20, 51, 39, 0.42)),
+    linear-gradient(0deg, rgba(15, 38, 30, 0.48), transparent 75%);
+  content: '';
+  inset: 0;
+}
+
+.header > img {
+  position: absolute;
+  z-index: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center 55%;
+  inset: 0;
+  opacity: 0.55;
 }
+
+.header > :not(img) {
+  position: relative;
+  z-index: 2;
+}
+
+.header h5,
+.header h4 {
+  margin: 0 0 5px;
+  color: var(--app-cover-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .header h1 {
-  font-size: 48px;
   margin: 0;
+  color: #ffffff;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.7rem, 12vw, 3.6rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
 }
 
 .header p {
-  margin: 0 10px;
+  margin: 4px 10px 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.9rem;
 }
 
 .page-container {
@@ -71,20 +137,21 @@
 }
 
 .date-container {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
-  column-gap: 4px;
-  width: 100%;
-  box-sizing: border-box;
-  background-color: white;
-  padding: 10px;
-  margin-top: -35px;
-  align-items: center;
-  text-align: center;
   position: relative;
   z-index: 2;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  display: grid;
+  width: calc(100% - 20px);
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  align-items: center;
+  column-gap: 4px;
+  box-sizing: border-box;
+  margin: -36px auto 0;
+  padding: 8px;
+  border: 1px solid var(--app-border);
+  border-radius: 15px;
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
+  text-align: center;
 }
 
 .date-text {
@@ -94,32 +161,34 @@
 
 .date-container h2 {
   margin: 0;
-  font-size: 18px;
-  color: black;
+  color: var(--app-ink);
+  font-size: 0.96rem;
+  font-weight: 650;
 }
 
 .date-container p {
-  margin: 0;
-  color: gray;
+  margin: 2px 0 0;
+  color: var(--app-muted);
+  font-size: 0.78rem;
 }
 
 .date-nav-arrow {
   display: inline-flex;
+  width: 40px;
+  height: 40px;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 50%;
+  color: var(--ion-color-primary);
   background: transparent;
-  color: var(--ion-text-color);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
 .date-nav-arrow ion-icon {
-  font-size: 24px;
+  font-size: 22px;
 }
 
 .date-nav-arrow:focus-visible {
@@ -128,28 +197,17 @@
 }
 
 .date-nav-arrow:disabled {
-  color: #d3d3d3;
+  color: var(--app-muted);
   cursor: not-allowed;
 }
 
-/* Styling for both sections (Current and Yearly Prayer Times) */
 .table-container {
-  background-color: white;
-  margin-top: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-}
-
-/* MODIFICATION: Re-added style for prayer icon and name alignment */
-.prayer-name-container {
-  display: flex;
-  align-items: center;
-  gap: 8px; /* Consistent spacing between icon and text */
-}
-
-.prayer-name-container img {
-  flex-shrink: 0; /* Prevents icon from shrinking */
+  overflow: auto hidden;
+  margin-top: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 16px;
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
 }
 
 .table-container table {
@@ -158,199 +216,125 @@
 
 .table-container th,
 .table-container td {
+  padding: 10px 11px;
   text-align: left;
-  padding: 10px;
 }
 
 .table-container th {
-  color: gray;
+  color: var(--app-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
 }
 
-button.btn-reminder {
-  background-color: rgb(0, 172, 95);
-  border-color: rgb(0, 172, 95);
-  color: white;
+.table-container td {
+  color: var(--app-ink);
+  font-size: 0.91rem;
+}
+
+.prayer-name-container {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: all 0.3s ease;
-  white-space: nowrap; // Prevent text inside button from wrapping
+  gap: 8px;
 }
 
-button.btn-reminder ion-icon {
-  margin-right: 5px;
-  font-size: 16px;
+.prayer-name-container img {
+  flex-shrink: 0;
 }
 
-button.btn-reminder.active {
-  background-color: #005a32;
-  border-color: #005a32;
-  font-weight: bold;
-}
-
-button.btn-reminder.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-  cursor: not-allowed;
-}
-
-button.btn-reminder.disabled ion-icon {
-  opacity: 0.5;
-}
-
-table {
-  width: 100%;
-}
-
-thead.fixed-header {
-  position: sticky;
-  top: 0;
-  background-color: #ffffff; /* Ensures the header stays visible over the content */
-  z-index: 1;
-}
-
-/* ======================================================== */
-/* == MODIFIED STYLES for Daily Prayer Table               == */
-/* ======================================================== */
 .daily-prayer-table {
-  table-layout: fixed; /* Enforce column widths */
+  table-layout: fixed;
 
   th {
-    border-right: 1px solid #f0f0f0;
-  }
-  th:last-child {
-    border-right: none;
+    border-right: 1px solid var(--app-border);
   }
 
-  /* MODIFICATION: Adjusted column widths to fit icons */
+  th:last-child {
+    border-right: 0;
+  }
+
   .prayer-name-cell {
-    width: 45%;
+    width: 58%;
   }
+
   .prayer-time-cell {
-    width: 30%;
-  }
-  .prayer-action-cell {
-    width: 25%;
-    text-align: right;
+    width: 42%;
   }
 
   td {
+    padding-top: 12px;
+    padding-bottom: 12px;
     vertical-align: middle;
-    padding-top: 16px;
-    padding-bottom: 16px;
-    white-space: nowrap; // PREVENT TEXT WRAP
+    white-space: nowrap;
+  }
+
+  td.dark {
+    color: var(--app-ink);
+    background: var(--app-surface);
+  }
+
+  .prayer-time-cell {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
   }
 
   tbody tr {
-    border-bottom: 1px solid #f0f0f0; // Add separator for light mode
+    border-bottom: 1px solid var(--app-border);
   }
 
   tbody tr:last-child {
-    border-bottom: none !important;
-  }
-
-  /* Style for the icon-only button */
-  .btn-reminder.icon-only {
-    padding: 0;
-    width: 36px;
-    height: 36px;
-    min-width: 36px; /* Override any other min-width */
-    border-radius: 50%; /* Make it circular */
-    display: inline-flex; /* Helps with alignment in the cell */
-
-    ion-icon {
-      margin-right: 0; /* Remove margin from icon */
-      font-size: 20px;
-    }
+    border-bottom: 0;
   }
 }
-/* ======================================================== */
 
-/* Styling for highlighting the current day and clicked row */
+.daily-prayer-table .current-prayer-row td {
+  color: var(--app-selected-color);
+  background: var(--app-selected-background);
+  font-weight: 650;
+}
+
+.daily-prayer-table .current-prayer-row .prayer-name-cell {
+  box-shadow: inset 3px 0 0 var(--app-cover-accent);
+}
+
+.daily-prayer-table .current-prayer-row .prayer-name-container img {
+  filter: brightness(0) invert(1);
+}
+
+.prayer-time-cell .prayer-time-value {
+  display: block;
+}
+
+.table-container thead.fixed-header {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--app-surface);
+}
+
 .current-day,
 .clicked-row {
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+  transition: background-color 0.2s ease;
 }
 
 .current-day {
-  background-color: rgb(0, 172, 95) !important;
-  color: white !important;
+  color: #ffffff !important;
+  background: var(--app-selected-background) !important;
+}
+
+.current-day td {
+  color: #ffffff;
 }
 
 .clicked-row {
-  background-color: grey;
-  color: white !important;
+  color: var(--app-ink) !important;
+  background: var(--app-surface-raised);
 }
 
 .arrow.disabled ion-icon {
-  color: #d3d3d3; /* Light gray color for disabled state */
-  cursor: not-allowed; /* Change cursor to indicate it's disabled */
-}
-
-:host-context(.ion-palette-dark) {
-  .header {
-    background-color: rgb(0, 100, 55);
-  }
-
-  .date-container {
-    background-color: #1e1e1e;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-  }
-
-  .date-container h2 {
-    color: lightgray;
-  }
-  .date-container p {
-    color: gray;
-  }
-
-  .table-container {
-    background-color: #1e1e1e;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-  }
-
-  .table-container th {
-    background-color: #1e1e1e;
-    color: lightgray;
-  }
-
-  .table-container .dark {
-    background-color: #1e1e1e;
-    color: white;
-  }
-
-  /* MODIFICATION: Update divider colors for dark mode */
-  .daily-prayer-table tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  .daily-prayer-table th {
-    border-right: 1px solid rgba(255, 255, 255, 0.15);
-  }
-
-  .current-day {
-    background-color: rgb(0, 100, 55) !important;
-    color: white !important;
-  }
-
-  .clicked-row {
-    background-color: #5a5a5a;
-    color: white !important;
-  }
-
-  button.btn-reminder {
-    background-color: rgb(0, 100, 55);
-    border-color: rgb(0, 100, 55);
-  }
-
-  button.btn-reminder.active {
-    background-color: #00773d;
-    border-color: #00773d;
-  }
+  color: var(--app-muted);
+  cursor: not-allowed;
 }
 
 .notification-settings-modal {
@@ -360,59 +344,59 @@ thead.fixed-header {
   --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
 }
 
-/* Yearly view fix */
+/* Keep the annual table contained inside the available page height. */
 .prayer-times-component.yearly-mode {
   display: flex;
-  flex-direction: column;
-  height: calc(100dvh - var(--ion-safe-area-top, 0px) - var(--ion-safe-area-bottom, 0px) - 20px);
   width: calc(100% + 32px);
-  margin-right: -16px;
-  margin-bottom: 0;
-  margin-left: -16px;
+  height: calc(100dvh - var(--ion-safe-area-top, 0px) - var(--ion-safe-area-bottom, 0px) - 20px);
+  flex-direction: column;
+  margin: 0 -16px;
   overflow: hidden;
 
   > .component-toolbar {
-    flex-shrink: 0;
     width: 100%;
+    flex-shrink: 0;
     margin-inline: 0;
   }
 
   > .component-content {
-    flex: 1;
     min-width: 0;
     min-height: 0;
+    flex: 1;
     overflow: hidden;
   }
 }
 
 .yearly-view-wrapper {
   display: flex;
-  flex-direction: column;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
-  height: 100%;
+  flex-direction: column;
 }
 
 .yearly-view-wrapper .header {
-  flex-shrink: 0;
   width: 100%;
+  flex-shrink: 0;
   margin-inline: 0;
+  border-radius: 0;
 }
 
 .yearly-view-wrapper .page-container {
-  flex: 1;
+  display: flex;
   min-width: 0;
   min-height: 0;
+  flex: 1;
   margin-bottom: 0;
   padding-inline: 16px;
   overflow: hidden;
-  display: flex;
 }
 
 .yearly-view-wrapper .yearly-table-container {
-  flex: 1;
   min-width: 0;
   min-height: 0;
+  flex: 1;
   margin-top: 20px;
   overflow: auto;
   white-space: nowrap;
@@ -421,6 +405,6 @@ thead.fixed-header {
 
 .yearly-view-wrapper thead.fixed-header {
   position: sticky;
-  top: 0;
   z-index: 2;
+  top: 0;
 }

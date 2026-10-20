@@ -1,14 +1,20 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom" *ngIf="!hideTabBar">
     <!-- Home Tab -->
-    <ion-tab-button tab="home" [ngClass]="{'active': router.url.includes('/tabs/home')}">
-      <ion-icon name="home"></ion-icon>
+    <ion-tab-button tab="home" [ngClass]="{'active': router.url.includes('/tabs/home')}" aria-label="Utama">
+      <ion-icon name="home-outline"></ion-icon>
       <ion-label>Utama</ion-label>
     </ion-tab-button>
 
+    <!-- Prayer times and Qibla -->
+    <ion-tab-button tab="prayer" [ngClass]="{'active': router.url.includes('/tabs/prayer')}" aria-label="Solat">
+      <ion-icon name="time-outline"></ion-icon>
+      <ion-label>Solat</ion-label>
+    </ion-tab-button>
+
     <!-- Hadith Tab -->
-    <ion-tab-button tab="hadithSupplication" [ngClass]="{'active': router.url.includes('/tabs/hadithSupplication')}">
-      <ion-icon name="book"></ion-icon>
+    <ion-tab-button tab="hadithSupplication" [ngClass]="{'active': router.url.includes('/tabs/hadithSupplication')}" aria-label="Amalan">
+      <ion-icon name="book-outline"></ion-icon>
       <ion-label>Amalan</ion-label>
     </ion-tab-button>
 

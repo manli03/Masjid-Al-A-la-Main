@@ -1,0 +1,37 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.solat-content {
+  --background: var(--app-background);
+}
+
+.solat-page {
+  width: min(100%, 760px);
+  margin: 0 auto;
+  padding: 8px 16px calc(28px + var(--ion-safe-area-bottom, 0px));
+}
+
+.schedule-surface {
+  min-width: 0;
+}
+
+.qibla-surface {
+  margin-top: 20px;
+  padding: 18px 16px 20px;
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
+}
+
+@media (min-width: 700px) {
+  .solat-page {
+    padding: 14px 28px calc(32px + var(--ion-safe-area-bottom, 0px));
+  }
+
+  .qibla-surface {
+    border-radius: 22px;
+  }
+}

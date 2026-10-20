@@ -1,179 +1,414 @@
-.location,
-.prayer-header,
-.prayer-time,
-.prayer-tracker,
-.qibla-compass {
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
+:host {
+  display: block;
+  height: 100%;
 }
 
-ion-icon {
-  font-size: 24px;
-  color: var(--ion-color-primary);
+.home-content {
+  --background: var(--app-background);
 }
 
-.bell {
-  background-color: rgba(255, 255, 255, 0.95);
-  border-radius: 10px;
-  padding: 10px;
+.home-page {
+  min-height: 100%;
+  padding-bottom: calc(20px + var(--ion-safe-area-bottom, 0px));
+  color: var(--app-ink);
 }
 
-.background-image {
-  position: fixed;
-  top: 0;
-  left: 0;
+.masjid-cover {
+  position: relative;
+  display: flex;
+  min-height: 258px;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: calc(18px + var(--ion-safe-area-top, 0px)) 22px 27px;
+  border-radius: 0 0 24px 24px;
+  color: #ffffff;
+  background: var(--app-home-cover);
+}
+
+.cover-photo,
+.cover-shade {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none;
-  z-index: -1;
-  object-fit: cover;
 }
 
-/* ======================================================= */
-/* == MODIFICATION: Styles for Multi-Line Prayer Header == */
-/* ======================================================= */
+.cover-photo {
+  object-fit: cover;
+  object-position: center 54%;
+}
 
-.prayer-header {
+.cover-shade {
+  background: linear-gradient(90deg, rgba(16, 43, 34, 0.8), rgba(20, 49, 37, 0.34)),
+    linear-gradient(0deg, rgba(17, 38, 30, 0.58), transparent 72%);
+}
+
+.cover-topline,
+.cover-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.cover-topline {
   display: flex;
-  align-items: center; // Vertically centers the right button with the left content block
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-name {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+}
+
+.brand-name b {
+  color: var(--app-cover-accent);
+  font-weight: 700;
+}
+
+.reminder-button {
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  --color: #ffffff;
+  --background: rgba(255, 255, 255, 0.13);
+  --border-radius: 50%;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.reminder-button ion-icon {
+  font-size: 21px;
+}
+
+.cover-copy {
+  padding-top: 28px;
+}
+
+.cover-date {
+  margin: 0 0 6px;
+  color: var(--app-cover-accent);
+  font-size: 0.86rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.cover-copy h1 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 8vw, 2.65rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.home-content-inner {
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.location-strip {
+  display: flex;
+  width: 100%;
+  min-height: 66px;
+  align-items: center;
+  gap: 12px;
+  margin: -1px 0 18px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-ink);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-strip:disabled {
+  opacity: 0.7;
+}
+
+.location-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: #ffffff;
+  background: var(--app-forest);
+}
+
+.location-mark ion-icon {
+  font-size: 19px;
+}
+
+.location-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.location-copy small {
+  color: var(--app-muted);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.location-copy > span,
+.location-copy ion-skeleton-text {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--app-ink);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-copy ion-skeleton-text {
+  width: 72%;
+  height: 16px;
+}
+
+.location-chevron {
+  color: var(--app-muted);
+  font-size: 18px;
+}
+
+.next-prayer-card {
+  position: relative;
+  overflow: hidden;
+  padding: 19px 20px 15px;
+  border: 1px solid var(--app-border);
+  border-left: 4px solid var(--app-gold);
+  border-radius: 5px 18px 18px 5px;
+  background: var(--app-surface);
+  box-shadow: var(--app-card-shadow);
+}
+
+.card-topline {
+  display: flex;
+  min-height: 18px;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.prayer-header-content {
+.section-kicker {
+  color: var(--app-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.hijri-date {
+  color: var(--app-muted);
+  font-size: 0.74rem;
+  text-align: right;
+}
+
+.next-prayer-content {
   display: flex;
-  align-items: flex-start; // Aligns icon to the TOP of the text block
-  gap: 10px;
-  flex-grow: 1;
-  min-width: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 9px;
 }
 
-.heart-icon {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  margin-top: 0; // Reset margin, alignment is handled by flexbox
+.next-prayer-name > span {
+  color: var(--app-muted);
+  font-size: 0.82rem;
 }
 
-.prayer-header-text {
-  /* THIS IS THE KEY CHANGE: Allow text to wrap */
-  white-space: normal; /* Changed from 'nowrap' */
-  overflow: visible; /* Changed from 'hidden' */
-  text-overflow: clip; /* Changed from 'ellipsis' */
+.next-prayer-name h2 {
+  margin: 2px 0 0;
+  color: var(--ion-color-primary);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1.1;
 }
 
-.circle-button {
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: white;
-  border: 1px solid #ddd;
-  flex-shrink: 0;
-
-  ion-icon {
-    font-size: 17px;
-    vertical-align: middle;
-  }
+.next-prayer-time {
+  color: var(--ion-color-primary);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.85rem, 8vw, 2.45rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  line-height: 1;
 }
 
-:host-context(.ion-palette-dark) {
-  .location,
-  .prayer-header,
-  .prayer-time,
-  .prayer-tracker,
-  .qibla-compass {
-    background-color: rgba(30, 30, 30, 0.95);
-  }
-
-  .bell {
-    background-color: rgba(30, 30, 30, 0.95);
-  }
-
-  .circle-button {
-    background-color: #2c2c2c;
-    border-color: #444;
-
-    ion-icon {
-      color: #ffffff;
-    }
-  }  
+.prayer-name-skeleton {
+  width: 86px;
+  height: 30px;
+  margin: 5px 0 0;
 }
-.prayer-time h1 {
-  font-size: 48px;
+
+.prayer-time-skeleton {
+  width: 85px;
+  height: 34px;
   margin: 0;
 }
-.prayer-times ion-col {
-  text-align: center;
-}
-.prayer-tracker .tracker-icons ion-col {
-  text-align: center;
-}
-.checked ion-icon {
-  color: var(--ion-color-primary);
-  font-size: 24px;
-}
-.prayer-tracker-header {
+
+.countdown-line {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-}
-.prayer-tracker-header ion-icon {
-  margin-right: 10px;
+  gap: 7px;
+  color: var(--app-muted);
+  font-size: 0.86rem;
 }
 
-.prayer-notification-icon {
-  font-size: 25px;
-  margin-bottom: 10px;
+.countdown-line ion-icon {
+  font-size: 17px;
+}
+
+.missing-prayer-data {
+  padding: 14px 0 8px;
+}
+
+.missing-prayer-data p {
+  margin: 0 0 7px;
+  color: var(--app-muted);
+  font-size: 0.9rem;
+}
+
+.missing-prayer-data button {
+  padding: 0;
+  border: 0;
   color: var(--ion-color-primary);
-  vertical-align: middle;
-  transition: all 0.3s ease;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.prayer-notification-icon.active {
+.schedule-link {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid var(--app-border);
   color: var(--ion-color-primary);
-  font-weight: bold;
-  animation: pulse 1.5s infinite;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+.schedule-link ion-icon {
+  font-size: 18px;
+}
+
+.amalan-prompt {
+  display: flex;
+  min-height: 84px;
+  align-items: center;
+  gap: 13px;
+  margin-top: 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: var(--app-surface);
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.amalan-prompt:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 3px;
+}
+
+.amalan-prompt:active {
+  background: var(--app-surface-raised);
+}
+
+.amalan-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 12px;
+  color: #ffffff;
+  background: var(--app-forest);
+}
+
+.amalan-icon ion-icon {
+  font-size: 21px;
+}
+
+.amalan-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.amalan-copy .section-kicker {
+  font-size: 0.62rem;
+}
+
+.amalan-copy h2 {
+  margin: 4px 0 0;
+  color: var(--app-ink);
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.amalan-arrow {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ion-color-primary);
+}
+
+.amalan-arrow ion-icon {
+  font-size: 20px;
+}
+
+.home-footnote {
+  margin: 15px 4px 4px;
+  color: var(--app-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.location-overlay {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #fff;
+  background: rgba(22, 42, 32, 0.74);
+  backdrop-filter: blur(3px);
+}
+
+.location-overlay ion-spinner {
+  --color: #fff;
+}
+
+.location-overlay span {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+@media (min-width: 700px) {
+  .masjid-cover {
+    min-height: 300px;
+    padding-inline: max(28px, calc((100% - 620px) / 2));
   }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
+
+  .home-content-inner {
+    padding-inline: 24px;
   }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-// Add CSS for notification settings modal
-:host ::ng-deep .notification-settings-modal {
-  height: 90%;
-  width: 90%;
-  border-radius: 16px;
-  box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
-}
-
-// Disabled state for notification buttons
-.tracker-icons ion-col.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-  cursor: not-allowed;
-}
-
-.tracker-icons ion-col.disabled ion-icon {
-  opacity: 0.5;
-}
-
-.tracker-icons ion-col.disabled span {
-  opacity: 0.5;
 }

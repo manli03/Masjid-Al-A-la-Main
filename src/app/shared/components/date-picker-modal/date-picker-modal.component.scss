@@ -1,14 +1,14 @@
 .modal-toolbar {
-  --background: #ffffff;
-  --border-color: var(--ion-border-color);
-  border-bottom: 1px solid var(--ion-border-color);
+  --background: var(--ion-toolbar-background);
+  --border-color: var(--app-border);
+  border-bottom: 1px solid var(--app-border);
   position: relative;
 }
 
 .modal-title {
   font-weight: 600;
   font-size: 1.1rem;
-  color: var(--ion-color-dark);
+  color: var(--app-ink);
   position: absolute;
   left: 50%;
   top: 50%;
@@ -28,7 +28,7 @@
 .custom-datetime {
   --background: var(--ion-item-background);
   --background-rgb: var(--ion-background-color-rgb);
-  --wheel-highlight-background: var(--ion-color-primary);
+  --wheel-highlight-background: var(--app-selected-background);
   --wheel-highlight-border-radius: 16px;
   --wheel-fade-background-rgb: var(--ion-background-color-rgb);
   --border-radius: 12px;
@@ -43,12 +43,12 @@
 }
 
 .custom-datetime::part(wheel-item) {
-  color: var(--ion-color-dark);
+  color: var(--app-ink);
   font-weight: 500;
 }
 
 .custom-datetime::part(wheel-item active) {
-  color: var(--ion-color-primary);
+  color: var(--app-selected-color);
   font-weight: 600;
 }
 
@@ -65,24 +65,24 @@
 // Dark mode support
 :host-context(.ion-palette-dark) {
   .modal-toolbar {
-    --background: var(--ion-item-background-dark, rgba(255, 255, 255, 0.05));
+    --background: var(--ion-item-background);
   }
 
   .modal-title {
-    color: var(--ion-color-light);
+    color: var(--app-ink);
   }
 
   .custom-datetime {
-    --background: var(--ion-item-background-dark);
+    --background: var(--ion-item-background);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   }
 
   .custom-datetime::part(wheel-item) {
-    color: var(--ion-color-light);
+    color: var(--app-ink);
   }
 
   .custom-datetime::part(wheel-item active) {
-    color: var(--ion-color-primary);
+    color: var(--app-selected-color);
   }
 
   :host {

@@ -13,6 +13,13 @@ const routes: Routes = [
           import('../../features/home/home.module').then((m) => m.HomePageModule),
       },
       {
+        path: 'prayer',
+        loadChildren: () =>
+          import('../../features/prayer/pages/prayer/prayer.module').then(
+            (m) => m.PrayerPageModule,
+          ),
+      },
+      {
         path: 'hadithSupplication',
         loadChildren: () =>
           import('../../features/hadith-supplication/hadith-supplication.module').then(

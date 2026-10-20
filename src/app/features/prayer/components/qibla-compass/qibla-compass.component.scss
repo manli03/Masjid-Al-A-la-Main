@@ -1,65 +1,63 @@
-// Keep existing styles for .compass-div, .compass-frame, etc.
+.qibla-container {
+  color: var(--app-ink);
+}
 
 // Section Header Style (scoped to this component)
 .section-header {
   display: flex;
   align-items: center;
-  margin-bottom: 15px; // Space below the header
-  // The qibla-compass card in home.page.html provides overall padding
+  gap: 8px;
+  margin-bottom: 15px;
 
   ion-icon {
     font-size: 24px;
-    margin-right: 8px;
-    color: var(--ion-color-primary); // Or your desired color
+    color: var(--app-forest);
   }
 
   h5 {
     margin: 0;
-    font-weight: 500;
+    color: var(--app-ink);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
     line-height: 1.2;
   }
 }
 
-// Dark mode for section header within this component if needed
-:host-context(.ion-palette-dark) {
-  .section-header {
-    ion-icon {
-      // color: #fff; // Example if primary doesn't contrast well
-    }
-    h5 {
-      // color: #fff; // Example
-    }
-  }
+.qibla-container ion-button {
+  --background: var(--app-forest);
+  --background-hover: #00523b;
+  --color: #ffffff;
 }
 
 .compass-div {
-  background-color: rgba(255, 255, 255, 0); // Transparent background
+  background-color: transparent;
 }
 
 .compass-frame {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 280px;
-  height: 280px;
+  width: min(280px, 100%);
+  aspect-ratio: 1;
   margin: 0 auto;
-  border: 8px solid #3a3a3a; // Default border color
+  box-sizing: border-box;
+  border: 7px solid var(--app-forest);
   border-radius: 50%;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--app-card-shadow);
   padding: 10px;
   transition: border-color 0.3s ease;
-  background-color: #f0f0f0; // Light background for the compass dial area itself
+  background-color: #ffffff;
 
   &.aligned {
-    // Using & for nesting
-    border-color: #4caf50; // Green color when aligned
+    border-color: var(--app-gold);
   }
 }
 
 .compass-container {
   position: relative;
-  width: 240px;
-  height: 240px;
+  width: min(240px, 100%);
+  aspect-ratio: 1;
   overflow: hidden;
 }
 
@@ -72,12 +70,12 @@
 }
 
 .errorMessage {
-  color: #ff0000;
-  background-color: #ffe6e6;
-  border: 1px solid #ffcccc;
-  padding: 10px; // Adjusted padding
+  color: var(--ion-color-danger);
+  background-color: rgba(var(--ion-color-danger-rgb), 0.1);
+  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.25);
+  padding: 10px;
   border-radius: 5px;
-  margin: 10px 0; // Adjusted margin
+  margin: 10px 0;
   font-weight: bold;
   text-align: center;
 }
@@ -111,22 +109,5 @@
   .compass-container {
     width: 280px;
     height: 280px;
-  }
-}
-
-/* Dark mode styles */
-:host-context(.ion-palette-dark) {
-  // .compass-div background is already transparent
-  .compass-frame {
-    border-color: #555; // Darker border for dark mode
-    background-color: #aaaaaa; // Darker background for compass dial
-    &.aligned {
-      border-color: #4caf50; // Keep green for aligned
-    }
-  }
-  .errorMessage {
-    color: #ffdddd;
-    background-color: #442222;
-    border: 1px solid #773333;
   }
 }

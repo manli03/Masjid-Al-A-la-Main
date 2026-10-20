@@ -1,19 +1,15 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 
 import { IonicModule } from '@ionic/angular';
 
 import { HomePageRoutingModule } from './home-routing.module';
 
 import { HomePage } from './home.page';
-
-import { QiblaCompassComponent } from '../prayer/components/qibla-compass/qibla-compass.component';
-import { PrayerTimesComponent } from '../prayer/components/prayer-times/prayer-times.component';
-// import { LoadingComponent } from '../../layout/loading/loading.component';
+import { PrayerZoneSelectorComponent } from '../prayer/components/prayer-zone-selector/prayer-zone-selector.component';
 
 @NgModule({
-  imports: [CommonModule, FormsModule, IonicModule, HomePageRoutingModule],
-  declarations: [HomePage, QiblaCompassComponent, PrayerTimesComponent],
+  imports: [CommonModule, IonicModule, HomePageRoutingModule],
+  declarations: [HomePage, PrayerZoneSelectorComponent],
 })
 export class HomePageModule {}

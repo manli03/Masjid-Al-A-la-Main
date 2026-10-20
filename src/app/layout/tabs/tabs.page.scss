@@ -1,4 +1,53 @@
-ion-tab-button.active {
+ion-tab-bar {
+  --background: var(--app-toolbar-background);
+  --border: 1px solid var(--app-border);
+  min-height: 68px;
+  padding: 4px 8px calc(4px + var(--ion-safe-area-bottom, 0px));
+  box-shadow: 0 -5px 20px rgba(37, 48, 39, 0.08);
+}
+
+ion-tab-button {
+  --color: var(--app-muted);
+  --color-selected: var(--ion-color-primary);
+  --ripple-color: transparent;
+  min-height: 56px;
+  font-size: 0.74rem;
+}
+
+ion-tab-button ion-icon {
+  min-width: 44px;
+  min-height: 29px;
+  padding: 3px 12px;
+  border-radius: 15px;
+  font-size: 21px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+ion-tab-button ion-label {
+  margin-top: 2px;
+  color: inherit;
+  font-size: 0.71rem;
+  font-weight: 550;
+  opacity: 1;
+}
+
+ion-tab-button.active,
+ion-tab-button.tab-selected {
   --color: var(--ion-color-primary);
-  /* You can add any additional styling for the active button here */
+  --color-selected: var(--ion-color-primary);
+}
+
+ion-tab-button.active ion-icon,
+ion-tab-button.tab-selected ion-icon {
+  color: #ffffff;
+  background: var(--app-selected-background);
+}
+
+ion-tab-button.active ion-label,
+ion-tab-button.tab-selected ion-label {
+  color: var(--ion-color-primary);
+  font-weight: 700;
+  opacity: 1;
 }

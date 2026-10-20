@@ -8,7 +8,7 @@ ion-content {
   flex-direction: column;
   justify-content: center;
   height: 100vh;
-  --background: var(--ion-color-light);
+  --background: var(--app-background);
 }
 
 .container {
@@ -21,7 +21,7 @@ ion-content {
 
 /* Input Fields */
 ion-input {
-  --background: #f9f9f9;
+  --background: var(--ion-item-background);
   --border-radius: 10px;
   --padding-start: 16px;
   --padding-end: 16px;
@@ -77,7 +77,7 @@ form {
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #fff;
+  background-color: var(--ion-card-background);
   box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
   border-radius: 15px;
 }
@@ -85,23 +85,23 @@ form {
 /* Dark mode styles */
 :host-context(.ion-palette-dark) {
   ion-content {
-    --background: var(--ion-color-dark);
+    --background: var(--app-background);
   }
 
   ion-input {
-    --background: #333;
+    --background: var(--ion-item-background);
   }
 
   form {
-    background: var(--ion-color-dark-tint);
+    background: var(--ion-card-background);
   }
 
   ion-label a {
-    color: #80cbc4;
+    color: var(--ion-color-secondary);
   }
 
   .auth-subtitle {
-    color: var(--ion-color-light-shade);
+    color: var(--app-muted);
   }
 }
 

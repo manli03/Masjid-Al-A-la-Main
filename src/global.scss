@@ -41,18 +41,124 @@
 @tailwind utilities;
 
 ion-button {
-  border-radius: 8px;
+  --border-radius: 10px;
+  border-radius: 10px;
 }
 
-ion-content,
+body {
+  color: var(--ion-text-color);
+  background: var(--ion-background-color);
+}
+
+ion-content {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
 ion-toolbar {
-  --background: #f5f5f5;
+  --background: var(--ion-toolbar-background);
+  --color: var(--ion-toolbar-color);
+  --border-color: var(--app-border);
+}
+
+ion-card {
+  --background: var(--ion-card-background);
+  --color: var(--ion-text-color);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-card-shadow);
+}
+
+ion-card-title,
+ion-item {
+  color: var(--ion-text-color);
+}
+
+ion-card-subtitle {
+  color: var(--app-muted);
+}
+
+ion-item {
+  --background: var(--ion-item-background);
+  --color: var(--ion-text-color);
+  --border-color: var(--app-border);
+}
+
+ion-list {
+  background: transparent;
+  color: var(--ion-text-color);
+}
+
+ion-segment {
+  --background: var(--ion-item-background);
+  padding: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+}
+
+ion-segment-button {
+  --color: var(--app-muted);
+  --color-checked: var(--app-selected-color);
+  --background-checked: var(--app-selected-background);
+  --indicator-color: transparent;
+  --border-radius: 10px;
+  --indicator-box-shadow: none;
+  font-weight: 600;
+}
+
+ion-segment-button ion-label {
+  color: inherit;
+}
+
+ion-searchbar {
+  --background: var(--ion-item-background);
+  --color: var(--ion-text-color);
+  --placeholder-color: var(--app-muted);
+  --icon-color: var(--app-muted);
+  --clear-button-color: var(--app-muted);
+}
+
+ion-input,
+ion-textarea,
+ion-select {
+  --color: var(--ion-text-color);
+  --placeholder-color: var(--app-muted);
+}
+
+ion-modal,
+ion-popover {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
+ion-modal.prayer-zone-sheet {
+  --width: min(100%, 540px);
+  --height: 92vh;
+  --max-height: 92vh;
+  --border-radius: 24px 24px 0 0;
+  --backdrop-opacity: 0.48;
+}
+
+a {
+  color: var(--ion-color-primary);
+}
+
+:focus-visible {
+  outline-color: var(--ion-color-secondary);
 }
 
 .ion-palette-dark {
-  ion-content,
+  ion-content {
+    --background: var(--ion-background-color);
+    --color: var(--ion-text-color);
+  }
+
   ion-toolbar {
-    --background: #121212;
+    --background: var(--ion-toolbar-background);
+    --color: var(--ion-toolbar-color);
+  }
+
+  ion-card {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
   }
 }
 
@@ -114,7 +220,7 @@ ion-modal {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(18, 26, 22, 0.78);
   display: flex;
   flex-direction: column;
   justify-content: center;

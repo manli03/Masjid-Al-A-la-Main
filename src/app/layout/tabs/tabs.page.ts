@@ -99,18 +99,20 @@ export class TabsPage implements OnInit, OnDestroy {
         NavigationBar.setTransparency({ isTransparent: false });
 
         if (this.platform.is('hybrid')) {
-          StatusBar.setStyle({ style: Style.Default });
+          StatusBar.setStyle({
+            style: isHome || this.isDarkMode ? Style.Dark : Style.Light,
+          });
           try {
             let color: string;
             if (isHome) {
               color =
                 getComputedStyle(document.documentElement).getPropertyValue(
-                  '--ion-toolbar-background',
-                ) || (this.isDarkMode ? '#121212' : '#f5f5f5');
+                  '--app-home-cover',
+                ) || '#004d39';
             } else if (isAuth) {
-              color = this.isDarkMode ? '#1f1f1f' : '#ffffff';
+              color = this.isDarkMode ? '#102018' : '#ffffff';
             } else {
-              color = this.isDarkMode ? '#121212' : '#f5f5f5';
+              color = this.isDarkMode ? '#102018' : '#ffffff';
             }
 
             await StatusBar.setBackgroundColor({ color: color.trim() });

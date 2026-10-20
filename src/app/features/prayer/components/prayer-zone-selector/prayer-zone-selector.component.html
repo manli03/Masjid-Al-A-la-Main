@@ -1,0 +1,75 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Pilih zon solat</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" aria-label="Tutup pilihan zon" (click)="close()">
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="zone-picker-content" [fullscreen]="false">
+  <div class="zone-picker-intro">
+    <p>Waktu solat akan diselaraskan mengikut kawasan anda.</p>
+    <div class="current-zone" *ngIf="currentZoneCode">
+      <span>Lokasi dipilih</span>
+      <strong>{{ currentZoneName }}</strong>
+    </div>
+  </div>
+
+  <ion-searchbar
+    class="zone-search"
+    placeholder="Cari bandar atau kawasan"
+    aria-label="Cari zon solat"
+    [debounce]="100"
+    (ionInput)="onSearchInput($event)">
+  </ion-searchbar>
+
+  <button class="current-location-button" type="button" (click)="useCurrentLocation()">
+    <span class="location-icon"><ion-icon name="locate-outline"></ion-icon></span>
+    <span>
+      <strong>Gunakan lokasi semasa</strong>
+      <small>Pilih zon secara automatik dengan GPS</small>
+    </span>
+    <ion-icon class="action-chevron" name="chevron-forward-outline"></ion-icon>
+  </button>
+
+  <div class="zone-list" *ngIf="filteredGroups.length; else noZonesFound">
+    <section class="state-group" *ngFor="let group of filteredGroups">
+      <button
+        class="state-toggle"
+        type="button"
+        [attr.aria-expanded]="expandedState === group.state"
+        (click)="toggleState(group.state)">
+        <span class="state-label">
+          <strong>{{ group.state }}</strong>
+          <small>{{ group.zones.length }} zon</small>
+        </span>
+        <ion-icon
+          [name]="expandedState === group.state ? 'chevron-up-outline' : 'chevron-down-outline'">
+        </ion-icon>
+      </button>
+
+      <div class="zone-options" *ngIf="expandedState === group.state">
+        <button
+          class="zone-option"
+          type="button"
+          *ngFor="let zone of group.zones"
+          [class.selected]="zone.code === currentZoneCode"
+          [attr.aria-pressed]="zone.code === currentZoneCode"
+          (click)="chooseZone(zone)">
+          <span>{{ zone.name }}</span>
+          <ion-icon *ngIf="zone.code === currentZoneCode" name="checkmark-circle"></ion-icon>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <ng-template #noZonesFound>
+    <div class="empty-search">
+      <ion-icon name="search-outline"></ion-icon>
+      <p>Tiada zon ditemui. Cuba nama bandar atau negeri lain.</p>
+    </div>
+  </ng-template>
+</ion-content>

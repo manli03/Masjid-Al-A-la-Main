@@ -166,11 +166,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const normalizedPath = path.replace(/\/+$/, '').toLowerCase();
 
     if (normalizedPath === '/prayertimes') {
-      // Prayer times now live inside the home page, so preserve the legacy
-      // notification/deep-link path while opening that component directly.
-      return this.router.navigate(['/tabs/home'], {
-        queryParams: { openPrayerTimes: 'true' },
-      });
+      return this.router.navigateByUrl('/tabs/prayer');
     }
 
     if (originalUrl) {

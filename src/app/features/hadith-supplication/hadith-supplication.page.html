@@ -1,7 +1,30 @@
-<ion-header class="ion-no-border">
-  <ion-toolbar *ngIf="!selectedHadith">
-    <!-- Hadith, Doa, and Tasbih toolbar -->
-    <ion-segment value="{{selectedSegment}}" (ionChange)="segmentChanged($event)">
+<ion-header class="ion-no-border amalan-header" [class.at-top]="isAtTop" [class.tabs-visible]="showTabs" [class.detail-header]="selectedHadith">
+  <ion-toolbar class="amalan-toolbar">
+    <div class="amalan-heading" *ngIf="!selectedHadith && (isAtTop || showSearch); else compactHeading" [class.search-open]="showSearch">
+      <ion-icon name="book-outline" aria-hidden="true"></ion-icon>
+      <h1 [attr.aria-hidden]="showSearch">Amalan</h1>
+      <div class="header-search" [attr.inert]="!showSearch ? '' : null" [attr.aria-hidden]="!showSearch">
+        <ion-searchbar #amalanSearch mode="md" [placeholder]="selectedSegment === 'doa' ? 'Cari doa' : 'Cari hadis'" [attr.aria-label]="selectedSegment === 'doa' ? 'Cari doa' : 'Cari hadis'" [(ngModel)]="activeSearchText" [debounce]="150" show-cancel-button="always" cancel-button-text="Batal" (ionCancel)="closeSearch()" (keydown.escape)="closeSearch()"></ion-searchbar>
+      </div>
+      <ion-button *ngIf="selectedSegment === 'hadith' || selectedSegment === 'doa'" fill="clear" class="search-toggle" [attr.inert]="showSearch ? '' : null" [attr.aria-hidden]="showSearch" (click)="toggleSearch()" [attr.aria-label]="selectedSegment === 'doa' ? 'Cari doa' : 'Cari hadis'" [attr.aria-expanded]="showSearch">
+        <ion-icon slot="icon-only" [name]="showSearch ? 'close-outline' : 'search-outline'"></ion-icon>
+      </ion-button>
+    </div>
+    <ng-template #compactHeading>
+      <div class="compact-heading" [class.hadith-detail-heading]="selectedHadith">
+        <ion-button *ngIf="selectedHadith" fill="clear" (click)="deselectHadith()" aria-label="Kembali">
+          <ion-icon slot="icon-only" name="arrow-back"></ion-icon>
+        </ion-button>
+        <div *ngIf="selectedHadith; else sectionHeading" class="detail-heading-titles" [class.title-promoted]="showHadithHeaderTitle">
+          <div class="detail-page-label" [attr.aria-hidden]="showHadithHeaderTitle"><h1>Hadis</h1></div>
+          <div class="detail-sticky-title" [attr.aria-hidden]="!showHadithHeaderTitle"><h1>{{ selectedHadith.tajuk_hadith }}</h1></div>
+        </div>
+        <ng-template #sectionHeading><h1>{{ currentPageTitle }}</h1></ng-template>
+      </div>
+    </ng-template>
+  </ion-toolbar>
+  <nav *ngIf="!selectedHadith" class="amalan-tabs" aria-label="Pilihan amalan" [attr.inert]="!showTabs ? '' : null" [attr.aria-hidden]="!showTabs">
+    <ion-segment mode="ios" [value]="selectedSegment" (ionChange)="segmentChanged($event)">
       <ion-segment-button value="hadith" content-id="hadith-content">
         <ion-label>Hadis</ion-label>
       </ion-segment-button>
@@ -12,46 +35,31 @@
         <ion-label>Tasbih</ion-label>
       </ion-segment-button>
     </ion-segment>
-  </ion-toolbar>
-  <ion-toolbar *ngIf="selectedHadith">
-    <div class="flex justify-between items-center" style="cursor: pointer; margin-left: 10px;">
-      <ion-icon name="arrow-back" (click)="deselectHadith()"></ion-icon>
-    </div>
-  </ion-toolbar>
+  </nav>
 </ion-header>
 
-<ion-content scrollEvents="true">
+<ion-content [scrollY]="!!selectedHadith" [scrollEvents]="!!selectedHadith" (ionScroll)="onDetailScroll($event)">
 
   <ion-segment-view *ngIf="!selectedHadith">
 
     <!-- Hadith Chooser -->
-    <ion-segment-content id="hadith-content">
+    <ion-segment-content id="hadith-content" (scroll)="onSectionScroll($event, 'hadith')">
       <div class="hadith-container">
-        <!-- **Sticky Header** -->
-        <div class="hadith-chooser-sticky">
-          <!-- Book and Chapter Selection -->
-          <ion-item>
-            <ion-label>Pilih Kitab</ion-label>
-            <ion-select value="{{selectedBook}}" (ionChange)="onBookChange($event)">
+        <div class="hadith-selectors">
+            <ion-select class="book-select" aria-label="Pilih Kitab" interface="alert" [value]="selectedBook" (ionChange)="onBookChange($event)" toggleIcon="chevron-down-outline">
               <ion-select-option *ngFor="let bookName of getBookKeys()" value="{{bookName}}">{{bookName}}
               </ion-select-option>
             </ion-select>
-          </ion-item>
-
-          <ion-item *ngIf="chapters.length > 0">
-            <ion-label>Pilih Bab</ion-label>
-            <ion-select value="{{selectedChapter}}" (ionChange)="onChapterChange($event)">
+            <ion-select *ngIf="chapters.length > 0" class="chapter-select" justify="end" aria-label="Pilih Bab" interface="alert" [value]="selectedChapter" (ionChange)="onChapterChange($event)" toggleIcon="chevron-down-outline">
               <ion-select-option *ngFor="let chapter of chapters" value="{{chapter.id}}">
                 {{chapter.id}}.
                 {{chapter.malay ? chapter.malay : chapter.english}}</ion-select-option>
             </ion-select>
-          </ion-item>
-          <ion-searchbar show-cancel-button="focus" placeholder="Cari hadis" [(ngModel)]="searchText"></ion-searchbar>
         </div>
 
         <!-- REAL HADITH LIST -->
         <ion-list *ngIf="!isListLoading">
-          <ion-card *ngFor="let hadith of filteredHadiths()" (click)="selectHadith(hadith)">
+          <ion-card class="hadith-card" *ngFor="let hadith of filteredHadiths()" (click)="selectHadith(hadith)" button="true">
             <ion-card-header>
               <ion-card-title>{{ hadith.hadith_number }}. {{ hadith.tajuk_hadith }}</ion-card-title>
               <ion-card-subtitle>{{ hadith.perawi_melayu.replace(':', '') }}</ion-card-subtitle>
@@ -68,7 +76,7 @@
 
         <!-- SKELETON LOADER FOR HADITH LIST -->
         <ion-list *ngIf="isListLoading">
-          <ion-card *ngFor="let i of [1,2,3,4,5]">
+          <ion-card class="hadith-card" *ngFor="let i of [1,2,3,4,5]">
             <ion-card-header>
               <ion-card-title>
                 <ion-skeleton-text animated="true" style="width: 80%;"></ion-skeleton-text>
@@ -86,13 +94,16 @@
     </ion-segment-content>
 
     <!-- Doa Section -->
-    <ion-segment-content id="doa-content">
+    <ion-segment-content id="doa-content" (scroll)="onSectionScroll($event, 'doa')">
       <div class="doa-container">
         <!-- REAL DOA LIST -->
         <ion-list *ngIf="!isListLoading && duas.length > 0">
-          <ion-card *ngFor="let doa of duas">
-            <ion-card-header>
+          <ion-card *ngFor="let doa of filteredDuas()">
+            <ion-card-header class="doa-card-heading">
               <ion-card-title>{{ doa.doa }}</ion-card-title>
+              <ion-button class="doa-share" fill="clear" aria-label="Kongsi doa sebagai imej" [disabled]="isSharingImage" (click)="shareDoa(doa)">
+                <ion-icon slot="icon-only" name="share-social-outline"></ion-icon>
+              </ion-button>
             </ion-card-header>
             <ion-card-content>
               <p class="arabic-text">{{ doa.ayat }}</p>
@@ -100,6 +111,9 @@
               <p class="malay-text">{{ doa.artinya }}</p>
             </ion-card-content>
           </ion-card>
+          <div *ngIf="filteredDuas().length === 0" class="ion-text-center ion-padding">
+            <p>Tiada doa ditemui.</p>
+          </div>
         </ion-list>
 
         <!-- SKELETON LOADER FOR DOA LIST -->
@@ -128,7 +142,7 @@
     </ion-segment-content>
 
     <!-- Tasbih Section -->
-    <ion-segment-content id="tasbih-content">
+    <ion-segment-content id="tasbih-content" (scroll)="onSectionScroll($event, 'tasbih')">
       <div class="tasbih-container">
         <!-- Top Area: Zikir and total count -->
         <div class="tasbih-top-area">
@@ -198,41 +212,65 @@
   <div *ngIf="selectedHadith" #hadithContent>
     <ion-loading [isOpen]="isHadithDetailLoading" message="Memuatkan..."></ion-loading>
 
-    <div class="hadith-content">
-      <div class="hadith-title">
+    <article class="hadith-content">
+      <div class="hadith-detail-title" #detailTitle>
+        <p class="hadith-source">{{ selectedBook }} · Hadis {{ selectedHadith.hadith_number }}</p>
         <h2>{{ selectedHadith.tajuk_hadith }}</h2>
       </div>
 
-      <ion-card-content>
-        <p class="arabic-text">
+      <section class="hadith-arabic-section" aria-label="Teks Arab">
+        <div class="arabic-section-heading">
+          <span>Teks Arab</span>
+          <div class="arabic-size-controls" aria-label="Saiz teks Arab">
+            <ion-button fill="clear" aria-label="Kecilkan teks Arab" [disabled]="arabicFontSize <= 16" (click)="adjustArabicFontSize(-2)">
+              <ion-icon slot="icon-only" name="remove-outline"></ion-icon>
+            </ion-button>
+            <span aria-hidden="true">A</span>
+            <ion-button fill="clear" aria-label="Besarkan teks Arab" [disabled]="arabicFontSize >= 36" (click)="adjustArabicFontSize(2)">
+              <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+            </ion-button>
+          </div>
+        </div>
+        <div id="hadith-arabic-text" class="arabic-preview" [class.is-truncated]="arabicOverflows && !arabicExpanded" [style.max-height.px]="arabicExpanded ? arabicTextHeight : arabicPreviewHeight">
+        <p #arabicText class="arabic-text" lang="ar" dir="rtl" [style.font-size.px]="arabicFontSize">
           {{ selectedHadith.arabic_text }}
         </p>
+        </div>
+        <ion-button *ngIf="arabicOverflows" class="arabic-read-more" fill="clear" [attr.aria-expanded]="arabicExpanded" aria-controls="hadith-arabic-text" (click)="arabicExpanded = !arabicExpanded">
+          {{ arabicExpanded ? 'Tutup' : 'Baca lagi' }}
+          <ion-icon slot="end" [name]="arabicExpanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+        </ion-button>
+      </section>
+      <section class="hadith-translation" lang="ms" aria-labelledby="translation-heading">
+        <h3 id="translation-heading">Terjemahan Bahasa Melayu</h3>
+        <p>{{ selectedHadith.perawi_melayu }}</p>
+        <p>{{ selectedHadith.malay_translation }}</p>
+      </section>
+      <footer class="hadith-reference-footer">
+        <details class="hadith-reference">
+          <summary><ion-icon name="book-outline" aria-hidden="true"></ion-icon> Rujukan hadis</summary>
+          <p>{{ selectedBook }} · Hadis {{ selectedHadith.hadith_number }}</p>
+          <p *ngIf="bookAuthor">Ditulis oleh: {{ bookAuthor }}</p>
+        </details>
+        <div class="hadith-actions">
+          <ion-button fill="clear" [attr.aria-label]="hadithCopied ? 'Hadis disalin' : 'Salin hadis'" (click)="copyHadith()">
+            <ion-icon slot="icon-only" [name]="hadithCopied ? 'checkmark-outline' : 'copy-outline'"></ion-icon>
+          </ion-button>
+          <ion-button fill="clear" aria-label="Kongsi hadis sebagai imej" [disabled]="isSharingImage" (click)="shareHadith()">
+            <ion-icon slot="icon-only" name="share-social-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </footer>
+    </article>
 
-      </ion-card-content>
-      <div class="malay-content">
-        <p class="malay-text">
-          {{ selectedHadith.perawi_melayu }}
-          <br><br>
-          {{ selectedHadith.malay_translation }}
-        </p>
-      </div>
-      <ion-card-content>
-        <hr>
-        <p class="narrator">Ditulis oleh: {{ bookAuthor }}</p>
-      </ion-card-content>
-    </div>
-
-    <div class="navigation-buttons" [class.navigation]="hasPreviousHadith()" [style.display]="!hasPreviousHadith() ? 'flex' : ''"
-      [style.justifyContent]="!hasPreviousHadith() ? 'flex-end' : ''"
-      [style.margin]="!hasPreviousHadith() ? '20px 10px' : ''">
-      <div (click)="navigateHadith('previous')" style="display: flex; align-items: center;" *ngIf="hasPreviousHadith()">
-        <ion-icon name="arrow-back" style="margin-top: 4px;"></ion-icon>
-        Sebelumnya
-      </div>
-      <div (click)="navigateHadith('next')" style="display: flex; align-items: center;" *ngIf="hasNextHadith()">
-        Seterusnya
-        <ion-icon name="arrow-forward" style="margin-top: 4px;"></ion-icon>
-      </div>
-    </div>
+    <nav class="navigation-buttons" aria-label="Navigasi hadis">
+      <ion-button class="previous-hadith" fill="clear" aria-label="Hadis sebelumnya" (click)="navigateHadith('previous')" *ngIf="hasPreviousHadith()">
+        <ion-icon class="navigation-icon" slot="icon-only" name="arrow-back"></ion-icon>
+      </ion-button>
+      <ion-button class="next-hadith" fill="clear" aria-label="Hadis seterusnya" (click)="navigateHadith('next')" *ngIf="hasNextHadith()">
+        <ion-icon class="navigation-icon" slot="icon-only" name="arrow-forward"></ion-icon>
+      </ion-button>
+    </nav>
   </div>
 </ion-content>
+<ion-loading [isOpen]="isSharingImage" message="Menyediakan imej..."></ion-loading>

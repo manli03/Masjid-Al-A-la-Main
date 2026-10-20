@@ -4,15 +4,12 @@ import {
   OnDestroy,
   OnInit,
   EventEmitter,
+  Input,
   Output,
   ViewChild,
 } from '@angular/core';
 import { PrayerTimesService, Prayer } from '../../services/prayer-times.service';
 import { ModalController } from '@ionic/angular';
-import { Capacitor } from '@capacitor/core';
-import { PrayerNotificationsService } from '../../services/prayer-notifications.service';
-import { NotificationSettingsComponent } from '../notification-settings/notification-settings.component';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import * as htmlToImage from 'html-to-image';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -24,6 +21,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 })
 export class PrayerTimesComponent implements OnInit, OnDestroy {
   @Output() close = new EventEmitter<void>();
+  @Input() showBackButton = true;
 
   @ViewChild('yearlyTable', { static: false }) yearlyTable!: ElementRef;
   // Add ViewChild for the shareable content div to ensure it exists before trying to access it
@@ -34,6 +32,7 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
   prayers: Prayer[] = [];
   clickedRow: any = null;
   closestPrayer: string | null = null;
+  currentPrayer: string | null = null;
   remainingTime: string = '';
   location: string = 'Zon tidak dikenali';
   currentDate: Date = new Date();
@@ -45,45 +44,18 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
   lastUpdated: string = '';
   private intervalId: any;
   isLoading: boolean = false;
-  isDetectingLocation: boolean = false;
   closestPrayerTime: any;
   sameData: boolean = false;
-  notificationsEnabled: boolean = false;
-  isProcessingNotifications: boolean = false;
-  disabledPrayers: Set<string> = new Set();
-  processingSubscription: any;
-  disabledPrayersSubscription: any;
   private darkModeObserver?: MutationObserver;
 
   constructor(
     private hostElement: ElementRef<HTMLElement>,
     private prayerTimesService: PrayerTimesService,
-    private prayerNotificationsService: PrayerNotificationsService,
     private modalController: ModalController,
   ) {}
 
   async ngOnInit() {
-    // First initialize notifications service
-    this.notificationsEnabled =
-      await this.prayerNotificationsService.initializeNotifications();
-
-    // Subscribe to processing state
-    this.processingSubscription =
-      this.prayerNotificationsService.isProcessing$.subscribe(
-        (isProcessing) => {
-          this.isProcessingNotifications = isProcessing;
-        },
-      );
-
-    // Subscribe to disabled prayers
-    this.disabledPrayersSubscription =
-      this.prayerNotificationsService.disabledPrayers$.subscribe(
-      (disabledPrayers) => {
-        this.disabledPrayers = disabledPrayers;
-      },
-      );
-
-    // Then initialize prayer times which will trigger notification status update
+    // Load the schedule when the prayer tab opens.
     await this.initializePrayerTimes();
 
     this.checkDarkMode();
@@ -96,12 +68,6 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       console.log('Interval cleared');
-    }
-    if (this.processingSubscription) {
-      this.processingSubscription.unsubscribe();
-    }
-    if (this.disabledPrayersSubscription) {
-      this.disabledPrayersSubscription.unsubscribe();
     }
     this.darkModeObserver?.disconnect();
   }
@@ -161,68 +127,6 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Fetch new data from API with location detection
-  async refreshData() {
-    try {
-      // Step 1: Show GPS dialog once (if GPS is disabled)
-      await this.prayerTimesService.checkGpsStatus();
-
-      // Step 2: Smart retry mechanism - check GPS status up to 10 times with 500ms intervals
-      let gpsEnabled = false;
-      for (let attempt = 0; attempt < 10; attempt++) {
-        if (await this.prayerTimesService.isGpsEnabled()) {
-          gpsEnabled = true;
-          break;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 500)); // Wait 500ms between checks
-      }
-
-      if (!gpsEnabled) {
-        this.prayerTimesService.presentToast(
-          '❌ GPS tidak diaktifkan. Sila aktifkan GPS dan cuba lagi.',
-          'danger',
-        );
-        return;
-      }
-
-      // Step 3: GPS is enabled! Show loading spinner and proceed with location detection
-      this.isDetectingLocation = true;
-
-      // Step 4: Get current location and zone using the service
-      const detectedZone = await this.prayerTimesService.getCurrentLocation();
-
-      if (detectedZone) {
-        // Step 5: Update prayer times with the detected zone
-        await this.prayerTimesService.refreshDataWithLocation(detectedZone);
-
-        // Step 6: Update the current location display
-        this.location =
-          this.prayerTimesService.zoneNames[detectedZone] ||
-          this.prayerTimesService.zoneNames['kdh01'];
-
-        // Step 7: Reload prayer data to reflect the new zone
-        await this.initializePrayerTimes();
-      } else {
-        this.prayerTimesService.presentToast(
-          '❌ Gagal mengesan lokasi. Sila cuba lagi.',
-          'danger',
-        );
-      }
-    } catch (error: any) {
-      console.error('Error refreshing data:', error);
-
-      if (error === 'Kebenaran lokasi ditolak') {
-        // Show alert dialog to open app settings
-        this.prayerTimesService.showOpenSettingsDialog();
-        return; // Don't show additional error toast
-      }
-      
-      this.prayerTimesService.presentToast(`❌ ${error}`, 'danger');
-    } finally {
-      this.isDetectingLocation = false;
-    }
-  }
-
   // Method to fetch prayer times for the updated date
   async fetchTodayPrayerTimes() {
     const todayPrayerData = this.prayerTimesService.getTodayPrayerTimes(
@@ -234,11 +138,7 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       this.prayers = todayPrayerData.prayers;
       this.currentHijriDate = todayPrayerData.hijriDate;
       this.currentDate = todayPrayerData.currentDate;
-
-      // Always update notification status after prayer times are set
-      if (this.notificationsEnabled) {
-        await this.updatePrayerNotificationStatus();
-      }
+      this.updateCurrentPrayer();
     } else {
       await this.showError('Tiada waktu solat untuk hari ini.');
     }
@@ -251,6 +151,8 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
 
   // Calculate remaining time for the closest prayer
   calculateRemainingTime() {
+    this.updateCurrentPrayer();
+
     const currentTime = new Date();
     let closestPrayerTime: Prayer | null = null;
     let minTimeDiff = Infinity;
@@ -287,6 +189,7 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       const nextDay = new Date(this.currentDate);
       nextDay.setDate(this.currentDate.getDate() + 1);
       this.currentDate = nextDay;
+      this.updateCurrentPrayer();
 
       // Fetch next day's prayer times
       this.fetchTodayPrayerTimes();
@@ -321,6 +224,41 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       this.remainingTime = 'Tiada solat terdekat pada masa ini';
     }
     this.loaded = true;
+  }
+
+  private updateCurrentPrayer() {
+    const today = new Date();
+    if (
+      this.prayerTimesService.formatDate(this.currentDate) !==
+      this.prayerTimesService.formatDate(today)
+    ) {
+      this.currentPrayer = null;
+      return;
+    }
+
+    const currentMinutes = today.getHours() * 60 + today.getMinutes();
+    const dailyPrayers = new Set(['Subuh', 'Zuhur', 'Asar', 'Maghrib', 'Isyak']);
+    let activePrayer: string | null = null;
+    let latestPrayerMinutes = -1;
+
+    for (const prayer of this.prayers) {
+      if (!dailyPrayers.has(prayer.name)) {
+        continue;
+      }
+
+      const [hours, minutes] = prayer.time.split(':').map(Number);
+      const prayerMinutes = hours * 60 + minutes;
+      if (
+        Number.isFinite(prayerMinutes) &&
+        prayerMinutes <= currentMinutes &&
+        prayerMinutes > latestPrayerMinutes
+      ) {
+        activePrayer = prayer.name;
+        latestPrayerMinutes = prayerMinutes;
+      }
+    }
+
+    this.currentPrayer = activePrayer;
   }
 
   // Toggle the visibility of the yearly prayer times table
@@ -438,87 +376,6 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
     return this.yearlyPrayers.some((prayer) => prayer.date === formattedDate);
   }
 
-  /**
-   * Toggle notification for a specific prayer
-   */
-  async setReminder(prayerName: string): Promise<void> {
-    // Find the prayer index first
-    const index = this.prayers.findIndex((p) => p.name === prayerName);
-    if (index === -1) return;
-
-    try {
-      // Provide haptic feedback
-      if (
-        Capacitor.getPlatform() === 'android' ||
-        Capacitor.getPlatform() === 'ios'
-      ) {
-        await Haptics.impact({ style: ImpactStyle.Light });
-      }
-
-      // Check if notifications are enabled
-      if (!this.notificationsEnabled) {
-        // Request permission
-        this.notificationsEnabled =
-          await this.prayerNotificationsService.initializeNotifications();
-        if (!this.notificationsEnabled) {
-          return;
-        }
-      }
-
-      // Toggle the notification state optimistically in UI
-      this.prayers[index].notificationEnabled =
-        !this.prayers[index].notificationEnabled;
-
-      // Toggle notification in service (non-blocking)
-      this.prayerNotificationsService
-        .togglePrayerNotification(prayerName)
-        .then((success) => {
-          // Only handle failure - revert UI if toggle failed
-          if (!success) {
-            this.prayers[index].notificationEnabled =
-              !this.prayers[index].notificationEnabled;
-            this.prayerTimesService.presentToast(
-              'Ralat mengemas kini notifikasi. Sila cuba lagi.',
-              'danger',
-            );
-          }
-        })
-        .catch((error) => {
-          console.error('Error setting reminder:', error);
-          // On error, refresh actual state from service
-          this.updatePrayerNotificationStatus();
-          this.prayerTimesService.presentToast(
-            'Ralat mengaktifkan notifikasi',
-            'danger',
-          );
-        });
-    } catch (error) {
-      console.error('Error in setReminder:', error);
-    }
-  }
-
-  /**
-   * Check if a specific prayer is currently disabled
-   */
-  isPrayerDisabled(prayerName: string): boolean {
-    return this.disabledPrayers.has(prayerName);
-  }
-
-  /**
-   * Update UI to reflect which prayers have notifications enabled
-   */
-  async updatePrayerNotificationStatus() {
-    if (!this.notificationsEnabled || !this.prayers.length) return;
-
-    // For each prayer, check if notification is enabled
-    for (const prayer of this.prayers) {
-      prayer.notificationEnabled =
-        await this.prayerNotificationsService.isPrayerNotificationEnabled(
-          prayer.name,
-        );
-    }
-  }
-
   startUpdatingRemainingTime() {
     // Clear any existing interval
     if (this.intervalId) {
@@ -536,33 +393,6 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       (event.target as HTMLIonRefresherElement).complete();
       this.initializePrayerTimes();
     }, 1000);
-  }
-
-  // Method to open the notification settings modal
-  async openNotificationSettings() {
-    try {
-      const modal = await this.modalController.create({
-        component: NotificationSettingsComponent,
-        cssClass: 'notification-settings-modal',
-      });
-
-      await modal.present();
-
-      const { data } = await modal.onDidDismiss();
-      if (data?.saved) {
-        await this.prayerTimesService.presentToast(
-          'Tetapan notifikasi telah disimpan',
-          'success',
-        );
-        await this.updatePrayerNotificationStatus();
-      }
-    } catch (error) {
-      console.error('Error opening notification settings:', error);
-      await this.prayerTimesService.presentToast(
-        'Ralat membuka tetapan notifikasi',
-        'danger',
-      );
-    }
   }
 
   async sharePrayerTimes() {
