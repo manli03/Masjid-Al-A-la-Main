@@ -1,6 +1,5 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
-import { authGuard } from './core/auth/auth.guard';
 
 const routes: Routes = [
   {
@@ -8,19 +7,10 @@ const routes: Routes = [
     loadChildren: () =>
       import('./layout/tabs/tabs.module').then((m) => m.TabsPageModule),
   },
-  {
-    path: 'announcement',
-    loadChildren: () =>
-      import('./features/announcements/pages/announcement/announcement.module').then(
-        (m) => m.announcementPageModule,
-      ),
-  },
-  {
-    path: 'settings',
-    loadChildren: () =>
-      import('./features/account/pages/settings/settings.module').then((m) => m.SettingsPageModule),
-    canActivate: [authGuard],
-  },
+  // Send old announcement and account links to the active home screen.
+  { path: 'announcement', redirectTo: '/tabs/home' },
+  { path: 'settings', redirectTo: '/tabs/home' },
+  { path: '**', redirectTo: '/tabs/home' },
 ];
 
 @NgModule({

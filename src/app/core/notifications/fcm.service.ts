@@ -54,7 +54,6 @@ export class FcmService {
           notification.inputValue,
           notification.notification,
         );
-        // Navigate to the announcement page
         this.handleNotificationClick(notification.notification);
       },
     );
@@ -62,28 +61,7 @@ export class FcmService {
 
   private handleNotificationClick(notification: any) {
     console.log('Handling notification click with data:', notification);
-
-    // Check different possible locations of the ID in the notification object
-    const announcementId =
-      notification.data?.announcementId || // Check custom data
-      notification.announcementId || // Check direct property
-      notification.data?.id || // Check generic id
-      (typeof notification === 'string' ? notification : null); // Check if it's just the ID
-
-    console.log('Extracted announcement ID:', announcementId);
-
-    if (announcementId) {
-      // Use the correct tabs path
-      const route = `/tabs/announcement/${announcementId}`;
-      console.log('Navigating to:', route);
-      this.router.navigate(['/tabs/announcement'], {
-        queryParams: { id: announcementId },
-      });
-    } else {
-      console.warn('No announcement ID found in notification:', notification);
-      // Fallback to main announcement page
-      this.router.navigate(['/tabs/announcement']);
-    }
+    this.router.navigateByUrl('/tabs/home');
   }
 
   async registerNotifications() {

@@ -12,19 +12,5 @@
       <ion-label>Amalan</ion-label>
     </ion-tab-button>
 
-    <!-- Pengumuman Tab - Uses click handler -->
-    <ion-tab-button (click)="goToAnnouncementTab()"
-      [ngClass]="{'active': router.url.includes('/tabs/announcement') || router.url.includes('/tabs/manage-announcement') || router.url.includes('/tabs/announcement-loading') || (router.url.includes('/tabs/authentication') && returnUrl.includes('/tabs/announcement'))}">
-      <ion-icon name="megaphone"></ion-icon>
-      <ion-label>Pengumuman</ion-label>
-      <ion-badge *ngIf="getUnreadBadgeText()" color="danger" mode="ios">{{ getUnreadBadgeText() }}</ion-badge>
-    </ion-tab-button>
-
-    <!-- Profile Tab -->
-    <ion-tab-button tab="profile"
-      [ngClass]="{'active': router.url.startsWith('/tabs/profile') || (router.url.includes('/tabs/authentication') && returnUrl.includes('/tabs/profile'))}">
-      <ion-icon name="person"></ion-icon>
-      <ion-label>Profil</ion-label>
-    </ion-tab-button>
   </ion-tab-bar>
 </ion-tabs>

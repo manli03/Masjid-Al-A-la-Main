@@ -1,10 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { Router, NavigationExtras, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { AuthService } from '../../core/auth/auth.service';
+import { Router, NavigationEnd } from '@angular/router';
 import { PrayerCoordinatorService } from '../../features/prayer/services/prayer-coordinator.service';
-import { UnreadAnnouncementsService } from '../../features/announcements/services/unread-announcements.service';
 import { Subscription } from 'rxjs';
 import { LoadingComponent } from '../loading/loading.component';
 import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
@@ -15,43 +13,20 @@ import { NavigationBar } from '@hugotomazi/capacitor-navigation-bar';
   styleUrls: ['tabs.page.scss'],
 })
 export class TabsPage implements OnInit, OnDestroy {
-  private backButtonSubscription: any;
   private routerEventsSubscription!: Subscription;
-  private unreadSubscription!: Subscription;
   private darkModeObserver!: MutationObserver;
-  isAdminValue: boolean = false;
   private isDarkMode: boolean = false;
   hideTabBar: boolean = false;
-  returnUrl: string = '';
-  unreadAnnouncementsCount: number = 0;
 
   constructor(
     private platform: Platform,
     public router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
     private prayerCoordinatorService: PrayerCoordinatorService,
-    private unreadAnnouncementsService: UnreadAnnouncementsService,
   ) {}
 
   ngOnInit() {
     console.log('TabsPage ngOnInit: Initializing...');
     this.platform.ready().then(async () => {
-      // Back button logic
-      this.backButtonSubscription =
-        this.platform.backButton.subscribeWithPriority(10, () => {
-          const homeTabRoute = '/tabs/home';
-          const profileTabRoute = '/tabs/profile';
-          const manageAnnouncementRoute = '/tabs/manage-announcement';
-          const currentRoute = this.router.url;
-          if (
-            currentRoute === profileTabRoute ||
-            currentRoute === manageAnnouncementRoute
-          ) {
-            this.router.navigateByUrl(homeTabRoute);
-          }
-        });
-
       // Initialize dark mode detection
       this.checkDarkMode();
 
@@ -75,54 +50,18 @@ export class TabsPage implements OnInit, OnDestroy {
         // Check if we should hide the tab bar for detail views
         this.hideTabBar = this.shouldHideTabBar(url);
 
-        // Get returnUrl from query params for tab active state
-        this.route.queryParams.subscribe((params) => {
-          this.returnUrl = params['returnUrl'] || '';
-        });
-
         this.handleStatusBarAndClass(isHome, isAuth, isSettings);
       }
     });
-
-    // Subscribe to unread announcements count
-    this.unreadSubscription = this.unreadAnnouncementsService.unreadCount$.subscribe(
-      (count) => {
-        this.unreadAnnouncementsCount = count;
-      }
-    );
-  }
-
-  /**
-   * Called when the page is about to enter and become the active page.
-   * Refresh unread count when returning from detail views.
-   */
-  async ionViewWillEnter() {
-    // Refresh unread count when tabs become visible again
-    // This handles the case where user returns from announcement detail pages
-    try {
-      await this.unreadAnnouncementsService.refreshUnreadCount();
-    } catch (error) {
-      console.error('Error refreshing unread count on tab enter:', error);
-    }
   }
 
   ngOnDestroy() {
-    if (this.backButtonSubscription) {
-      this.backButtonSubscription.unsubscribe();
-    }
     if (this.routerEventsSubscription) {
       this.routerEventsSubscription.unsubscribe();
-    }
-    if (this.unreadSubscription) {
-      this.unreadSubscription.unsubscribe();
     }
     if (this.darkModeObserver) {
       this.darkModeObserver.disconnect();
     }
-  }
-
-  async isAdmin(): Promise<boolean> {
-    return await this.authService.isAdmin();
   }
 
   private checkDarkMode() {
@@ -217,34 +156,6 @@ export class TabsPage implements OnInit, OnDestroy {
     if (url.startsWith('/tabs/hadithSupplication') && url.includes('detail=true')) {
       return true;
     }
-    // Hide tab bar for announcement detail view (when there's an ID in the path)
-    if (url.match(/^\/tabs\/announcement\/\d+/)) {
-      return true;
-    }
     return false;
-  }
-
-  goToAnnouncementTab(announcementId?: number) {
-    if (announcementId) {
-      // If we have an ID, pass it as a query parameter to the loading page
-      const navigationExtras: NavigationExtras = {
-        queryParams: { id: announcementId },
-      };
-      this.router.navigate(['/tabs/announcement-loading'], navigationExtras);
-    } else {
-      // Otherwise just go to the loading page
-      this.router.navigateByUrl('/tabs/announcement-loading');
-    }
-  }
-
-  /**
-   * Get the badge text for unread announcements
-   * Shows number or "99+" for higher counts
-   */
-  getUnreadBadgeText(): string | null {
-    if (this.unreadAnnouncementsCount <= 0) {
-      return null;
-    }
-    return this.unreadAnnouncementsCount > 99 ? '99+' : this.unreadAnnouncementsCount.toString();
   }
 }

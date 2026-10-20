@@ -1,7 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import '@angular/common/locales/global/ms';
 import { App } from '@capacitor/app';
-import { Router, NavigationExtras, NavigationEnd } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { Platform } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { SplashScreen } from '@capacitor/splash-screen';
@@ -14,7 +14,6 @@ import { Device } from '@capacitor/device';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { PrayerNotificationsService } from './features/prayer/services/prayer-notifications.service';
 import { DarkModeHandlerService } from './core/appearance/dark-mode-handler.service';
-import { UnreadAnnouncementsService } from './features/announcements/services/unread-announcements.service';
 import { SplashService } from './core/startup/splash.service';
 
 @Component({
@@ -33,7 +32,6 @@ export class AppComponent implements OnInit, OnDestroy {
     private updateCheck: CheckUpdateService,
     private prayerNotificationsService: PrayerNotificationsService,
     private darkModeService: DarkModeHandlerService,
-    private unreadAnnouncementsService: UnreadAnnouncementsService,
     private splashService: SplashService,
   ) {
     (window as any).handleDeepLink = (path: string) => {
@@ -184,33 +182,9 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private handleOpenUrl(url: string) {
-    // Parse the URL to extract announcement ID
-    console.log('Processing deep link URL:', url);
-
-    // We expect URLs in format: https://masjidala.web.app/announcement/123
-    if (url) {
-      const parsedUrl = new URL(url);
-      const pathSegments = parsedUrl.pathname
-        .split('/')
-        .filter((segment) => segment);
-
-      console.log('Path segments:', pathSegments);
-
-      // Check if this is an announcement link
-      if (pathSegments.length >= 2 && pathSegments[0] === 'announcement') {
-        const announcementId = pathSegments[1];
-        if (announcementId && !isNaN(parseInt(announcementId, 10))) {
-          const navigationExtras: NavigationExtras = {
-            queryParams: { id: announcementId },
-          };
-          this.router.navigate(
-            ['/tabs/announcement-loading'],
-            navigationExtras,
-          );
-        } else {
-          this.router.navigateByUrl('/tabs/announcement-loading');
-        }
-      }
+    const path = new URL(url).pathname.toLowerCase();
+    if (path === '/announcement' || path.startsWith('/announcement/')) {
+      this.router.navigateByUrl('/tabs/home');
     }
   }
 
@@ -225,49 +199,7 @@ export class AppComponent implements OnInit, OnDestroy {
             JSON.stringify(notification),
           );
 
-          // The data object contains our custom payload, including the announcementId.
-          const data = notification.notification.data;
-
-          if (data && data.announcementId) {
-            console.log(
-              'Navigating to announcement with ID:',
-              data.announcementId,
-            );
-            const navigationExtras: NavigationExtras = {
-              queryParams: { id: data.announcementId },
-            };
-            this.router.navigate(
-              ['/tabs/announcement-loading'],
-              navigationExtras,
-            );
-          } else {
-            console.log(
-              'No announcementId in notification data, navigating to default announcement page.',
-            );
-            this.router.navigateByUrl('/tabs/announcement-loading');
-          }
-        },
-      );
-
-      // This listener is triggered when a user receives a notification.
-      PushNotifications.addListener(
-        'pushNotificationReceived',
-        async (notification) => {
-          console.log(
-            'Push notification received:',
-            JSON.stringify(notification),
-          );
-
-          // Refresh unread count when tabs become visible again
-          // This handles the case where user returns from announcement detail pages
-          try {
-            await this.unreadAnnouncementsService.refreshUnreadCount();
-          } catch (error) {
-            console.error(
-              'Error refreshing unread count on push notification received:',
-              error,
-            );
-          }
+          this.router.navigateByUrl('/tabs/home');
         },
       );
     }
