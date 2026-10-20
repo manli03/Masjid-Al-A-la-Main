@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { Platform } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { QiblaCompassComponent } from '../../components/qibla-compass/qibla-compass.component';
 
 @Component({
   selector: 'app-prayer-page',
@@ -8,6 +9,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./prayer.page.scss'],
 })
 export class PrayerPage {
+  @ViewChild(QiblaCompassComponent) compass?: QiblaCompassComponent;
   private backButtonSubscription: any;
 
   constructor(
@@ -16,6 +18,9 @@ export class PrayerPage {
   ) {}
 
   ionViewWillEnter(): void {
+    if (this.compass && !this.compass.locationLoading) {
+      void this.compass.loadCompassResources();
+    }
     this.backButtonSubscription = this.platform.backButton.subscribeWithPriority(
       10,
       () => this.router.navigateByUrl('/tabs/home'),
@@ -33,6 +38,7 @@ export class PrayerPage {
   }
 
   ionViewWillLeave(): void {
+    this.compass?.resetCompassState();
     this.backButtonSubscription?.unsubscribe();
     this.backButtonSubscription = null;
   }

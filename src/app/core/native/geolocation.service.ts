@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { registerPlugin } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { AlertController } from '@ionic/angular';
 import { NativeSettings, AndroidSettings, IOSSettings } from 'capacitor-native-settings';
 
@@ -57,26 +57,63 @@ export class LocationService {
   }
 
   async isEnabled(): Promise<boolean> {
-    return new Promise((resolve) => {
-      const gpsEnabledListener = () => {
+    return new Promise((resolve, reject) => {
+      const finish = (enabled: boolean, error?: unknown) => {
+        clearTimeout(timer);
         window.removeEventListener('onGpsEnabled', gpsEnabledListener);
         window.removeEventListener('onGpsDisabled', gpsDisabledListener);
-        console.log('GPS enabled');
-        resolve(true);
+        if (error) reject(error);
+        else resolve(enabled);
+      };
+      const gpsEnabledListener = () => {
+        finish(true);
       };
 
       const gpsDisabledListener = () => {
-        window.removeEventListener('onGpsEnabled', gpsEnabledListener);
-        window.removeEventListener('onGpsDisabled', gpsDisabledListener);
-        console.log('GPS disabled');
-        resolve(false);
+        finish(false);
       };
 
       window.addEventListener('onGpsEnabled', gpsEnabledListener);
       window.addEventListener('onGpsDisabled', gpsDisabledListener);
 
-      GpsEnabler.isGpsEnabled();
+      const timer = setTimeout(() => finish(false, new Error('Semakan GPS tamat masa.')), 5000);
+      GpsEnabler.isGpsEnabled().catch((error) => finish(false, error));
     });
+  }
+
+  async ensureLocationEnabled(prompt = false): Promise<boolean> {
+    if (Capacitor.getPlatform() !== 'android') return true;
+    if (await this.isEnabled()) return true;
+    if (prompt) {
+      const alert = await this.alertController.create({
+        header: 'Aktifkan Lokasi (GPS)',
+        message: 'Lokasi (GPS) perlu dihidupkan untuk menggunakan lokasi semasa dan menentukan arah kiblat. Buka tetapan dan aktifkan lokasi, kemudian kembali ke aplikasi.',
+        buttons: [
+          { text: 'Batal', role: 'cancel' },
+          {
+            text: 'Buka Tetapan',
+            handler: () => { void this.openLocationSettings(); },
+          },
+        ],
+      });
+      await alert.present();
+      await alert.onDidDismiss();
+    }
+    return false;
+  }
+
+  private async openLocationSettings(): Promise<void> {
+    try {
+      await NativeSettings.openAndroid({ option: AndroidSettings.Location });
+    } catch {
+      // Keep manual instructions available when the settings activity is unavailable.
+      const alert = await this.alertController.create({
+        header: 'Aktifkan Lokasi (GPS)',
+        message: 'Sila buka Tetapan telefon > Lokasi dan hidupkan lokasi. Kemudian kembali ke aplikasi. Lokasi GPS akan dikemas kini secara automatik.',
+        buttons: ['Faham'],
+      });
+      await alert.present();
+    }
   }
 
   isLocationSupported(): boolean {
@@ -96,31 +133,35 @@ export class LocationService {
 
   async showOpenSettingsDialog(): Promise<void> {
     try {
+      const isNative = Capacitor.isNativePlatform();
       const alert = await this.alertController.create({
         header: 'Kebenaran Lokasi Diperlukan',
         message:
-          'Kebenaran lokasi telah ditolak. Sila benarkan akses lokasi dalam tetapan.',
+          isNative
+            ? 'Akses lokasi diperlukan untuk menggunakan GPS. Sila benarkan kebenaran lokasi aplikasi dalam tetapan, kemudian kembali ke aplikasi untuk mengemas kini GPS secara automatik.'
+            : 'Akses lokasi diperlukan untuk menggunakan GPS. Sila hidupkan lokasi peranti dan benarkan akses lokasi dalam tetapan laman pelayar, kemudian kembali ke aplikasi untuk mengemas kini GPS secara automatik.',
         buttons: [
           {
             text: 'Batal',
             role: 'cancel',
           },
           {
-            text: 'Buka Tetapan',
+            text: isNative ? 'Buka Tetapan' : 'Faham',
             handler: async () => {
-              await this.openAppSettings();
+              if (isNative) await this.openAppSettings();
             },
           },
         ],
         backdropDismiss: false,
       });
       await alert.present();
+      await alert.onDidDismiss();
     } catch (error) {
       console.error('Error opening location settings:', error);
     }
   }
 
-  async getCurrentLocation(): Promise<GeolocationPosition> {
+  async getCurrentLocation(options?: PositionOptions): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
       if (this.isLocationSupported()) {
         navigator.geolocation.getCurrentPosition(resolve, (error) => {
@@ -138,7 +179,7 @@ export class LocationService {
           }
           console.error('Ralat semasa mendapatkan lokasi anda:', error);
           reject(errorMessage);
-        });
+        }, options);
       } else {
         reject('Servis lokasi tidak disokong oleh pelayar ini');
       }

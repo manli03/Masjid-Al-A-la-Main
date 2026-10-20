@@ -1,113 +1,123 @@
-.qibla-container {
-  color: var(--app-ink);
-}
-
-// Section Header Style (scoped to this component)
+:host { display: block; }
+.qibla-container { color: var(--app-ink); }
 .section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 15px;
-
-  ion-icon {
-    font-size: 24px;
-    color: var(--app-forest);
-  }
-
-  h5 {
-    margin: 0;
-    color: var(--app-ink);
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1.2rem;
-    font-weight: 600;
-    line-height: 1.2;
-  }
+  gap: 9px;
+  margin-bottom: 20px;
+  ion-icon { font-size: 23px; color: var(--ion-color-primary); }
+  h5 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 1.25rem; font-weight: 600; }
 }
-
-.qibla-container ion-button {
-  --background: var(--app-forest);
-  --background-hover: #00523b;
-  --color: #ffffff;
-}
-
-.compass-div {
-  background-color: transparent;
-}
-
-.compass-frame {
+.location-switch {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(280px, 100%);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--app-surface-raised);
+  button {
+    flex: 1;
+    min-width: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 6px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--app-muted);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    &.selected { background: var(--app-surface); color: var(--ion-color-primary); border-color: var(--app-border); }
+    &:disabled { opacity: 0.55; cursor: wait; }
+    &:focus-visible { outline: 2px solid var(--ion-color-primary); outline-offset: 2px; }
+    ion-icon { font-size: 18px; flex-shrink: 0; }
+  }
+}
+.location-status { min-height: 32px; padding-top: 9px; text-align: center; color: var(--app-muted); font-size: 0.75rem; line-height: 1.5; }
+.gps-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-raised);
+  color: var(--app-ink);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  ion-icon { flex-shrink: 0; margin-top: 2px; font-size: 18px; }
+  p { margin: 0; }
+  span { display: block; margin-top: 4px; color: var(--app-muted); }
+}
+.compass-content { --compass-accent: var(--ion-color-primary); }
+.alignment-status {
+  text-align: center;
+  margin: 16px 0 22px;
+  h6 { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 0; font-size: 1.2rem; font-weight: 700; line-height: 1.4; }
+  p { margin: 5px 0 0; font-size: 0.85rem; color: var(--app-muted); line-height: 1.5; }
+}
+.compass-frame {
+  width: min(260px, 100%);
   aspect-ratio: 1;
   margin: 0 auto;
+  padding: 9px;
   box-sizing: border-box;
-  border: 7px solid var(--app-forest);
+  border: 3px solid var(--app-border);
   border-radius: 50%;
-  box-shadow: var(--app-card-shadow);
-  padding: 10px;
-  transition: border-color 0.3s ease;
-  background-color: #ffffff;
-
-  &.aligned {
-    border-color: var(--app-gold);
-  }
+  background: var(--app-surface);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  &.aligned { border-color: var(--ion-color-success); box-shadow: 0 0 0 5px rgba(var(--ion-color-success-rgb), 0.14); }
 }
-
-.compass-container {
-  position: relative;
-  width: min(240px, 100%);
-  aspect-ratio: 1;
-  overflow: hidden;
-}
-
-.compass-image {
-  width: 100%;
-  height: 100%;
+.compass-container { position: relative; width: 100%; height: 100%; }
+.compass-dial {
+  position: absolute;
+  inset: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
+  color: var(--app-muted);
   transition: transform 0.1s linear;
-  object-fit: contain;
-  will-change: transform;
+  > span { position: absolute; font-size: 0.85rem; font-weight: 600; }
+  .north { top: 10px; left: 50%; transform: translateX(-50%); color: var(--compass-accent); }
+  .south { bottom: 10px; left: 50%; transform: translateX(-50%); }
+  .east { right: 10px; top: 50%; transform: translateY(-50%); }
+  .west { left: 10px; top: 50%; transform: translateY(-50%); }
 }
-
-.errorMessage {
-  color: var(--ion-color-danger);
-  background-color: rgba(var(--ion-color-danger-rgb), 0.1);
-  border: 1px solid rgba(var(--ion-color-danger-rgb), 0.25);
-  padding: 10px;
-  border-radius: 5px;
-  margin: 10px 0;
-  font-weight: bold;
+.qibla-pointer {
+  position: absolute;
+  inset: 35px;
+  .arrow-head { position: absolute; top: 0; left: calc(50% - 10px); width: 20px; height: 25px; background: var(--compass-accent); clip-path: polygon(50% 0, 100% 100%, 50% 80%, 0 100%); }
+  &::after { content: ''; position: absolute; top: 19px; bottom: 50%; left: calc(50% - 2px); width: 4px; border-radius: 4px; background: var(--compass-accent); }
+}
+.compass-center { position: absolute; top: calc(50% - 5px); left: calc(50% - 5px); width: 10px; height: 10px; border-radius: 50%; background: var(--compass-accent); }
+.device-marker { position: absolute; top: 0; left: calc(50% - 6px); width: 12px; height: 10px; background: var(--compass-accent); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.is-aligned { --compass-accent: var(--ion-color-success); .alignment-status h6 { color: var(--ion-color-success); } }
+.bearing-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 24px;
+  padding: 14px 0;
+  border-radius: 12px;
+  background: var(--app-surface-raised);
   text-align: center;
+  div + div { border-left: 1px solid var(--app-border); }
+  span { display: block; color: var(--app-muted); font-size: 0.75rem; margin-bottom: 4px; }
+  strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
 }
-
-.calibrate-button {
-  --border-width: 3px;
-  font-weight: bold;
-  margin-bottom: 10px;
+.compass-tip { display: flex; align-items: flex-start; justify-content: center; gap: 6px; margin: 14px 0 0; color: var(--app-muted); font-size: 0.75rem; line-height: 1.6; ion-icon { flex-shrink: 0; font-size: 16px; margin-top: 2px; } }
+.state-panel {
+  padding: 22px 0 6px;
+  text-align: center;
+  h6 { margin: 0; font-weight: 700; font-size: 1.15rem; }
+  p { margin: 8px 0 18px; color: var(--app-muted); font-size: 0.9rem; line-height: 1.6; }
+  .intro-icon { font-size: 44px; color: var(--ion-color-primary); margin-bottom: 12px; }
 }
-
-/* For smaller screens */
-@media (max-width: 320px) {
-  .compass-frame {
-    width: 220px;
-    height: 220px;
-  }
-
-  .compass-container {
-    width: 180px;
-    height: 180px;
-  }
-}
-
-/* For larger screens */
-@media (min-width: 768px) {
-  .compass-frame {
-    width: 320px;
-    height: 320px;
-  }
-
-  .compass-container {
-    width: 280px;
-    height: 280px;
-  }
-}
+ion-button { --border-radius: 10px; min-height: 44px; text-transform: none; letter-spacing: normal; font-weight: 600; }
+.calibration-image { display: block; width: min(180px, 80%); margin: 16px auto; border-radius: 12px; }
+.errorMessage { padding: 12px; border: 1px solid rgba(var(--ion-color-danger-rgb), 0.3); border-radius: 10px; background: rgba(var(--ion-color-danger-rgb), 0.08); color: var(--ion-color-danger); font-size: 0.85rem; line-height: 1.5; }
+.location-details { margin-top: 16px; text-align: center; color: var(--app-muted); font-size: 0.75rem; summary { width: fit-content; margin: auto; min-height: 32px; padding: 8px; cursor: pointer; } p { margin: 4px 0 0; font-variant-numeric: tabular-nums; } }
+@media (prefers-reduced-motion: reduce) { .compass-frame, .compass-dial { transition: none; } }

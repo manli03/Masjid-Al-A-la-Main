@@ -1,70 +1,90 @@
-<!-- Main Container for Compass Feature -->
 <div class="qibla-container">
-
-  <!-- Always visible Qibla Compass Header -->
   <div class="section-header">
-    <ion-icon name="compass-outline"></ion-icon>
+    <ion-icon name="compass-outline" aria-hidden="true"></ion-icon>
     <h5>Kompas Kiblat</h5>
   </div>
 
-  <!-- 1. Initial State: Button to Start -->
-  <div *ngIf="uiState === 'initial'" style="text-align: center; padding: 20px;">
-    <p style="margin-bottom: 15px;">Sila tekan butang dibawah untuk menggunakan kompas.</p>
-    <ion-button (click)="startCalibrationProcess()" expand="block" color="primary">
-      <ion-icon name="sync-circle-outline" slot="start"></ion-icon>
-      Gunakan Kompas
+  <div class="location-switch" role="group" aria-label="Sumber lokasi kiblat">
+    <button type="button" [class.selected]="target?.source === 'gps'" [attr.aria-pressed]="target?.source === 'gps'"
+      [disabled]="locationLoading" (click)="loadCompassResources('gps')">
+      <ion-icon name="locate-outline" aria-hidden="true"></ion-icon> Lokasi saya
+    </button>
+    <button type="button" [class.selected]="target?.source === 'zone'" [attr.aria-pressed]="target?.source === 'zone'"
+      [disabled]="locationLoading" (click)="loadCompassResources('zone')">
+      <ion-icon name="map-outline" aria-hidden="true"></ion-icon> Zon dipilih
+    </button>
+  </div>
+
+  <div class="location-status" aria-live="polite">
+    <span *ngIf="locationLoading">Mendapatkan lokasi...</span>
+    <ng-container *ngIf="target as location">
+      <span *ngIf="location.source === 'gps'">GPS aktif · Ketepatan ±{{ location.accuracy | number:'1.0-0' }} m</span>
+      <span *ngIf="location.source === 'zone'">{{ location.fallback ? 'GPS tidak tersedia · ' : '' }}Zon {{ location.zone }} · Anggaran zon</span>
+    </ng-container>
+  </div>
+  <p *ngIf="locationError" class="errorMessage" role="alert">{{ locationError }}</p>
+  <div *ngIf="target?.gpsMessage" class="gps-notice" role="status">
+    <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+    <p>{{ target?.gpsMessage }} <span>Arah kiblat menggunakan zon dipilih buat sementara.</span></p>
+  </div>
+
+  <div *ngIf="uiState === 'initial'" class="state-panel">
+    <div class="intro-icon"><ion-icon name="navigate-outline" aria-hidden="true"></ion-icon></div>
+    <h6>Cari arah kiblat</h6>
+    <p>Pegang telefon rata. Kalibrasi kompas untuk bermula.</p>
+    <ion-button (click)="startCalibrationProcess()" expand="block">Mulakan kompas</ion-button>
+  </div>
+
+  <div *ngIf="uiState === 'calibrating'" class="state-panel">
+    <h6>Kalibrasi kompas</h6>
+    <p>Gerakkan telefon dalam bentuk angka 8 sehingga kompas muncul.</p>
+    <img class="calibration-image" [src]="calibrationGifUrl" alt="Gerakkan telefon dalam bentuk angka lapan">
+    <p class="errorMessage" *ngIf="errorMessageCompass">{{ errorMessageCompass }}</p>
+    <ion-button (click)="manualCompleteCalibration()" expand="block">
+      <ion-icon name="checkmark-outline" slot="start" aria-hidden="true"></ion-icon>Selesai kalibrasi
     </ion-button>
   </div>
 
-  <!-- 2. Calibration State: Instructions and GIF -->
-  <div *ngIf="uiState === 'calibrating'" style="text-align: center; padding: 10px;">
-    <!-- Removed: <h2><ion-icon name="sync-outline" style="font-size: 24px;vertical-align: middle;"></ion-icon> Kalibrasi Kompas</h2> -->
-    <p style="margin-bottom: 10px;">Sila gerakkan peranti anda dalam corak angka 8 seperti yang ditunjukkan di bawah
-      sehingga kompas muncul.</p>
-    <img [src]="calibrationGifUrl" alt="Calibration Instructions"
-      style="max-width: 80%; height: auto; margin: 10px auto; display: block; border-radius: 8px;">
-    <div class="errorMessage" *ngIf="errorMessageCompass && uiState === 'calibrating'">
-      <p>{{ errorMessageCompass }}</p>
+  <div *ngIf="uiState === 'calibrated'" class="compass-content" [class.is-aligned]="isQiblaAligned">
+    <div class="alignment-status">
+      <h6 aria-live="polite">
+        <ion-icon *ngIf="isQiblaAligned" name="checkmark-circle" aria-hidden="true"></ion-icon>
+        {{ directionLabel }}
+      </h6>
+      <p *ngIf="qiblaHeading !== null && previousHeading !== null">{{ isQiblaAligned ? 'Anda sedang menghadap kiblat' : 'Putar telefon ' + (turnDegrees | number:'1.0-0') + '° lagi' }}</p>
+      <p *ngIf="qiblaHeading === null || previousHeading === null">Pegang telefon rata untuk membaca arah</p>
     </div>
-    <ion-button (click)="manualCompleteCalibration()" expand="block" color="success" style="margin-top: 15px;">
-      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
-      Selesai Kalibrasi
-    </ion-button>
-  </div>
 
-  <!-- 3. Calibrated State: The Compass -->
-  <div *ngIf="uiState === 'calibrated'">
-    <div class="compass-div" style="border-radius: 10px; margin-bottom: 15px;">
-      <!-- Removed:
-      <ion-row>
-        <ion-col>
-          <h2><ion-icon name="compass-outline" style="font-size: 24px;vertical-align: middle;"></ion-icon> Kompas Kiblat</h2>
-        </ion-col>
-      </ion-row>
-      -->
-      <ion-row>
-        <ion-col style="display: flex; flex-direction: column; align-items: center;">
-          <div class="compass-frame" [ngClass]="{'aligned': isQiblaAligned}">
-            <div class="compass-container">
-              <ion-img [src]="qiblaImageUrl" class="compass-image" alt="Qibla Compass"
-                [style.transform]="'rotate(' + (-accumulatedRotation) + 'deg)'">
-              </ion-img>
-            </div>
+    <div class="compass-frame" [class.aligned]="isQiblaAligned" role="img"
+      [attr.aria-label]="isQiblaAligned ? 'Kompas selari dengan kiblat' : 'Ikut anak panah untuk menghadap kiblat'">
+      <div class="compass-container" aria-hidden="true">
+        <div class="compass-dial" [style.transform]="'rotate(' + (-accumulatedRotation) + 'deg)'">
+          <span class="north">U</span><span class="east">T</span>
+          <span class="south">S</span><span class="west">B</span>
+          <div *ngIf="qiblaHeading !== null" class="qibla-pointer" [style.transform]="'rotate(' + qiblaHeading + 'deg)'">
+            <span class="arrow-head"></span>
           </div>
-          <p style="margin-top: 10px; font-size: 1.1em;">Haluan: {{ displayHeading | number: '1.0-0' }}°</p>
-          <p *ngIf="isQiblaAligned" style="color: var(--ion-color-success); font-weight: bold;">✓ Selari dengan Kiblat</p>
-        </ion-col>
-      </ion-row>
+        </div>
+        <span class="compass-center"></span>
+        <span class="device-marker"></span>
+      </div>
     </div>
+
+    <div class="bearing-summary">
+      <div><span>Arah kiblat</span><strong>{{ qiblaHeading === null ? '—' : (qiblaHeading | number:'1.1-1') + '°' }}</strong></div>
+      <div><span>Haluan anda</span><strong>{{ previousHeading === null ? '—' : (displayHeading | number:'1.0-0') + '°' }}</strong></div>
+    </div>
+    <p class="compass-tip"><ion-icon name="information-circle-outline" aria-hidden="true"></ion-icon>Pegang telefon rata, jauh daripada logam dan magnet.</p>
   </div>
 
-  <!-- 4. Error / Unsupported State -->
-  <div class="errorMessage" *ngIf="uiState === 'error' || uiState === 'unsupported'">
-    <p><ion-icon name="warning-outline" style="vertical-align: middle;"></ion-icon> {{ errorMessageCompass }}</p>
-    <ion-button *ngIf="uiState === 'error'" class="calibrate-button" fill="outline" color="warning" size="small"
-      (click)="startCalibrationProcess()" style="margin-top: 10px;">
-      Cuba Kalibrasi Semula
-    </ion-button>
+  <div class="state-panel errorMessage" *ngIf="uiState === 'error' || uiState === 'unsupported'" role="alert">
+    <ion-icon name="warning-outline" aria-hidden="true"></ion-icon>
+    <p>{{ errorMessageCompass }}</p>
+    <ion-button *ngIf="uiState === 'error'" expand="block" (click)="startCalibrationProcess()">Cuba semula</ion-button>
   </div>
 
+  <details class="location-details" *ngIf="target?.source === 'gps'">
+    <summary>Butiran lokasi</summary>
+    <p>{{ target?.latitude | number:'1.5-5' }}, {{ target?.longitude | number:'1.5-5' }}</p>
+  </details>
 </div>

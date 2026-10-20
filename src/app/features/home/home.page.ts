@@ -295,6 +295,8 @@ export class HomePage implements OnDestroy {
           await this.prayerTimesService.saveYearlyPrayerTimes(
             selectedZone,
             yearlyPrayerTimes,
+            data.bearing,
+            'zone',
           );
           this.loaded = await this.loadPrayerData();
         } else {

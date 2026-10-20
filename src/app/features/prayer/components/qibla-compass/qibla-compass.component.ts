@@ -1,7 +1,9 @@
 import { Component, OnDestroy, OnInit, NgZone } from '@angular/core';
 import { AlertController, Platform } from '@ionic/angular';
-import { firstValueFrom } from 'rxjs';
-import { PrayerTimesService } from 'src/app/features/prayer/services/prayer-times.service';
+import { Subscription } from 'rxjs';
+import { App } from '@capacitor/app';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
+import { QiblaService, QiblaTarget } from '../../services/qibla.service';
 
 // Declare sensor types to avoid TypeScript errors
 declare const AbsoluteOrientationSensor: any;
@@ -27,8 +29,13 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
   // Compass State
   compassHeading: number = 0;
   displayHeading: number = 0;
-  qiblaHeading: number = 292; // Default qibla heading
-  qiblaImageUrl: string = '../../assets/icon/kompasKiblat2.png';
+  qiblaHeading: number | null = null;
+  target: QiblaTarget | null = null;
+  locationLoading = false;
+  locationError: string | null = null;
+  private locationRequest = 0;
+  private resumeSubscription?: Subscription;
+  private appStateListener?: Promise<PluginListenerHandle>;
   isQiblaAligned: boolean = false;
   accumulatedRotation: number = 0;
   previousHeading: number | null = null;
@@ -53,21 +60,25 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
   constructor(
     private alertController: AlertController,
     private platform: Platform,
-    private prayerTimesService: PrayerTimesService,
+    private qiblaService: QiblaService,
     private ngZone: NgZone // Inject NgZone for running updates within Angular's context
   ) {}
 
   ngOnInit() {
-    this.loadCompassResources(); // Load image and Qibla heading early
+    void this.loadCompassResources();
 
-    // Handle app resume: Reset state and require calibration again
-    this.platform.resume.subscribe(() => {
-      console.log('App resumed, resetting compass state.');
-      this.ngZone.run(() => {
-        // Ensure updates run in Angular zone
-        this.resetCompassState();
+    const onResume = () => this.ngZone.run(() => this.handleAppResume());
+    if (Capacitor.isNativePlatform()) {
+      // Capacitor settings activities resume through appStateChange, rather
+      // than the Cordova resume event exposed by Ionic Platform.
+      this.appStateListener = App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) onResume();
       });
-    });
+      void this.appStateListener.catch((error) => console.error('App state listener:', error));
+    } else {
+      this.resumeSubscription = this.platform.resume.subscribe(onResume);
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    }
 
     // Initial state check (useful if component is reused without full reload)
     this.resetCompassState();
@@ -75,7 +86,30 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopSensor();
-    // Consider unsubscribing from platform.resume if needed
+    this.resumeSubscription?.unsubscribe();
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    void this.appStateListener?.then((listener) => listener.remove()).catch((error) => console.error('App state cleanup:', error));
+    this.locationRequest++;
+  }
+
+  private readonly onVisibilityChange = () => {
+    if (!document.hidden) this.ngZone.run(() => this.handleAppResume());
+  };
+
+  handleAppResume(): void {
+    const previousState = this.uiState;
+    this.resetCompassState();
+    // The saved GPS choice remains selected during a temporary zone fallback.
+    // Starting a new request also prevents an older settings-dialog result
+    // from replacing the fresh GPS bearing when it finishes later.
+    void this.loadCompassResources();
+    if (previousState === 'calibrated') {
+      this.uiState = 'calibrated';
+      this.startCompassDisplay();
+    } else if (previousState === 'calibrating') {
+      this.uiState = 'calibrating';
+      void this.checkSupportAndStartDetection();
+    }
   }
 
   // --- State Management ---
@@ -96,24 +130,24 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
 
   // --- Resource Loading ---
 
-  async loadCompassResources() {
+  async loadCompassResources(mode?: 'gps' | 'zone') {
+    const request = ++this.locationRequest;
+    this.locationLoading = true;
+    this.locationError = null;
+    this.qiblaHeading = null;
+    this.target = null;
+    this.isQiblaAligned = false;
     try {
-      this.qiblaHeading = await firstValueFrom(
-        this.prayerTimesService.getQiblaDirection()
-      );
-      console.log('Qibla heading:', this.qiblaHeading);
+      const target = await this.qiblaService.getTarget(mode);
+      if (request !== this.locationRequest) return;
+      this.target = target;
+      this.qiblaHeading = target.bearing;
+      this.checkQiblaAlignment();
     } catch (error) {
-      console.error('Error getting Qibla direction:', error);
-      this.qiblaHeading = 292; // Fallback
-    }
-
-    const cachedImage = await this.prayerTimesService.getCachedQiblaImage();
-    if (cachedImage) {
-      this.qiblaImageUrl = cachedImage;
-      console.log('Loaded cached image');
-    } else {
-      this.qiblaImageUrl = '../../assets/icon/kompasKiblat2.png';
-      console.log('Using default compass image.');
+      if (request !== this.locationRequest) return;
+      this.locationError = error instanceof Error ? error.message : 'Gagal menentukan arah kiblat. Sila cuba lokasi GPS atau zon semula.';
+    } finally {
+      if (request === this.locationRequest) this.locationLoading = false;
     }
   }
 
@@ -123,6 +157,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     console.log('Starting calibration process...');
     this.uiState = 'calibrating';
     this.errorMessageCompass = null; // Clear previous errors
+    if (!this.locationLoading) void this.loadCompassResources();
     this.checkSupportAndStartDetection();
   }
 
@@ -138,7 +173,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     if (!('AbsoluteOrientationSensor' in window)) {
       this.ngZone.run(() => {
         this.errorMessageCompass =
-          'Peranti tidak menyokong kompas (AbsoluteOrientationSensor).';
+          'Peranti ini tidak menyokong kompas.';
         this.uiState = 'unsupported';
       });
       console.error('AbsoluteOrientationSensor not supported.');
@@ -163,14 +198,24 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
         throw new Error('Required sensor permissions denied.');
       }
     } catch (error: any) {
-      this.ngZone.run(() => {
-        this.errorMessageCompass = `Tiada kebenaran sensor (${
-          error.message || error
-        }). Sila benarkan akses sensor dalam tetapan pelayar/peranti anda.`;
-        this.uiState = 'error';
-      });
+      this.showSensorError({ name: 'NotAllowedError' });
       console.error('Sensor permission error:', error);
     }
+  }
+
+  private showSensorError(error: { name?: string } | null | undefined): void {
+    this.ngZone.run(() => {
+      if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+        this.errorMessageCompass = 'Tiada kebenaran sensor. Sila benarkan akses sensor dalam tetapan peranti atau pelayar untuk menggunakan kompas.';
+      } else if (error?.name === 'NotReadableError') {
+        this.errorMessageCompass = 'Sensor kompas tidak dapat dibaca. Sila cuba kalibrasi semula.';
+      } else {
+        this.errorMessageCompass = 'Kompas tidak dapat dimulakan. Sila cuba kalibrasi semula.';
+      }
+      this.uiState = 'error';
+      this.isQiblaAligned = false;
+      this.stopSensor();
+    });
   }
 
   initializeSensorForCalibration() {
@@ -179,7 +224,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
 
       this.sensor = new AbsoluteOrientationSensor({
         frequency: 60,
-        referenceFrame: 'device',
+        referenceFrame: 'screen',
       });
 
       this.sensorSubscription = () => this.handleCalibrationReading(); // Assign the handler
@@ -191,22 +236,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
           event.error.name,
           event.error.message
         );
-        this.ngZone.run(() => {
-          if (event.error.name === 'NotReadableError') {
-            this.errorMessageCompass =
-              'Sensor tidak tersedia atau tidak dapat dibaca. Cuba mulakan semula.';
-          } else if (event.error.name === 'SecurityError') {
-            this.errorMessageCompass =
-              'Akses sensor disekat atas sebab keselamatan (mungkin bukan HTTPS?).';
-          } else if (event.error.name === 'NotAllowedError') {
-            this.errorMessageCompass =
-              'Kebenaran untuk mengakses sensor tidak diberikan.';
-          } else {
-            this.errorMessageCompass = `Ralat sensor: ${event.error.name}`;
-          }
-          this.uiState = 'error';
-          this.stopSensor(); // Stop on error
-        });
+        this.showSensorError(event.error);
       });
 
       this.sensor.start();
@@ -214,17 +244,8 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
       this.calibrationStartTime = Date.now(); // Start timeout timer
       console.log('Sensor started for calibration detection.');
     } catch (error: any) {
-      this.ngZone.run(() => {
-        console.error('Error initializing AbsoluteOrientationSensor:', error);
-        this.errorMessageCompass = `Tidak dapat memulakan sensor (${
-          error.message || 'Ralat tidak diketahui'
-        }).`;
-        if (error.name === 'SecurityError') {
-          this.errorMessageCompass =
-            'Akses sensor memerlukan konteks selamat (HTTPS).';
-        }
-        this.uiState = 'error';
-      });
+      console.error('Error initializing compass:', error);
+      this.showSensorError(error);
     }
   }
 
@@ -306,7 +327,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
 
       this.sensor = new AbsoluteOrientationSensor({
         frequency: 60,
-        referenceFrame: 'device',
+        referenceFrame: 'screen',
       });
 
       // *** Assign the CORRECT handler for compass display ***
@@ -319,11 +340,7 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
           event.error.name,
           event.error.message
         );
-        this.ngZone.run(() => {
-          this.errorMessageCompass = `Ralat sensor kompas: ${event.error.name}. Sila cuba kalibrasi semula.`;
-          this.uiState = 'error'; // Revert to error state to allow retry
-          this.stopSensor();
-        });
+        this.showSensorError(event.error);
       });
 
       this.sensor.start();
@@ -333,18 +350,12 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
       this.previousHeading = null;
       console.log('Sensor started for compass display.');
     } catch (error: any) {
-      this.ngZone.run(() => {
-        console.error('Error initializing sensor for compass display:', error);
-        this.errorMessageCompass = `Tidak dapat memulakan sensor kompas (${
-          error.message || 'Ralat tidak diketahui'
-        }).`;
-        this.uiState = 'error'; // Revert to error state
-      });
+      console.error('Error initializing compass display:', error);
+      this.showSensorError(error);
     }
   }
 
   // *** THIS HANDLER IS FOR DISPLAYING THE COMPASS HEADING ***
-  // *** It uses the original calculation method ***
   handleCompassReading() {
     if (this.uiState !== 'calibrated' || !this.sensor?.quaternion) {
       return; // Only process when calibrated and data is valid
@@ -352,13 +363,15 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
 
     const [x, y, z, w] = this.sensor.quaternion;
 
-    // --- Original Compass Heading Calculation START ---
-    let yaw =
-      Math.atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z)) *
-      (180 / Math.PI);
-    yaw = -yaw; // Invert for correct compass rotation relative to device top
-    if (yaw < 0) yaw += 360; // Normalize to 0-360 degrees
-    // --- Original Compass Heading Calculation END ---
+    // Project the screen's top edge onto the horizontal plane. Euler yaw
+    // describes the other axis and introduces bearing errors when tilted.
+    const east = 2 * (x * y - w * z);
+    const north = 1 - 2 * (x * x + z * z);
+    if (Math.hypot(east, north) < 0.1) {
+      this.ngZone.run(() => { this.isQiblaAligned = false; });
+      return; // Top edge is nearly vertical; its azimuth is undefined.
+    }
+    const yaw = (Math.atan2(east, north) * 180 / Math.PI + 360) % 360;
 
     // Use NgZone.run to ensure Angular updates the UI from sensor events
     this.ngZone.run(() => {
@@ -392,7 +405,27 @@ export class QiblaCompassComponent implements OnInit, OnDestroy {
     });
   }
 
+  get turnDegrees(): number {
+    return Math.abs(this.turnAngle);
+  }
+
+  private get turnAngle(): number {
+    if (this.qiblaHeading === null) return 0;
+    return ((this.qiblaHeading - this.compassHeading + 540) % 360) - 180;
+  }
+
+  get directionLabel(): string {
+    if (this.qiblaHeading === null) return 'Menunggu arah kiblat';
+    if (this.previousHeading === null) return 'Menunggu bacaan kompas';
+    if (this.isQiblaAligned) return 'Selari dengan kiblat';
+    return this.turnAngle < 0 ? 'Pusing ke kiri' : 'Pusing ke kanan';
+  }
+
   checkQiblaAlignment() {
+    if (this.qiblaHeading === null || this.previousHeading === null) {
+      this.isQiblaAligned = false;
+      return;
+    }
     const tolerance = 1; // Allowable deviation in degrees
     const diff = Math.abs(this.compassHeading - this.qiblaHeading);
     const shortestAngle = Math.min(diff, 360 - diff); // Check shortest angle difference
