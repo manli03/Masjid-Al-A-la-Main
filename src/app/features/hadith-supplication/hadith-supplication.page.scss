@@ -1,19 +1,43 @@
 :host {
+  --amalan-background: var(--app-background);
+  --amalan-card: var(--app-surface);
+  --amalan-tabs: var(--app-surface-raised);
+  --amalan-active: var(--app-selected-background);
+  --amalan-ink: var(--app-ink);
+  --amalan-muted: var(--app-muted);
+  --amalan-secondary: var(--app-muted);
+  --amalan-narrator: var(--app-muted);
+  --amalan-icon: var(--app-forest);
+  --amalan-border: var(--app-border);
+  --amalan-card-border: var(--app-border);
+  --amalan-card-border-width: 1px;
+  --amalan-card-shadow: var(--app-card-shadow);
+  --ion-text-color: var(--amalan-ink);
+  --ion-background-color: var(--amalan-background);
+  --ion-toolbar-background: var(--amalan-background);
+  --ion-toolbar-color: var(--amalan-ink);
+  --ion-card-background: var(--amalan-card);
+  --ion-item-background: var(--amalan-card);
+  --ion-color-primary: var(--amalan-active);
+  font-family: Arial, sans-serif;
+  background: var(--amalan-background);
+  color: var(--amalan-ink);
+}
+
+:host-context(.ion-palette-dark) {
   --amalan-background: #10251e;
   --amalan-card: #234334;
   --amalan-tabs: #1b3b2c;
   --amalan-active: #1bb77c;
-  --app-muted: #a6c7b6;
-  --ion-text-color: #f8faf9;
-  --ion-toolbar-background: var(--amalan-background);
-  --ion-toolbar-color: #f8faf9;
-  --ion-card-background: var(--amalan-card);
-  --ion-item-background: var(--amalan-card);
-  --app-surface: var(--amalan-card);
-  --ion-color-primary: var(--amalan-active);
-  font-family: Arial, sans-serif;
-  background: var(--amalan-background);
-  color: #f8faf9;
+  --amalan-ink: #f8faf9;
+  --amalan-muted: #a6c7b6;
+  --amalan-secondary: #cfe3d8;
+  --amalan-narrator: #c9e0d3;
+  --amalan-icon: #54d685;
+  --amalan-border: #305344;
+  --amalan-card-border: transparent;
+  --amalan-card-border-width: 0px;
+  --amalan-card-shadow: none;
 }
 
 .amalan-header {
@@ -23,7 +47,7 @@
 
 .amalan-toolbar {
   --background: var(--amalan-background);
-  --color: #f8faf9;
+  --color: var(--amalan-ink);
   --border-width: 0;
   --min-height: 58px;
   --padding-start: 14px;
@@ -38,7 +62,7 @@
 
   h1 {
     margin: 0;
-    color: #f8faf9;
+    color: var(--amalan-ink);
     font-size: 20px;
     line-height: 1.2;
     font-weight: 700;
@@ -58,7 +82,7 @@
   }
 
   > ion-icon {
-    color: #54d685;
+    color: var(--amalan-icon);
     font-size: 22px;
   }
 
@@ -82,10 +106,11 @@
 
   ion-searchbar {
     --background: var(--amalan-tabs);
-    --color: #f8faf9;
-    --placeholder-color: #a6c7b6;
-    --icon-color: #a6c7b6;
-    --clear-button-color: #cfe3d8;
+    --color: var(--amalan-ink);
+    --placeholder-color: var(--amalan-muted);
+    --icon-color: var(--amalan-muted);
+    --clear-button-color: var(--amalan-secondary);
+    --cancel-button-color: var(--amalan-ink);
     --border-radius: 22px;
     --box-shadow: none;
     min-height: 0;
@@ -112,7 +137,7 @@
 }
 
 .amalan-toolbar ion-button {
-  --color: #f8faf9;
+  --color: var(--amalan-ink);
   --padding-start: 8px;
   --padding-end: 8px;
   width: 40px;
@@ -152,7 +177,7 @@
   ion-segment-button {
     --background: transparent;
     --background-checked: transparent;
-    --color: #f8faf9;
+    --color: var(--amalan-ink);
     --color-checked: #ffffff;
     --indicator-color: var(--amalan-active);
     --indicator-box-shadow: none;
@@ -203,7 +228,7 @@
     --padding-bottom: 8px;
     min-height: 44px;
     min-width: 0;
-    color: #cfe3d8;
+    color: var(--amalan-secondary);
     letter-spacing: 0;
   }
 
@@ -238,7 +263,7 @@
     }
 
     &::part(icon) {
-      color: #cfe3d8;
+      color: var(--amalan-secondary);
       opacity: 1;
       margin-left: 8px;
       margin-right: 0;
@@ -262,7 +287,7 @@
   }
 
   .doa-share {
-    --color: #f8faf9;
+    --color: var(--amalan-ink);
     --padding-start: 0;
     --padding-end: 0;
     position: absolute;
@@ -281,7 +306,7 @@
 
 ion-content {
   --background: var(--amalan-background);
-  --color: #f8faf9;
+  --color: var(--amalan-ink);
 }
 
 ion-item {
@@ -299,14 +324,14 @@ ion-icon:not(.navigation-icon) {
 }
 
 .hadith-tags {
-  color: var(--app-muted);
+  color: var(--amalan-muted);
   font-size: 0.9em;
 }
 
 .hadith-content {
   margin: 0 14px;
   position: relative;
-  color: #f8faf9;
+  color: var(--amalan-ink);
 }
 
 .navigation-buttons {
@@ -331,7 +356,7 @@ ion-icon:not(.navigation-icon) {
 .latin-text {
   font-size: 1.1rem;
   font-style: italic;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
 }
 
 .malay-text {
@@ -340,7 +365,7 @@ ion-icon:not(.navigation-icon) {
 
 .narrator {
   font-size: 1rem;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
   margin-top: 10px;
 }
 
@@ -349,7 +374,7 @@ ion-icon:not(.navigation-icon) {
   height: auto;
   min-height: 58px;
   padding: 12px 0 12px 38px;
-  border-bottom: 1px solid #305344;
+  border-bottom: 1px solid var(--amalan-border);
 
   h1 {
     font-size: 16px;
@@ -412,14 +437,14 @@ ion-icon:not(.navigation-icon) {
 
   .hadith-source {
     margin: 0 0 6px;
-    color: #a6c7b6;
+    color: var(--amalan-muted);
     font-size: 14px;
     line-height: 1.5;
   }
 
   h2 {
     margin: 0;
-    color: #f8faf9;
+    color: var(--amalan-ink);
     font-size: 28px;
     font-weight: 700;
     line-height: 1.3;
@@ -428,12 +453,12 @@ ion-icon:not(.navigation-icon) {
 
 .hadith-arabic-section {
   padding: 12px 0 28px;
-  border-bottom: 1px solid #305344;
+  border-bottom: 1px solid var(--amalan-border);
 
   .arabic-text {
     margin: 0;
     line-height: 1.8;
-    color: #f8faf9;
+    color: var(--amalan-ink);
   }
 }
 
@@ -448,7 +473,7 @@ ion-icon:not(.navigation-icon) {
 }
 
 .hadith-content .arabic-read-more {
-  --color: #a6c7b6;
+  --color: var(--amalan-muted);
   --padding-start: 0;
   margin-top: 10px;
   font-size: 14px;
@@ -469,7 +494,7 @@ ion-icon:not(.navigation-icon) {
 
 .arabic-section-heading {
   justify-content: space-between;
-  color: #a6c7b6;
+  color: var(--amalan-muted);
   font-size: 14px;
 }
 
@@ -477,13 +502,13 @@ ion-icon:not(.navigation-icon) {
   gap: 2px;
 
   > span {
-    color: #f8faf9;
+    color: var(--amalan-ink);
   }
 }
 
 .hadith-content ion-button,
 .navigation-buttons ion-button {
-  --color: #f8faf9;
+  --color: var(--amalan-ink);
   --padding-start: 8px;
   --padding-end: 8px;
   margin: 0;
@@ -492,7 +517,7 @@ ion-icon:not(.navigation-icon) {
 }
 
 .arabic-size-controls ion-button {
-  --color: #a6c7b6;
+  --color: var(--amalan-muted);
 
   ion-icon {
     font-size: 18px;
@@ -501,11 +526,11 @@ ion-icon:not(.navigation-icon) {
 
 .hadith-translation {
   padding: 26px 0;
-  border-bottom: 1px solid #305344;
+  border-bottom: 1px solid var(--amalan-border);
 
   h3 {
     margin: 0 0 12px;
-    color: #a6c7b6;
+    color: var(--amalan-muted);
     font-size: 14px;
     font-weight: 700;
     line-height: 1.5;
@@ -513,7 +538,7 @@ ion-icon:not(.navigation-icon) {
 
   p {
     margin: 0 0 14px;
-    color: #f8faf9;
+    color: var(--amalan-ink);
     font-size: 16px;
     line-height: 1.65;
     white-space: pre-line;
@@ -529,7 +554,7 @@ ion-icon:not(.navigation-icon) {
   align-items: flex-start;
   gap: 12px;
   padding: 20px 0 4px;
-  color: #a6c7b6;
+  color: var(--amalan-muted);
   font-size: 14px;
 }
 
@@ -578,11 +603,11 @@ h2 {
 
 ion-card {
   --background: var(--amalan-card);
-  --color: #cfe3d8;
+  --color: var(--amalan-secondary);
   margin: 0 0 14px;
-  border: 0;
+  border: var(--amalan-card-border-width) solid var(--amalan-card-border);
   border-radius: 14px;
-  box-shadow: none;
+  box-shadow: var(--amalan-card-shadow);
 }
 
 .hadith-card {
@@ -593,7 +618,7 @@ ion-card {
   }
 
   ion-card-title {
-    color: #f8faf9;
+    color: var(--amalan-ink);
     font-size: 20px;
     font-weight: 700;
     line-height: 1.5;
@@ -602,7 +627,7 @@ ion-card {
 
   ion-card-subtitle {
     margin: 6px 0 0;
-    color: #c9e0d3;
+    color: var(--amalan-narrator);
     font-size: 14px;
     font-weight: 400;
     line-height: 1.6;
@@ -615,7 +640,7 @@ ion-card {
   }
 
   .hadith-tags {
-    color: #a6c7b6;
+    color: var(--amalan-muted);
     font-size: 13px;
     line-height: 1.6;
   }
@@ -674,7 +699,7 @@ ion-segment-content {
 .zikir-display p {
   margin-bottom: 5px;
   font-size: 1rem;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
 }
 
 .zikir-display h2 {
@@ -695,7 +720,7 @@ ion-segment-content {
 .zikir-translation {
   font-size: 1rem;
   font-style: italic;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
   margin-top: 4px !important;
 }
 
@@ -711,7 +736,7 @@ ion-segment-content {
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: var(--app-surface);
+  background: var(--amalan-card);
   border: 5px solid var(--ion-color-primary);
   display: flex;
   justify-content: center;
@@ -744,12 +769,12 @@ ion-segment-content {
 
 .tasbih-count-limit {
   font-size: 1.5rem;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
 }
 
 .tasbih-info {
   font-size: 1.1rem;
-  color: var(--app-muted);
+  color: var(--amalan-muted);
 }
 
 .tasbih-settings-area {

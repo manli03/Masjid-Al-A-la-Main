@@ -172,20 +172,28 @@ export class HadithSupplicationPage implements OnInit {
 
   private async shareAsImage(title: string, source: string, arabic: string, paragraphs: string[], category: 'Hadis' | 'Doa') {
     if (this.isSharingImage) return;
+    // Resolve the active page palette before rendering outside the component.
+    const pageStyles = getComputedStyle(this.hostElement.nativeElement);
+    const palette = {
+      background: pageStyles.getPropertyValue('--amalan-background').trim(),
+      text: pageStyles.getPropertyValue('--amalan-ink').trim(),
+      muted: pageStyles.getPropertyValue('--amalan-muted').trim(),
+      border: pageStyles.getPropertyValue('--amalan-border').trim(),
+    };
     this.isSharingImage = true;
     const card = document.createElement('article');
     // Render the full text separately so collapsed Arabic and screen controls never appear in the image.
-    card.style.cssText = 'position:fixed;left:-10000px;top:0;width:720px;box-sizing:border-box;padding:44px;background:#10251e;color:#f8faf9;font-family:Arial,sans-serif;';
+    card.style.cssText = `position:fixed;left:-10000px;top:0;width:720px;box-sizing:border-box;padding:44px;background:${palette.background};color:${palette.text};font-family:Arial,sans-serif;`;
     const addText = (tag: string, value: string, styles: string, language = 'ms') => {
       const element = document.createElement(tag);
       element.textContent = value;
       element.lang = language;
-      element.style.cssText = `margin:0;overflow-wrap:anywhere;white-space:pre-wrap;${styles}`;
+      element.style.cssText = `margin:0;color:${palette.text};overflow-wrap:anywhere;white-space:pre-wrap;${styles}`;
       card.appendChild(element);
       return element;
     };
     if (category === 'Hadis') {
-      addText('p', source, 'font-size:20px;line-height:1.5;color:#a6c7b6;margin-bottom:12px;');
+      addText('p', source, `font-size:20px;line-height:1.5;color:${palette.muted};margin-bottom:12px;`);
     }
     addText('h1', title, 'font-size:32px;line-height:1.35;font-weight:700;margin-bottom:32px;');
     const arabicElement = addText('p', arabic, 'font-size:30px;line-height:1.9;text-align:right;margin-bottom:30px;', 'ar');
@@ -193,11 +201,11 @@ export class HadithSupplicationPage implements OnInit {
     paragraphs.filter(Boolean).forEach(paragraph =>
       addText('p', paragraph, 'font-size:23px;line-height:1.65;margin-bottom:22px;'),
     );
-    addText('p', `${category} · Masjid Al-A’la`, 'font-size:18px;line-height:1.5;color:#a6c7b6;border-top:1px solid #305344;padding-top:22px;margin-top:12px;');
+    addText('p', `${category} · Masjid Al-A’la`, `font-size:18px;line-height:1.5;color:${palette.muted};border-top:1px solid ${palette.border};padding-top:22px;margin-top:12px;`);
     document.body.appendChild(card);
     try {
       await document.fonts.ready;
-      const dataUrl = await toPng(card, { pixelRatio: 2, backgroundColor: '#10251e',
+      const dataUrl = await toPng(card, { pixelRatio: 2, backgroundColor: palette.background,
         style: { position: 'static', left: 'auto', top: 'auto' } });
       const filename = `${category.toLowerCase()}-${Date.now()}.png`;
       if (Capacitor.isNativePlatform()) {
@@ -351,6 +359,7 @@ export class HadithSupplicationPage implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private zone: NgZone,
+    private hostElement: ElementRef<HTMLElement>,
   ) {}
 
   async ngOnInit() {

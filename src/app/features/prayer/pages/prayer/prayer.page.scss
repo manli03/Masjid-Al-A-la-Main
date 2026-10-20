@@ -10,7 +10,7 @@
 .solat-page {
   width: min(100%, 760px);
   margin: 0 auto;
-  padding: 8px 16px calc(28px + var(--ion-safe-area-bottom, 0px));
+  padding: calc(8px + var(--ion-safe-area-top, 0px)) 16px calc(28px + var(--ion-safe-area-bottom, 0px));
 }
 
 .schedule-surface {
@@ -28,7 +28,7 @@
 
 @media (min-width: 700px) {
   .solat-page {
-    padding: 14px 28px calc(32px + var(--ion-safe-area-bottom, 0px));
+    padding: calc(14px + var(--ion-safe-area-top, 0px)) 28px calc(32px + var(--ion-safe-area-bottom, 0px));
   }
 
   .qibla-surface {
