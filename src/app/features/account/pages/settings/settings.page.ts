@@ -15,6 +15,7 @@ import { Preferences } from '@capacitor/preferences';
 import { DatePickerModalComponent } from '../../../../shared/components/date-picker-modal/date-picker-modal.component';
 import { DarkModeHandlerService } from '../../../../core/appearance/dark-mode-handler.service';
 import { ToastService } from '../../../../core/feedback/toast.service';
+import { CheckUpdateService } from '../../../../core/startup/check-update.service';
 
 @Component({
   selector: 'app-settings',
@@ -40,6 +41,7 @@ export class SettingsPage implements OnInit, ViewWillEnter {
     private toastService: ToastService,
     private platform: Platform,
     private darkModeService: DarkModeHandlerService,
+    public updater: CheckUpdateService,
   ) {}
 
   async ngOnInit() {

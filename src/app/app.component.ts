@@ -53,8 +53,7 @@ export class AppComponent implements OnInit, OnDestroy {
       NavigationBar.setTransparency({
         isTransparent: true,
       });
-      this.updateCheck.checkForUpdate();
-      console.log('Checking for updates on mobile device');
+      void this.updateCheck.initialize();
     }
 
     // Listen for homePageLoaded event
