@@ -161,7 +161,22 @@ export class LocationService {
     }
   }
 
-  async getCurrentLocation(options?: PositionOptions): Promise<GeolocationPosition> {
+  async getCurrentLocation(options?: PositionOptions, interactive = true): Promise<GeolocationPosition> {
+    let state: PermissionState | undefined;
+    try {
+      state = (await navigator.permissions.query({ name: 'geolocation' })).state;
+    } catch { /* Some native WebViews do not expose permission queries. */ }
+    if (state === 'denied') throw 'Kebenaran lokasi ditolak';
+    if (state !== 'granted') {
+      if (!interactive) throw 'Kebenaran lokasi belum diberikan';
+      const consent = await this.alertController.create({
+        header: 'Gunakan Lokasi Semasa?',
+        message: 'Lokasi anda digunakan untuk menentukan zon waktu solat dan arah kiblat. Anda juga boleh memilih zon secara manual.',
+        buttons: [{ text: 'Pilih Manual', role: 'cancel' }, { text: 'Benarkan', role: 'allow' }],
+      });
+      await consent.present();
+      if ((await consent.onDidDismiss()).role !== 'allow') throw 'Permintaan lokasi dibatalkan';
+    }
     return new Promise((resolve, reject) => {
       if (this.isLocationSupported()) {
         navigator.geolocation.getCurrentPosition(resolve, (error) => {

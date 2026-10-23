@@ -364,6 +364,7 @@ export class HomePage implements OnDestroy {
       }
     } catch (error: any) {
       console.error('Error detecting location:', error);
+      if (error === 'Permintaan lokasi dibatalkan') return;
 
       if (error === 'Kebenaran lokasi ditolak') {
         // Show alert dialog to open app settings

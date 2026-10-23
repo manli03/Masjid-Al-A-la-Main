@@ -94,8 +94,15 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
   async initializePrayerTimes() {
     try {
       // Get the saved data from localStorage (already fetched by service on app start)
-      const savedData =
+      let savedData =
         await this.prayerTimesService.getSavedYearlyPrayerTimes();
+
+      // A cold app link can reach this tab before startup has fetched the default zone.
+      // Share the in-flight request while the page displays its own skeletons.
+      if (!savedData) {
+        await this.prayerTimesService.getDefaultPrayerTimes();
+        savedData = await this.prayerTimesService.getSavedYearlyPrayerTimes();
+      }
 
       if (savedData) {
         // Load saved yearly prayers from localStorage
@@ -239,15 +246,10 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
     }
 
     const currentMinutes = today.getHours() * 60 + today.getMinutes();
-    const dailyPrayers = new Set(['Subuh', 'Zuhur', 'Asar', 'Maghrib', 'Isyak']);
     let activePrayer: string | null = null;
     let latestPrayerMinutes = -1;
 
     for (const prayer of this.prayers) {
-      if (!dailyPrayers.has(prayer.name)) {
-        continue;
-      }
-
       const [hours, minutes] = prayer.time.split(':').map(Number);
       const prayerMinutes = hours * 60 + minutes;
       if (
@@ -260,15 +262,9 @@ export class PrayerTimesComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Isyak continues across midnight until today's Subuh begins.
+    // The final time continues across midnight until today's first time begins.
     if (!activePrayer && this.prayers.some((prayer) => prayer.name === 'Isyak')) {
-      const subuh = this.prayers.find((prayer) => prayer.name === 'Subuh');
-      if (subuh) {
-        const [hours, minutes] = subuh.time.split(':').map(Number);
-        if (currentMinutes < hours * 60 + minutes) {
-          activePrayer = 'Isyak';
-        }
-      }
+      activePrayer = 'Isyak';
     }
 
     this.currentPrayer = activePrayer;

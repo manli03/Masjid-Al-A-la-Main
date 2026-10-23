@@ -1,11 +1,33 @@
-import { InjectionToken } from '@angular/core';
+import { inject, InjectionToken } from '@angular/core';
+import { AlertController } from '@ionic/angular';
 import { PluginListenerHandle, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Dialog } from '@capacitor/dialog';
 import { Preferences } from '@capacitor/preferences';
 
 export const UPDATE_RUNTIME = new InjectionToken('UPDATE_RUNTIME', {
-  providedIn: 'root', factory: () => ({ app: App, dialog: Dialog, preferences: Preferences }),
+  providedIn: 'root', factory: () => {
+    const alerts = inject(AlertController);
+    return { app: App, preferences: Preferences, dialog: {
+      confirm: async (options: Parameters<typeof Dialog.confirm>[0]) => {
+        const alert = await alerts.create({
+          header: options.title, message: options.message, cssClass: 'app-update-alert',
+          buttons: [{ text: options.cancelButtonTitle || 'Kemudian', role: 'cancel' },
+            { text: options.okButtonTitle || 'Teruskan', role: 'confirm' }],
+        });
+        await alert.present();
+        return { value: (await alert.onDidDismiss()).role === 'confirm' };
+      },
+      alert: async (options: Parameters<typeof Dialog.alert>[0]) => {
+        const alert = await alerts.create({
+          header: options.title, message: options.message, cssClass: 'app-update-alert',
+          buttons: [options.buttonTitle || 'Faham'],
+        });
+        await alert.present();
+        await alert.onDidDismiss();
+      },
+    } as typeof Dialog };
+  },
 });
 export type UpdateRuntime = { app: typeof App; dialog: typeof Dialog; preferences: typeof Preferences };
 

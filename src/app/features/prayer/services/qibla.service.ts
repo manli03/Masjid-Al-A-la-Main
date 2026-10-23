@@ -67,7 +67,7 @@ export class QiblaService {
         }
         const { coords } = await this.location.getCurrentLocation({
           enableHighAccuracy: true, maximumAge: 0, timeout: 15000,
-        });
+        }, mode === 'gps');
         return {
           bearing: calculateQiblaBearing(coords.latitude, coords.longitude),
           source: 'gps', latitude: coords.latitude, longitude: coords.longitude,

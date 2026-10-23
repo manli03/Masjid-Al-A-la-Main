@@ -110,9 +110,9 @@ export class TabsPage implements OnInit, OnDestroy {
                   '--app-home-cover',
                 ) || '#004d39';
             } else if (isAuth) {
-              color = this.isDarkMode ? '#102018' : '#ffffff';
+              color = this.isDarkMode ? '#14181b' : '#ffffff';
             } else {
-              color = this.isDarkMode ? '#102018' : '#ffffff';
+              color = this.isDarkMode ? '#14181b' : '#ffffff';
             }
 
             await StatusBar.setBackgroundColor({ color: color.trim() });

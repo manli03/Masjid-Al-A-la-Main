@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Preferences } from '@capacitor/preferences';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable, timeout } from 'rxjs';
 import { PrayerNotificationsService } from './prayer-notifications.service';
 import { LocationService } from '../../../core/native/geolocation.service';
 import { Capacitor } from '@capacitor/core';
@@ -40,6 +40,7 @@ export class PrayerTimesService {
 
   // Current zone code
   private zone: string = 'KDH01';
+  private defaultRequest?: Promise<void>;
 
   constructor(
     private http: HttpClient,
@@ -73,27 +74,7 @@ export class PrayerTimesService {
       if (needsUpdate) {
         console.log('Data is old, checking for updates...');
 
-        // Data needs updating - check GPS status
-        const isGpsEnabled = await this.isGpsEnabled();
-
-        if (isGpsEnabled) {
-          // GPS enabled - fetch data based on current location
-          try {
-            console.log('GPS enabled, fetching data based on location...');
-            await this.refreshData();
-            console.log('Prayer times updated with location successfully!');
-            return;
-          } catch (locationError) {
-            console.warn(
-              'Location-based update failed, falling back to manual zone:',
-              locationError,
-            );
-            // Fall through to manual update
-          }
-        }
-
-        // GPS disabled or location failed - update using saved/default zone
-        console.log('Using manual zone for data update...');
+        // Refresh the saved zone without requesting location at startup.
         this.getPrayerTimes(savedData.zone, 'year').subscribe(
           async (data) => {
             if (data.status === 'OK!') {
@@ -174,27 +155,25 @@ export class PrayerTimesService {
   }
 
   // Fetch and save default prayer times for the whole year
-  async getDefaultPrayerTimes(): Promise<void> {
-    let zone = 'KDH01'; // Default zone code for this app = Kubang Pasu
-    let period = 'year';
-    this.getPrayerTimes(zone, period).subscribe(async (data) => {
-      if (data.status === 'OK!') {
-        const yearlyPrayerTimes: any = data.prayerTime || [];
-        const defaultData = {
-          zone: zone,
-          prayers: yearlyPrayerTimes,
-          bearing: data.bearing,
-          timestamp: new Date().toISOString(),
-        };
-        await Preferences.set({
-          key: 'yearlyPrayerTimes',
-          value: JSON.stringify(defaultData),
-        });
-        console.log('Default prayer times saved successfully!');
-      } else {
-        console.log('Failed to fetch default prayer times!');
-      }
-    });
+  getDefaultPrayerTimes(): Promise<void> {
+    if (!this.defaultRequest) {
+      this.defaultRequest = this.loadDefaultPrayerTimes().finally(() => { this.defaultRequest = undefined; });
+    }
+    return this.defaultRequest;
+  }
+
+  private async loadDefaultPrayerTimes(): Promise<void> {
+    try {
+      const data = await firstValueFrom(this.getPrayerTimes('KDH01', 'year').pipe(timeout(15000)));
+      if (data.status !== 'OK!') return;
+      await Preferences.set({
+        key: 'yearlyPrayerTimes',
+        value: JSON.stringify({ zone: 'KDH01', prayers: data.prayerTime || [],
+          bearing: data.bearing, timestamp: new Date().toISOString() }),
+      });
+    } catch (error) {
+      console.warn('Default prayer times unavailable:', error);
+    }
   }
 
   // Check if the stored location is the same as the current one

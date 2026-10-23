@@ -35,7 +35,7 @@ describe('Qibla calculation and sources', () => {
   });
   it('requests fresh high accuracy GPS without a network request', async () => {
     expect((await service.getTarget('gps')).source).toBe('gps');
-    expect(location.getCurrentLocation).toHaveBeenCalledWith({ enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+    expect(location.getCurrentLocation).toHaveBeenCalledWith({ enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }, true);
     expect(http.get).not.toHaveBeenCalled();
   });
   it('honours manual zones and reuses only that zones cached bearing', async () => {

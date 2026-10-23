@@ -12,16 +12,11 @@ export class PrayerCoordinatorService {
   ) {}
 
   async initialize(): Promise<void> {
-    // Step 1: Initialize notifications
-    const notificationsReady =
-      await this.prayerNotificationsService.initializeNotifications();
-    if (!notificationsReady) return;
-
-    // Step 2: Initialize prayer times (fetch or update as needed)
+    // Prayer data must load independently of notification permission.
     await this.prayerTimesService.initializePrayerTimes();
     console.log('Prayer times initialized');
 
     // Step 3: Schedule notifications if needed
-    await this.prayerNotificationsService.checkToScheduleNotifications();
+    await this.prayerNotificationsService.checkPermissionAndSchedule();
   }
 }

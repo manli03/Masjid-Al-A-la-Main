@@ -1,10 +1,18 @@
-:host { position: fixed; inset: auto 12px calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 10000; pointer-events: none; }
-.update-panel { pointer-events: auto; max-width: 440px; margin: auto; padding: 12px 16px; border: 1px solid var(--ion-color-primary); border-radius: 16px; background: var(--ion-background-color, #fff); color: var(--ion-text-color, #18212f); box-shadow: 0 8px 30px #0003; max-height: 60vh; overflow-y: auto; }
+:host { position: fixed; inset: auto 16px calc(80px + var(--ion-safe-area-bottom, 0px)); z-index: 10000; pointer-events: none; }
+.update-panel { pointer-events: auto; max-width: 440px; margin: auto; padding: 16px; border: 1px solid var(--app-border, #dce6df); border-radius: 22px; background: var(--app-surface, #fff); color: var(--app-ink, #182f26); box-shadow: 0 12px 40px #001e3026; max-height: 50dvh; overflow-y: auto; scrollbar-width: none; }
 .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.update-heading { flex: 1; min-width: 0; }
+.update-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 14px; background: var(--app-selected-background, #004d39); color: var(--app-selected-color, #fff); }
+.update-icon.failed { background: var(--ion-color-danger); color: #fff; }
+.update-icon ion-icon { font-size: 23px; }
+.progress-percent { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--app-ink); }
+ion-button { --border-radius: 12px; text-transform: none; font-weight: 600; margin: 0; }
+.panel-header ion-button { --padding-start: 8px; --padding-end: 8px; }
+#update-details { padding-top: 4px; }
 strong { display: block; font-size: 14px; }
 span, p { font-size: 12px; line-height: 1.5; }
 span { color: var(--ion-color-medium-shade); }
 p { margin: 8px 0; }
-ion-progress-bar { margin-top: 10px; border-radius: 4px; height: 5px; }
+ion-progress-bar { margin-top: 14px; border-radius: 6px; height: 6px; --progress-background: var(--ion-color-primary); --background: var(--app-border, #dce6df); }
 .working { display: flex; align-items: center; gap: 12px; }
 ion-spinner { flex-shrink: 0; width: 22px; height: 22px; }

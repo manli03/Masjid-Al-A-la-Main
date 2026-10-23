@@ -241,3 +241,15 @@ ion-modal {
   text-align: center;
   max-width: 80%;
 }
+// Shared updater dialogs match the app and remain readable with long release notes.
+.app-update-alert {
+  --max-width: 360px;
+  --backdrop-opacity: 0.4;
+  .alert-wrapper { border-radius: 24px; background: var(--app-surface, #fff); box-shadow: 0 24px 80px #001e3033; }
+  .alert-head { padding: 26px 24px 12px; }
+  .alert-title { color: var(--app-ink); font-size: 21px; font-weight: 700; line-height: 1.3; }
+  .alert-message { padding: 0 24px 20px; color: var(--app-muted, #52645a); line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
+  .alert-button-group { padding: 8px 16px 16px; gap: 8px; }
+  .alert-button { border-radius: 12px; text-transform: none; font-weight: 600; }
+  .alert-button-role-confirm { background: var(--ion-color-primary); color: var(--ion-color-primary-contrast); }
+}

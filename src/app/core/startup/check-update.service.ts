@@ -79,7 +79,7 @@ export class CheckUpdateService implements OnDestroy {
         }
         return;
       }
-      if (download.state === 'downloading' || download.state === 'paused') return;
+      if (download.state === 'downloading' || download.state === 'paused' || download.state === 'verifying' || download.state === 'installing') return;
       if (download.state === 'failed') {
         const failureKey = `${download.versionCode}:${download.message}`;
         const lastFailure = await this.runtime.preferences.get({ key: 'app-update-last-failure' });

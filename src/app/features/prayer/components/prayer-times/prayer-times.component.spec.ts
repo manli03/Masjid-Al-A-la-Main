@@ -25,6 +25,7 @@ describe('PrayerTimesComponent', () => {
               timestamp: new Date().toISOString(),
             }),
             getTodayPrayerTimes: () => null,
+            getDefaultPrayerTimes: async () => undefined,
             formatTimestamp: () => '',
             formatDate: (date: Date) => date.toDateString(),
             formatApiDateForDisplay: (date: string) => date,
@@ -51,6 +52,17 @@ describe('PrayerTimesComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('loads the default schedule when a cold app link opens before cached data exists', async () => {
+    await fixture.whenStable();
+    const service = TestBed.inject(PrayerTimesService);
+    const saved = { zone: 'kdh01', prayers: [{ date: '23-Oct-2026' }], timestamp: new Date().toISOString() };
+    spyOn(service, 'getSavedYearlyPrayerTimes').and.returnValues(Promise.resolve(null), Promise.resolve(saved));
+    const load = spyOn(service, 'getDefaultPrayerTimes').and.resolveTo();
+    await component.initializePrayerTimes();
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(component.yearlyPrayers).toEqual(saved.prayers);
   });
 
   describe('sharing prayer times on web', () => {
@@ -126,6 +138,8 @@ describe('PrayerTimesComponent', () => {
     const schedule = (date: string): Prayer[] => [
       { name: 'Imsak', time: '05:50:00', date },
       { name: 'Subuh', time: '06:00:00', date },
+      { name: 'Syuruk', time: '07:10:00', date },
+      { name: 'Dhuha', time: '07:40:00', date },
       { name: 'Zuhur', time: '13:00:00', date },
       { name: 'Asar', time: '16:30:00', date },
       { name: 'Maghrib', time: '19:00:00', date },
@@ -197,11 +211,11 @@ describe('PrayerTimesComponent', () => {
       expect(component.currentPrayer).toBe('Isyak');
     });
 
-    it('highlights Isyak when opened after midnight, including during Imsak', () => {
+    it('highlights Isyak after midnight until Imsak begins', () => {
       component.currentDate = new Date(2026, 9, 21);
       component.prayers = schedule('21-Oct-2026');
 
-      for (const [hours, minutes, seconds] of [[0, 1, 0], [5, 50, 0], [5, 59, 59]]) {
+      for (const [hours, minutes, seconds] of [[0, 1, 0], [5, 49, 59]]) {
         jasmine.clock().mockDate(new Date(2026, 9, 21, hours, minutes, seconds));
         component.calculateRemainingTime();
         fixture.detectChanges();
@@ -213,12 +227,12 @@ describe('PrayerTimesComponent', () => {
       }
     });
 
-    it('switches from Isyak to Subuh exactly when Subuh starts', () => {
+    it('switches from Imsak to Subuh exactly when Subuh starts', () => {
       component.currentDate = new Date(2026, 9, 21);
       component.prayers = schedule('21-Oct-2026');
       jasmine.clock().mockDate(new Date(2026, 9, 21, 5, 59, 59));
       component.calculateRemainingTime();
-      expect(component.currentPrayer).toBe('Isyak');
+      expect(component.currentPrayer).toBe('Imsak');
 
       jasmine.clock().mockDate(new Date(2026, 9, 21, 6, 0));
       component.calculateRemainingTime();
@@ -228,6 +242,21 @@ describe('PrayerTimesComponent', () => {
       const highlightedRows = fixture.nativeElement.querySelectorAll('.current-prayer-row');
       expect(highlightedRows.length).toBe(1);
       expect(highlightedRows[0].textContent).toContain('Subuh');
+    });
+
+    it('highlights each additional time exactly at its start and until the next time', () => {
+      for (const [hour, minute, expected] of [
+        [5, 50, 'Imsak'], [5, 59, 'Imsak'], [7, 10, 'Syuruk'],
+        [7, 39, 'Syuruk'], [7, 40, 'Dhuha'], [12, 59, 'Dhuha'],
+      ] as const) {
+        jasmine.clock().mockDate(new Date(2026, 9, 20, hour, minute));
+        component.calculateRemainingTime();
+        fixture.detectChanges();
+        expect(component.currentPrayer).toBe(expected);
+        const rows = fixture.nativeElement.querySelectorAll('.current-prayer-row');
+        expect(rows.length).toBe(1);
+        expect(rows[0].textContent).toContain(expected);
+      }
     });
 
     it('does not highlight Isyak when viewing a future schedule', () => {

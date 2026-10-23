@@ -99,20 +99,21 @@ export class NotificationSettingsComponent implements OnInit {
   }
 
   async saveSettings() {
-    // Check notification permission first
-    const notificationsEnabled =
-      await this.prayerNotificationsService.initializeNotifications();
-    if (!notificationsEnabled) {
-      return;
-    }
-
+    if (this.isLoading) return;
     this.isLoading = true;
-
     try {
+      const notificationsEnabled = !this.notificationSettings.enabledPrayers.length ||
+        await this.prayerNotificationsService.initializeNotifications();
+      if (!notificationsEnabled) return;
+
       // Save and reschedule all notification with new settings
       await this.prayerNotificationsService.saveNotificationSettings(
         this.notificationSettings,
       );
+
+      if (this.notificationSettings.enabledPrayers.length) {
+        await this.prayerNotificationsService.offerExactAlarmSettings();
+      }
 
       this.showToast('Tetapan notifikasi telah disimpan', 'success');
       this.dismiss();

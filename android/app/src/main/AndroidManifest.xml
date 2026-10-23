@@ -59,6 +59,9 @@
                     android:host="masjidala.web.app"
                     android:pathPrefix="/announcement"
                     android:scheme="https" />
+                <data android:host="masjidala.web.app" android:pathPrefix="/prayertimes" android:scheme="https" />
+                <data android:host="www.masjidala.web.app" android:pathPrefix="/announcement" android:scheme="https" />
+                <data android:host="www.masjidala.web.app" android:pathPrefix="/prayertimes" android:scheme="https" />
             </intent-filter>
         </activity>
 

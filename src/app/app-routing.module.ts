@@ -8,6 +8,7 @@ const routes: Routes = [
       import('./layout/tabs/tabs.module').then((m) => m.TabsPageModule),
   },
   // Send old announcement and account links to the active home screen.
+  { path: 'prayertimes', redirectTo: '/tabs/prayer', pathMatch: 'full' },
   { path: 'announcement', redirectTo: '/tabs/home' },
   { path: 'settings', redirectTo: '/tabs/home' },
   { path: '**', redirectTo: '/tabs/home' },

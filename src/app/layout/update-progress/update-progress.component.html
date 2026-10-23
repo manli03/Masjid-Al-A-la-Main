@@ -1,23 +1,29 @@
 <ng-container *ngIf="updater.download$ | async as download">
   <section *ngIf="updater.supported && download.state !== 'idle'" class="update-panel" aria-label="Kemas kini aplikasi">
     <div class="panel-header">
-      <div role="status" aria-live="polite">
+      <span class="update-icon" [class.failed]="download.state === 'failed'" aria-hidden="true">
+        <ion-icon [name]="download.state === 'failed' ? 'alert-circle-outline' : download.state === 'ready' ? 'checkmark-circle-outline' : 'cloud-download-outline'"></ion-icon>
+      </span>
+      <div class="update-heading" role="status" aria-live="polite">
         <strong>{{ title(download.state) }}</strong>
         <span *ngIf="download.versionName">Versi {{ download.versionName }}</span>
       </div>
+      <span class="progress-percent" *ngIf="download.state === 'downloading' && download.total">
+        {{ progress(download) * 100 | number:'1.0-0' }}%
+      </span>
       <ion-button fill="clear" size="small" (click)="collapsed = !collapsed"
         [attr.aria-expanded]="!collapsed" aria-controls="update-details">
         {{ collapsed ? 'Lihat' : 'Kecilkan' }}
       </ion-button>
     </div>
-    <ion-progress-bar *ngIf="download.state === 'downloading' || download.state === 'paused'"
-      [value]="progress(download)" [attr.aria-valuenow]="progress(download) * 100 | number:'1.0-0'"
+    <ion-progress-bar *ngIf="download.state === 'downloading' || download.state === 'paused' || download.state === 'verifying' || download.state === 'installing'"
+      [type]="download.state === 'verifying' || download.state === 'installing' || !download.total ? 'indeterminate' : 'determinate'"
+      [value]="progress(download)" [attr.aria-valuenow]="download.total && (download.state === 'downloading' || download.state === 'paused') ? (progress(download) * 100 | number:'1.0-0') : null"
       aria-label="Kemajuan muat turun"></ion-progress-bar>
     <div id="update-details" [hidden]="collapsed">
       <p *ngIf="download.state === 'downloading' || download.state === 'paused'">
-        {{ progress(download) * 100 | number:'1.0-0' }}% ·
         {{ (download.bytes || 0) / 1048576 | number:'1.1-1' }} /
-        {{ (download.total || 0) / 1048576 | number:'1.1-1' }} MB
+        {{ download.total ? ((download.total || 0) / 1048576 | number:'1.1-1') + ' MB' : 'Mengira saiz…' }}
       </p>
       <p *ngIf="download.state === 'downloading'">Pemasang Android akan dibuka selepas fail disahkan.</p>
       <p *ngIf="download.state === 'paused'">Menunggu sambungan Internet. Muat turun akan diteruskan secara automatik.</p>
@@ -26,7 +32,7 @@
         <p>{{ download.state === 'verifying' ? 'Memeriksa keselamatan dan versi fail…' : 'Sila luluskan kemas kini dalam pemasang Android.' }}</p>
       </div>
       <p *ngIf="download.state === 'failed' || download.state === 'ready'">
-        {{ download.message || 'Fail telah disahkan. Jika pemasangan dibatalkan, anda boleh cuba lagi.' }}
+        {{ download.message || (download.state === 'failed' ? 'Muat turun tidak dapat diselesaikan. Semak sambungan Internet dan cuba lagi.' : 'Fail telah disahkan dan sedia untuk dipasang.') }}
       </p>
       <ion-button *ngIf="download.state === 'ready' || download.state === 'failed'"
         size="small" (click)="updater.checkForUpdate(true)" [disabled]="(updater.checking$ | async) === true">

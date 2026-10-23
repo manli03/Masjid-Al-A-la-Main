@@ -58,6 +58,13 @@ describe('CheckUpdateService', () => {
     expect(native.install).not.toHaveBeenCalled();
   });
 
+  it('does not offer another release while the downloaded file is being verified', async () => {
+    native.getDownload.and.resolveTo({ state: 'verifying', versionCode: 9 });
+    await service.checkForUpdate(true);
+    expect(native.getRelease).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+  });
+
   it('automatically opens installer after verification even when the download prompt was today', async () => {
     storage.set('app-update-last-prompt', new Date().toDateString());
     native.getDownload.and.resolveTo({ state: 'ready', versionCode: 9, versionName: '1.2.3' });

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, InjectionToken } from '@angular/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { AlertController } from '@ionic/angular';
 import { Preferences } from '@capacitor/preferences';
@@ -13,6 +13,10 @@ import {
   IOSSettings,
   NativeSettings,
 } from 'capacitor-native-settings';
+
+export const PRAYER_NOTIFICATION_API = new InjectionToken<typeof LocalNotifications>('PRAYER_NOTIFICATION_API', {
+  providedIn: 'root', factory: () => LocalNotifications,
+});
 
 // Define notification settings interface
 export interface PrayerNotificationSettings {
@@ -165,6 +169,7 @@ export class PrayerNotificationsService {
     private toastService: ToastService,
     private router: Router,
     private alertController: AlertController,
+    @Inject(PRAYER_NOTIFICATION_API) private notifications: typeof LocalNotifications = LocalNotifications,
   ) {
     // Set up notification listeners
     this.setupNotificationListeners();
@@ -175,10 +180,22 @@ export class PrayerNotificationsService {
    */
   async initializeNotifications(): Promise<boolean> {
     try {
-      // Request permission first
-      const permResult = await LocalNotifications.requestPermissions();
+      if (!Capacitor.isNativePlatform()) return false;
+      let permResult = await this.notifications.checkPermissions();
+      if (permResult.display === 'prompt' || permResult.display === 'prompt-with-rationale') {
+        const consent = await this.alertController.create({
+          header: 'Aktifkan Peringatan Solat',
+          message: 'Benarkan notifikasi untuk menerima peringatan waktu solat yang anda pilih. Anda boleh mengubahnya pada bila-bila masa dalam tetapan peringatan.',
+          buttons: [{ text: 'Kemudian', role: 'cancel' }, { text: 'Benarkan', role: 'allow' }],
+        });
+        await consent.present();
+        if ((await consent.onDidDismiss()).role !== 'allow') return false;
+        permResult = await this.notifications.requestPermissions();
+        // A refusal ends this attempt; settings remain available on a later user action.
+        if (permResult.display !== 'granted') return false;
+      }
 
-      if (permResult.display !== 'prompt' && permResult.display !== 'granted') {
+      if (permResult.display !== 'granted') {
         // Show alert dialog to open app notification settings
         const alert = await this.alertController.create({
           header: 'Kebenaran Notifikasi Diperlukan',
@@ -211,6 +228,22 @@ export class PrayerNotificationsService {
     } catch (error) {
       console.error('Error initializing notifications:', error);
       return false;
+    }
+  }
+
+  async offerExactAlarmSettings(): Promise<void> {
+    if (Capacitor.getPlatform() !== 'android') return;
+    const permission = await this.notifications.checkExactNotificationSetting();
+    if (permission.exact_alarm === 'granted') return;
+    const alert = await this.alertController.create({
+      header: 'Peringatan Tepat Pada Waktu',
+      message: 'Benarkan penggera tepat dalam tetapan Android supaya peringatan solat boleh dihantar pada waktunya.',
+      buttons: [{ text: 'Kemudian', role: 'cancel' }, { text: 'Buka Tetapan', role: 'allow' }],
+    });
+    await alert.present();
+    if ((await alert.onDidDismiss()).role === 'allow') {
+      localStorage.setItem('notificationSettingsOpened', 'true');
+      await this.notifications.changeExactNotificationSetting();
     }
   }
 
@@ -247,6 +280,7 @@ export class PrayerNotificationsService {
       // Check if this prayer is currently enabled
       const currentlyEnabled =
         settings.enabledPrayers.includes(normalizedPrayerName);
+      if (!currentlyEnabled && !await this.initializeNotifications()) return false;
 
       // Toggle the prayer in the settings
       if (currentlyEnabled) {
@@ -714,7 +748,8 @@ export class PrayerNotificationsService {
       const settings = await this.getNotificationSettings();
 
       // Schedule notification using AndroidAudio plugin
-      if (Capacitor.getPlatform() === 'android') {
+      if (Capacitor.getPlatform() === 'android' && settings.enabledPrayers.length &&
+        (await this.notifications.checkPermissions()).display === 'granted') {
         try {
           await AndroidAudio.setNotification();
         } catch (error) {
@@ -856,7 +891,7 @@ export class PrayerNotificationsService {
    * Set up notification listeners
    */
   private setupNotificationListeners(): void {
-    LocalNotifications.addListener(
+    this.notifications.addListener(
       'localNotificationActionPerformed',
       (notification) => {
         console.log('Notification action performed', notification);
@@ -901,13 +936,14 @@ export class PrayerNotificationsService {
   /**
    * Check notification permission and schedule notifications if enabled
    */
-  async checkPermissionAndSchedule(): Promise<void> {
+  async checkPermissionAndSchedule(force = false): Promise<void> {
     try {
-      const permResult = await LocalNotifications.checkPermissions();
+      const permResult = await this.notifications.checkPermissions();
 
       if (permResult.display === 'granted') {
         console.log('Notification permission granted, scheduling notifications...');
-        await this.checkToScheduleNotifications();
+        if (force) await this.forceRescheduleNotifications();
+        else await this.checkToScheduleNotifications();
       } else {
         console.log('Notification permission still denied');
       }
@@ -954,7 +990,7 @@ export class PrayerNotificationsService {
     }
 
     try {
-      const channels = await LocalNotifications.listChannels();
+      const channels = await this.notifications.listChannels();
       // Check for post notification channel
       const hasPostChannel = channels.channels.some(
         (c) => c.id === 'post_notifications',
@@ -962,7 +998,7 @@ export class PrayerNotificationsService {
 
       if (!hasPostChannel) {
         // Create post notification channel
-        await LocalNotifications.createChannel({
+        await this.notifications.createChannel({
           id: 'post_notifications',
           name: 'Pengumuman',
           description: 'Notifikasi untuk pengumuman baharu',

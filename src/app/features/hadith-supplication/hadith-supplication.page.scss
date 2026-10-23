@@ -25,16 +25,16 @@
 }
 
 :host-context(.ion-palette-dark) {
-  --amalan-background: #10251e;
-  --amalan-card: #234334;
-  --amalan-tabs: #1b3b2c;
+  --amalan-background: var(--app-background);
+  --amalan-card: var(--app-surface);
+  --amalan-tabs: var(--app-surface-raised);
   --amalan-active: #1bb77c;
   --amalan-ink: #f8faf9;
   --amalan-muted: #a6c7b6;
   --amalan-secondary: #cfe3d8;
   --amalan-narrator: #c9e0d3;
   --amalan-icon: #54d685;
-  --amalan-border: #305344;
+  --amalan-border: var(--app-border);
   --amalan-card-border: transparent;
   --amalan-card-border-width: 0px;
   --amalan-card-shadow: none;
