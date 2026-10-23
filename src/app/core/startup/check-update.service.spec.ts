@@ -58,6 +58,20 @@ describe('CheckUpdateService', () => {
     expect(native.install).not.toHaveBeenCalled();
   });
 
+  it('formats GitHub Markdown as a short readable update summary', async () => {
+    native.getRelease.and.resolveTo({ release: { ...release, notes:
+      '## Version\n### Improvements\n- **Faster startup:** open links directly.\n' +
+      '- [Download progress](https://example.com)\n### Download and install\n- Internal details' } });
+    await service.checkForUpdate(true);
+    const message = confirm.calls.mostRecent().args[0].message as string;
+    expect(message).toContain('• Faster startup: open links directly.');
+    expect(message).toContain('• Download progress');
+    expect(message).not.toContain('##');
+    expect(message).not.toContain('**');
+    expect(message).not.toContain('Internal details');
+    expect(message.length).toBeLessThan(400);
+  });
+
   it('does not offer another release while the downloaded file is being verified', async () => {
     native.getDownload.and.resolveTo({ state: 'verifying', versionCode: 9 });
     await service.checkForUpdate(true);

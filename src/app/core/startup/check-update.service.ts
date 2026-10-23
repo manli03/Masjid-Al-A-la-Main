@@ -2,6 +2,7 @@ import { Inject, Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { BehaviorSubject } from 'rxjs';
 import { APP_UPDATER, AppRelease, AppUpdaterPlugin, UpdateDownload, UPDATE_RUNTIME, UpdateRuntime } from './app-updater.plugin';
+import { summarizeReleaseNotes } from './release-notes';
 
 @Injectable({ providedIn: 'root' })
 export class CheckUpdateService implements OnDestroy {
@@ -130,11 +131,12 @@ export class CheckUpdateService implements OnDestroy {
 
   private async promptDownload(release: AppRelease): Promise<void> {
     await this.markPrompt();
+    const notes = summarizeReleaseNotes(release.notes);
     const { value } = await this.runtime.dialog.confirm({
       title: 'Kemas Kini Aplikasi Tersedia',
       message: `Versi ${release.versionName} (${(release.size / 1048576).toFixed(1)} MB) tersedia.` +
-        (release.notes ? `\n\n${release.notes.slice(0, 1200)}` : '') +
-        '\n\nMuat turun sekarang? Selepas pengesahan, pemasang Android akan dibuka secara automatik untuk anda meluluskan kemas kini.',
+        (notes ? `\n\n${notes}` : '') +
+        '\n\nSelepas fail disahkan, Android akan meminta anda mengesahkan pemasangan.',
       okButtonTitle: 'Muat Turun', cancelButtonTitle: 'Kemudian',
     });
     if (!value || !this.active) return;

@@ -38,13 +38,12 @@ Existing app installations need one update using the old flow to get this update
 Keep hosting the legacy `update.json` with a changed `lastPreviousUpdate` value for
 that migration; the old updater still needs it. The new updater ignores that date.
 
-Version 1.3.0 still reads metadata from the latest GitHub Release. If the transition
-release has no GitHub metadata, 1.3.0 users must manually install the new build from
-the existing APK link. Alternatively, include matching metadata on GitHub for that
-one transition release, then stop uploading it for subsequent releases. Leaving the
-old metadata attached to an older release does not help: 1.3.0 checks only the latest
-release. Metadata is public build information, not a credential. APK authenticity is
-enforced by checksum and signing-certificate checks.
+Original 1.3.0 builds read metadata from the latest GitHub Release. The corrected
+1.3.0 replacement reads server-hosted metadata and fixes the APK provider. Original
+installations must install the replacement once from the existing APK link, through
+a browser or Files app. The replacement GitHub release contains only the APK;
+matching metadata remains on the metadata server. APK authenticity is enforced by
+checksum and signing-certificate checks.
 
 ## Behavior and security
 
@@ -78,6 +77,24 @@ enforced by checksum and signing-certificate checks.
 - The APK is stored under an app-specific directory and shared through a dedicated,
   non-exported FileProvider restricted to the updates directory. No broad storage
   permission is needed.
+- The APK provider uses its own `UpdateFileProvider` component. Registering the same
+  provider class twice can make Android resolve the APK authority incorrectly and
+  report a package parsing error even after checksum verification succeeds.
+  Before installation, the app checks that the content URI is readable and includes
+  its temporary read grant in both the intent flags and ClipData.
+- Update dialogs display a bounded plain-text summary of release notes. Markdown
+  headings, emphasis and link syntax are removed; installation instructions and
+  the full changelog remain on GitHub rather than filling the confirmation dialog.
+
+### Upgrading an installation with the old provider bug
+
+The corrected provider runs only after the fixed app has been installed. A device
+already affected by the old updater must install the corrected signed APK once through
+its browser or Files app, without uninstalling the existing app. Repeatedly tapping
+Install in the old app cannot replace that app's broken provider code. Publish a
+new signed APK with a higher version code for distribution; do not replace a published APK.
+For upgrade testing, the corrected source can be built as 1.3.0 / version code 9 so
+that 1.3.1 / version code 10 remains the higher-version target.
 
 ## Device acceptance checks before distribution
 

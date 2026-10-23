@@ -13,7 +13,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.provider.Settings;
-import androidx.core.content.FileProvider;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -310,9 +309,7 @@ public class AppUpdaterPlugin extends Plugin {
                 return;
             }
             verify(new JSONObject(prefs().getString("release", "{}")), true);
-            Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".updates", apk());
-            Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, "application/vnd.android.package-archive")
-                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            Intent intent = UpdateInstaller.createIntent(getContext(), apk());
             getActivity().runOnUiThread(() -> {
                 try {
                     if (!foreground) throw new Exception("Return to the app to install the update");

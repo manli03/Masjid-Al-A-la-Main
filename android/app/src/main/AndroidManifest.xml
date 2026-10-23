@@ -77,7 +77,7 @@
 
         <!-- Only verified APKs in the update directory can be shared with the installer. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".UpdateFileProvider"
             android:authorities="${applicationId}.updates"
             android:exported="false"
             android:grantUriPermissions="true">
