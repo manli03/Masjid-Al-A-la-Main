@@ -59,6 +59,8 @@
                 <p>{{ (download.bytes || 0) / 1048576 | number:'1.1-1' }} / {{ (download.total || 0) / 1048576 | number:'1.1-1' }} MB</p>
               </ng-container>
               <p *ngIf="download.state === 'ready'">Sedia dipasang. Tekan Semak Kemas Kini untuk memasang.</p>
+              <p *ngIf="download.state === 'verifying'">Mengesahkan keselamatan dan versi fail…</p>
+              <p *ngIf="download.state === 'installing'">Membuka pemasang Android…</p>
               <p *ngIf="download.state === 'failed'">{{ download.message }} Tekan Semak Kemas Kini untuk cuba lagi.</p>
             </ion-label>
           </ion-item>

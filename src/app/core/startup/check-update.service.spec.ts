@@ -28,7 +28,8 @@ describe('CheckUpdateService', () => {
     confirm.and.resolveTo({ value: false });
     (runtime.dialog.alert as jasmine.Spy).and.resolveTo();
     native = jasmine.createSpyObj<AppUpdaterPlugin>('AppUpdater',
-      ['getRelease', 'getDownload', 'startDownload', 'install', 'openInstallSettings']);
+      ['addListener', 'getRelease', 'getDownload', 'startDownload', 'install', 'openInstallSettings']);
+    native.addListener.and.resolveTo({ remove: async () => undefined });
     native.getDownload.and.resolveTo({ state: 'idle' });
     native.getRelease.and.resolveTo({ release });
     native.startDownload.and.resolveTo();
@@ -57,14 +58,14 @@ describe('CheckUpdateService', () => {
     expect(native.install).not.toHaveBeenCalled();
   });
 
-  it('offers installation after download even when the download prompt was today', async () => {
+  it('automatically opens installer after verification even when the download prompt was today', async () => {
     storage.set('app-update-last-prompt', new Date().toDateString());
     native.getDownload.and.resolveTo({ state: 'ready', versionCode: 9, versionName: '1.2.3' });
     await service.checkForUpdate();
-    expect(confirm).toHaveBeenCalledTimes(1);
-    expect(native.install).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(native.install).toHaveBeenCalledTimes(1);
     await service.checkForUpdate();
-    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(native.install).toHaveBeenCalledTimes(1);
   });
 
   it('reminds again the next day for a downloaded update', async () => {
@@ -72,7 +73,8 @@ describe('CheckUpdateService', () => {
     storage.set('app-update-install-prompt', '9');
     native.getDownload.and.resolveTo({ state: 'ready', versionCode: 9, versionName: '1.2.3' });
     await service.checkForUpdate();
-    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(native.install).toHaveBeenCalledTimes(1);
+    expect(confirm).not.toHaveBeenCalled();
   });
 
   it('manual checks bypass daily reminders and server-check throttling', async () => {
@@ -99,10 +101,10 @@ describe('CheckUpdateService', () => {
     expect(native.startDownload).toHaveBeenCalledTimes(1);
   });
 
-  it('opens permission settings only after both install and settings consent', async () => {
+  it('opens permission settings only after settings consent', async () => {
     native.getDownload.and.resolveTo({ state: 'ready', versionCode: 9, versionName: '1.2.3' });
     native.install.and.resolveTo({ permissionRequired: true });
-    confirm.and.returnValues(Promise.resolve({ value: true }), Promise.resolve({ value: false }));
+    confirm.and.resolveTo({ value: false });
     await service.checkForUpdate(true);
     expect(native.install).toHaveBeenCalledTimes(1);
     expect(native.openInstallSettings).not.toHaveBeenCalled();
@@ -145,7 +147,7 @@ describe('CheckUpdateService', () => {
     native.install.and.resolveTo({ permissionRequired: false });
     await service.checkForUpdate();
     expect(native.install).toHaveBeenCalledTimes(2);
-    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(confirm).toHaveBeenCalledTimes(1);
   });
 
   it('reports failure to start a consented download', async () => {
@@ -172,5 +174,31 @@ describe('CheckUpdateService', () => {
     await service.checkForUpdate(true);
     expect(runtime.dialog.alert).toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('shows verification failures immediately even after today\'s download prompt', async () => {
+    storage.set('app-update-last-prompt', new Date().toDateString());
+    native.getDownload.and.resolveTo({ state: 'failed', versionCode: 10,
+      message: 'Versi APK tidak sepadan dengan versi kemas kini.' });
+    await service.checkForUpdate();
+    expect(runtime.dialog.alert).toHaveBeenCalledTimes(1);
+    expect(service.download$.value.message).toContain('Versi APK');
+    expect(native.install).not.toHaveBeenCalled();
+    await service.checkForUpdate();
+    expect(runtime.dialog.alert).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes native verification progress to the app panel', async () => {
+    let onProgress: Parameters<AppUpdaterPlugin['addListener']>[1] = () => undefined;
+    native.addListener.and.callFake(async (_event, callback) => {
+      onProgress = callback;
+      return { remove: async () => undefined };
+    });
+    (runtime.app.addListener as jasmine.Spy).and.resolveTo({ remove: async () => undefined });
+    (runtime.app.getState as jasmine.Spy).and.resolveTo({ isActive: true });
+    await service.initialize();
+    onProgress({ state: 'verifying', versionCode: 10, bytes: 100, total: 100 });
+    expect(service.download$.value.state).toBe('verifying');
+    expect(native.install).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Public repository containing BOTH the signed APK and output-metadata.json. -->
+    <!-- APKs and their SHA-256 digests come from this public release repository. -->
     <string name="update_repository" translatable="false">manli03/Masjid-Al-A-la-Main</string>
+    <string name="update_metadata_url" translatable="false">https://oc-manli.duckdns.org/masjidala/output-metadata.json</string>
 </resources>

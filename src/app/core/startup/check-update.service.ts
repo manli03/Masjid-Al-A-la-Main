@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnDestroy } from '@angular/core';
+import { Inject, Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { BehaviorSubject } from 'rxjs';
 import { APP_UPDATER, AppRelease, AppUpdaterPlugin, UpdateDownload, UPDATE_RUNTIME, UpdateRuntime } from './app-updater.plugin';
@@ -13,26 +13,34 @@ export class CheckUpdateService implements OnDestroy {
   private started = false;
   private timer?: ReturnType<typeof setTimeout>;
   private listener?: PluginListenerHandle;
+  private progressListener?: PluginListenerHandle;
   private awaitingPermission = false;
   private lastCheck = 0;
   private readonly reminderKey = 'app-update-last-prompt';
 
   constructor(@Inject(APP_UPDATER) private native: AppUpdaterPlugin,
-    @Inject(UPDATE_RUNTIME) private runtime: UpdateRuntime) {}
+    @Inject(UPDATE_RUNTIME) private runtime: UpdateRuntime,
+    private zone: NgZone = new NgZone({ enableLongStackTrace: false })) {}
 
   async initialize(): Promise<void> {
     if (!this.supported || this.started) return;
     this.started = true;
     try {
+      this.progressListener = await this.native.addListener('downloadProgress', download => {
+        this.zone.run(() => this.download$.next(download));
+      });
       this.listener = await this.runtime.app.addListener('appStateChange', ({ isActive }) => {
-        this.active = isActive;
-        clearTimeout(this.timer);
-        if (isActive) void this.tick();
+        this.zone.run(() => {
+          this.active = isActive;
+          clearTimeout(this.timer);
+          if (isActive) void this.tick();
+        });
       });
       this.active = (await this.runtime.app.getState()).isActive;
       this.schedule(15000);
     } catch (error) {
       this.started = false;
+      void this.progressListener?.remove();
       console.warn('Updater initialization failed:', error);
     }
   }
@@ -46,7 +54,7 @@ export class CheckUpdateService implements OnDestroy {
     if (!this.active) return;
     await this.checkForUpdate();
     const state = this.download$.value.state;
-    this.schedule(state === 'downloading' || state === 'paused' ? 2000 : 60000);
+    this.schedule(state === 'downloading' || state === 'paused' || state === 'verifying' ? 1000 : 60000);
   }
 
   async checkForUpdate(manual = false): Promise<void> {
@@ -63,14 +71,20 @@ export class CheckUpdateService implements OnDestroy {
           await this.installReady(true);
         } else if (await this.mayPrompt(manual) ||
           (this.active && shown.value !== String(download.versionCode))) {
-          await this.promptInstall(download);
+          // Download consent covers opening the system installer after verification.
+          // Persist the attempt first so cancelling Android's installer does not reopen it.
+          await this.runtime.preferences.set({ key: 'app-update-install-prompt', value: String(download.versionCode) });
+          await this.markPrompt();
+          await this.installReady();
         }
         return;
       }
       if (download.state === 'downloading' || download.state === 'paused') return;
       if (download.state === 'failed') {
-        if (await this.mayPrompt(manual)) {
-          await this.markPrompt();
+        const failureKey = `${download.versionCode}:${download.message}`;
+        const lastFailure = await this.runtime.preferences.get({ key: 'app-update-last-failure' });
+        if (this.active && (manual || lastFailure.value !== failureKey)) {
+          await this.runtime.preferences.set({ key: 'app-update-last-failure', value: failureKey });
           await this.runtime.dialog.alert({ title: 'Muat Turun Gagal', message: download.message ||
             'Muat turun tidak dapat diselesaikan. Sila cuba lagi melalui Tetapan.' });
         }
@@ -120,7 +134,7 @@ export class CheckUpdateService implements OnDestroy {
       title: 'Kemas Kini Aplikasi Tersedia',
       message: `Versi ${release.versionName} (${(release.size / 1048576).toFixed(1)} MB) tersedia.` +
         (release.notes ? `\n\n${release.notes.slice(0, 1200)}` : '') +
-        '\n\nAdakah anda mahu memuat turunnya sekarang?',
+        '\n\nMuat turun sekarang? Selepas pengesahan, pemasang Android akan dibuka secara automatik untuk anda meluluskan kemas kini.',
       okButtonTitle: 'Muat Turun', cancelButtonTitle: 'Kemudian',
     });
     if (!value || !this.active) return;
@@ -135,19 +149,8 @@ export class CheckUpdateService implements OnDestroy {
     this.download$.next({ state: 'downloading', versionCode: release.versionCode,
       versionName: release.versionName, bytes: 0, total: release.size });
     await this.runtime.preferences.remove({ key: 'app-update-install-prompt' });
+    await this.runtime.preferences.remove({ key: 'app-update-last-failure' });
     this.schedule(2000);
-  }
-
-  private async promptInstall(download: UpdateDownload): Promise<void> {
-    if (!this.active) return;
-    await this.runtime.preferences.set({ key: 'app-update-install-prompt', value: String(download.versionCode) });
-    await this.markPrompt();
-    const { value } = await this.runtime.dialog.confirm({
-      title: 'Kemas Kini Sedia Dipasang',
-      message: `Versi ${download.versionName} telah dimuat turun dan disahkan. Pasang sekarang?`,
-      okButtonTitle: 'Pasang Sekarang', cancelButtonTitle: 'Kemudian',
-    });
-    if (value) await this.installReady();
   }
 
   private async installReady(returnedFromSettings = false): Promise<void> {
@@ -156,6 +159,8 @@ export class CheckUpdateService implements OnDestroy {
       await this.requestInstallation(returnedFromSettings);
     } catch (error) {
       this.awaitingPermission = false;
+      this.download$.next({ ...this.download$.value, state: 'ready',
+        message: 'Tidak dapat membuka pemasang Android. Sila cuba lagi.' });
       console.warn('Cannot install update:', error);
       if (this.active) await this.runtime.dialog.alert({ title: 'Pemasangan Gagal', message:
         'Tidak dapat membuka pemasang Android. Sila cuba lagi melalui Tetapan.' });
@@ -163,7 +168,9 @@ export class CheckUpdateService implements OnDestroy {
   }
 
   private async requestInstallation(returnedFromSettings: boolean): Promise<void> {
+    this.download$.next({ ...this.download$.value, state: 'installing', message: undefined });
     const result = await this.native.install();
+    this.download$.next({ ...this.download$.value, state: 'ready' });
     if (!result.permissionRequired || !this.active || returnedFromSettings) return;
     const { value } = await this.runtime.dialog.confirm({
       title: 'Benarkan Pemasangan',
@@ -180,5 +187,6 @@ export class CheckUpdateService implements OnDestroy {
     this.started = false;
     clearTimeout(this.timer);
     void this.listener?.remove();
+    void this.progressListener?.remove();
   }
 }

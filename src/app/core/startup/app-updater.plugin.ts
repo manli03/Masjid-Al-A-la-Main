@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import { registerPlugin } from '@capacitor/core';
+import { PluginListenerHandle, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { Dialog } from '@capacitor/dialog';
 import { Preferences } from '@capacitor/preferences';
@@ -17,7 +17,7 @@ export interface AppRelease {
 }
 
 export interface UpdateDownload {
-  state: 'idle' | 'downloading' | 'paused' | 'ready' | 'failed';
+  state: 'idle' | 'downloading' | 'paused' | 'verifying' | 'installing' | 'ready' | 'failed';
   versionCode?: number;
   versionName?: string;
   bytes?: number;
@@ -26,6 +26,7 @@ export interface UpdateDownload {
 }
 
 export interface AppUpdaterPlugin {
+  addListener(event: 'downloadProgress', listener: (download: UpdateDownload) => void): Promise<PluginListenerHandle>;
   getRelease(): Promise<{ release?: AppRelease }>;
   startDownload(): Promise<void>;
   getDownload(): Promise<UpdateDownload>;

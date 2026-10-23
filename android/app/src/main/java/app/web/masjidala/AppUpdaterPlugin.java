@@ -37,7 +37,7 @@ import java.util.concurrent.Executors;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
-/** All URLs and installation parameters originate from the configured public release repository. */
+/** Server-hosted build metadata paired with signed APKs and digests from GitHub Releases. */
 @CapacitorPlugin(name = "AppUpdater")
 public class AppUpdaterPlugin extends Plugin {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -83,6 +83,7 @@ public class AppUpdaterPlugin extends Plugin {
         String host = url.getHost().toLowerCase(Locale.ROOT);
         return "https".equals(url.getProtocol()) && (url.getPort() == -1 || url.getPort() == 443)
             && url.getUserInfo() == null && (host.equals("api.github.com") || host.equals("github.com")
+            || (host.equals("oc-manli.duckdns.org") && url.getPath().equals("/masjidala/output-metadata.json"))
             || host.equals("release-assets.githubusercontent.com")
             || host.equals("objects.githubusercontent.com"));
     }
@@ -116,6 +117,7 @@ public class AppUpdaterPlugin extends Plugin {
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Accept", "application/vnd.github+json");
             connection.setRequestProperty("User-Agent", "Masjid-Ala-Updater");
+            connection.setRequestProperty("Cache-Control", "no-cache");
             try {
                 int code = connection.getResponseCode();
                 if (code == 301 || code == 302 || code == 303 || code == 307 || code == 308) {
@@ -144,11 +146,7 @@ public class AppUpdaterPlugin extends Plugin {
             offered = null;
             String repository = getContext().getString(R.string.update_repository);
             if (!repository.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")) throw new Exception("Invalid release repository");
-            JSONObject release = json("https://api.github.com/repos/" + repository + "/releases/latest");
-            if (release.optBoolean("draft") || release.optBoolean("prerelease")) throw new Exception("Release is not stable");
-            JSONArray assets = release.getJSONArray("assets");
-            JSONObject metadataAsset = asset(assets, "output-metadata.json");
-            JSONObject metadata = json(metadataAsset.getString("browser_download_url"));
+            JSONObject metadata = json(getContext().getString(R.string.update_metadata_url));
             if (!getContext().getPackageName().equals(metadata.getString("applicationId")))
                 throw new Exception("Release belongs to another application");
             JSONArray elements = metadata.getJSONArray("elements");
@@ -159,6 +157,9 @@ public class AppUpdaterPlugin extends Plugin {
             if (code <= version(installed())) { call.resolve(new JSObject()); return; }
             if (metadata.optInt("minSdkVersionForDexing", 24) > Build.VERSION.SDK_INT)
                 throw new Exception("This release requires a newer Android version");
+            JSONObject release = json("https://api.github.com/repos/" + repository + "/releases/latest");
+            if (release.optBoolean("draft") || release.optBoolean("prerelease")) throw new Exception("Release is not stable");
+            JSONArray assets = release.getJSONArray("assets");
             JSONObject apkAsset = asset(assets, element.getString("outputFile"));
             String digest = apkAsset.optString("digest");
             if (!digest.matches("sha256:[a-fA-F0-9]{64}")) throw new Exception("GitHub SHA-256 digest unavailable");
@@ -234,8 +235,12 @@ public class AppUpdaterPlugin extends Plugin {
             result.put("bytes", cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)))
                 .put("total", release.getLong("size"));
             if (state == DownloadManager.STATUS_SUCCESSFUL) {
+                String fingerprint = apk().length() + ":" + apk().lastModified();
+                if (!fingerprint.equals(verifiedFile)) {
+                    notifyListeners("downloadProgress", new JSObject(result.toString()).put("state", "verifying"));
+                }
                 try { verify(release, false); }
-                catch (Exception e) { return fail(result, "Pengesahan kemas kini gagal. Sila muat turun semula."); }
+                catch (Exception e) { return fail(result, "Pengesahan kemas kini gagal. " + e.getMessage()); }
                 return result.put("state", "ready");
             }
             if (state == DownloadManager.STATUS_FAILED) return fail(result, "Muat turun gagal. Semak Internet dan ruang storan, kemudian cuba lagi.");
@@ -256,7 +261,7 @@ public class AppUpdaterPlugin extends Plugin {
         File file = apk();
         String fingerprint = file.length() + ":" + file.lastModified();
         if (!force && fingerprint.equals(verifiedFile)) return;
-        if (file.length() != release.getLong("size")) throw new Exception("APK size mismatch");
+        if (file.length() != release.getLong("size")) throw new Exception("Fail tidak lengkap. Sila muat turun semula.");
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
         try (InputStream input = new FileInputStream(file)) {
             byte[] buffer = new byte[65536];
@@ -265,21 +270,26 @@ public class AppUpdaterPlugin extends Plugin {
         }
         StringBuilder hex = new StringBuilder();
         for (byte b : sha.digest()) hex.append(String.format(Locale.ROOT, "%02x", b & 0xff));
-        if (!hex.toString().equals(release.getString("sha256"))) throw new Exception("APK checksum mismatch");
+        if (!hex.toString().equals(release.getString("sha256"))) throw new Exception("Checksum fail tidak sepadan. Sila muat turun semula.");
         PackageManager pm = getContext().getPackageManager();
         int flags = Build.VERSION.SDK_INT >= 28 ? PackageManager.GET_SIGNING_CERTIFICATES : PackageManager.GET_SIGNATURES;
         PackageInfo candidate = pm.getPackageArchiveInfo(file.getAbsolutePath(), flags);
         PackageInfo current = pm.getPackageInfo(getContext().getPackageName(), flags);
-        if (candidate == null || !current.packageName.equals(candidate.packageName) ||
-            version(candidate) != release.getLong("versionCode") || version(candidate) <= version(current) ||
-            !release.getString("versionName").equals(candidate.versionName)) throw new Exception("Unexpected APK package/version");
+        if (candidate == null || !current.packageName.equals(candidate.packageName))
+            throw new Exception("Fail APK tidak sah atau bukan untuk aplikasi ini.");
+        if (version(candidate) != release.getLong("versionCode") ||
+            !release.getString("versionName").equals(candidate.versionName))
+            throw new Exception("Versi APK " + candidate.versionName + " (" + version(candidate) +
+                ") tidak sepadan dengan versi kemas kini " + release.getString("versionName") +
+                " (" + release.getLong("versionCode") + "). Sila hubungi pentadbir aplikasi.");
+        if (version(candidate) <= version(current)) throw new Exception("APK ini bukan versi yang lebih baharu.");
         if (candidate.applicationInfo == null || (Build.VERSION.SDK_INT >= 24 &&
-            candidate.applicationInfo.minSdkVersion > Build.VERSION.SDK_INT)) throw new Exception("Unsupported Android version");
+            candidate.applicationInfo.minSdkVersion > Build.VERSION.SDK_INT)) throw new Exception("Versi Android peranti tidak disokong.");
         Signature[] expected = Build.VERSION.SDK_INT >= 28 ? current.signingInfo.getApkContentsSigners() : current.signatures;
         Signature[] actual = Build.VERSION.SDK_INT >= 28 ? candidate.signingInfo.getApkContentsSigners() : candidate.signatures;
         // Deliberately require the existing signing key; key rotation requires a separate migration.
         if (expected == null || actual == null || expected.length == 0 || expected.length != actual.length ||
-            !Arrays.asList(actual).containsAll(Arrays.asList(expected))) throw new Exception("APK signing certificate mismatch");
+            !Arrays.asList(actual).containsAll(Arrays.asList(expected))) throw new Exception("Sijil tandatangan APK berbeza daripada aplikasi ini. Sila hubungi pentadbir aplikasi.");
         verifiedFile = fingerprint;
     }
 

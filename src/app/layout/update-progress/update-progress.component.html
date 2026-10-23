@@ -1,0 +1,37 @@
+<ng-container *ngIf="updater.download$ | async as download">
+  <section *ngIf="updater.supported && download.state !== 'idle'" class="update-panel" aria-label="Kemas kini aplikasi">
+    <div class="panel-header">
+      <div role="status" aria-live="polite">
+        <strong>{{ title(download.state) }}</strong>
+        <span *ngIf="download.versionName">Versi {{ download.versionName }}</span>
+      </div>
+      <ion-button fill="clear" size="small" (click)="collapsed = !collapsed"
+        [attr.aria-expanded]="!collapsed" aria-controls="update-details">
+        {{ collapsed ? 'Lihat' : 'Kecilkan' }}
+      </ion-button>
+    </div>
+    <ion-progress-bar *ngIf="download.state === 'downloading' || download.state === 'paused'"
+      [value]="progress(download)" [attr.aria-valuenow]="progress(download) * 100 | number:'1.0-0'"
+      aria-label="Kemajuan muat turun"></ion-progress-bar>
+    <div id="update-details" [hidden]="collapsed">
+      <p *ngIf="download.state === 'downloading' || download.state === 'paused'">
+        {{ progress(download) * 100 | number:'1.0-0' }}% ·
+        {{ (download.bytes || 0) / 1048576 | number:'1.1-1' }} /
+        {{ (download.total || 0) / 1048576 | number:'1.1-1' }} MB
+      </p>
+      <p *ngIf="download.state === 'downloading'">Pemasang Android akan dibuka selepas fail disahkan.</p>
+      <p *ngIf="download.state === 'paused'">Menunggu sambungan Internet. Muat turun akan diteruskan secara automatik.</p>
+      <div class="working" *ngIf="download.state === 'verifying' || download.state === 'installing'">
+        <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+        <p>{{ download.state === 'verifying' ? 'Memeriksa keselamatan dan versi fail…' : 'Sila luluskan kemas kini dalam pemasang Android.' }}</p>
+      </div>
+      <p *ngIf="download.state === 'failed' || download.state === 'ready'">
+        {{ download.message || 'Fail telah disahkan. Jika pemasangan dibatalkan, anda boleh cuba lagi.' }}
+      </p>
+      <ion-button *ngIf="download.state === 'ready' || download.state === 'failed'"
+        size="small" (click)="updater.checkForUpdate(true)" [disabled]="(updater.checking$ | async) === true">
+        {{ download.state === 'ready' ? 'Pasang Sekarang' : 'Cuba Lagi' }}
+      </ion-button>
+    </div>
+  </section>
+</ng-container>

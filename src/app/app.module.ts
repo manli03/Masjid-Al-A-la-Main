@@ -8,11 +8,13 @@ import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { LoadingComponent } from './layout/loading/loading.component';
 import { DatePickerModalComponent } from './shared/components/date-picker-modal/date-picker-modal.component';
+import { UpdateProgressComponent } from './layout/update-progress/update-progress.component';
 
 @NgModule({
   declarations: [AppComponent, LoadingComponent, DatePickerModalComponent],
   imports: [
     BrowserModule,
+    UpdateProgressComponent,
     IonicModule.forRoot(),
     AppRoutingModule,
   ],
