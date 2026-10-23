@@ -8,6 +8,7 @@ import { ToastService } from '../../core/feedback/toast.service';
 import { PrayerTimesService } from '../prayer/services/prayer-times.service';
 import { NotificationSettingsComponent } from '../prayer/components/notification-settings/notification-settings.component';
 import { PrayerZoneSelectorComponent } from '../prayer/components/prayer-zone-selector/prayer-zone-selector.component';
+import { CheckUpdateService } from '../../core/startup/check-update.service';
 
 @Component({
   selector: 'app-home',
@@ -42,6 +43,7 @@ export class HomePage implements OnDestroy {
     private toastService: ToastService,
     private modalController: ModalController,
     public dailyWisdom: DailyWisdomService,
+    public updater: CheckUpdateService,
   ) {}
 
   ionViewWillEnter() {

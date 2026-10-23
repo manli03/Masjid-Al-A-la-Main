@@ -49,6 +49,9 @@ checksum and signing-certificate checks.
 
 - Automatic checks happen after startup and when returning to the app, with a
   six-hour successful-check interval and a 15-minute retry delay after errors.
+  The first check starts three seconds after the app is revealed. Home's download
+  icon performs a manual check, bypasses the reminder/check intervals, and reports
+  the installed version or the actual check error when no offer can be displayed.
 - Automatic download prompts appear at most once per device-local calendar day.
   Download consent includes automatically opening Android's installer after verification.
   Cancelled installation is retried automatically at most once per day; manual checks
@@ -95,6 +98,8 @@ Install in the old app cannot replace that app's broken provider code. Publish a
 new signed APK with a higher version code for distribution; do not replace a published APK.
 For upgrade testing, the corrected source can be built as 1.3.0 / version code 9 so
 that 1.3.1 / version code 10 remains the higher-version target.
+Clearing app data resets updater preferences but does not change the installed
+native version. A 1.3.1 / version code 10 test APK cannot be offered that same release.
 
 ## Device acceptance checks before distribution
 

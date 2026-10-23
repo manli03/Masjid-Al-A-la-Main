@@ -4,6 +4,7 @@ import { Preferences } from '@capacitor/preferences';
 import { App } from '@capacitor/app';
 import { CheckUpdateService } from './check-update.service';
 import { AppUpdaterPlugin, AppRelease, UpdateRuntime } from './app-updater.plugin';
+import { fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 
 describe('CheckUpdateService', () => {
   let service: CheckUpdateService;
@@ -16,7 +17,7 @@ describe('CheckUpdateService', () => {
   beforeEach(() => {
     spyOn(Capacitor, 'getPlatform').and.returnValue('android');
     runtime = {
-      app: jasmine.createSpyObj<typeof App>('App', ['addListener', 'getState']),
+      app: jasmine.createSpyObj<typeof App>('App', ['addListener', 'getState', 'getInfo']),
       dialog: jasmine.createSpyObj<typeof Dialog>('Dialog', ['confirm', 'alert']),
       preferences: jasmine.createSpyObj<typeof Preferences>('Preferences', ['get', 'set', 'remove']),
     };
@@ -35,6 +36,7 @@ describe('CheckUpdateService', () => {
     native.startDownload.and.resolveTo();
     native.install.and.resolveTo({ permissionRequired: false });
     native.openInstallSettings.and.resolveTo();
+    (runtime.app.getInfo as jasmine.Spy).and.resolveTo({ version: '1.3.0' });
     service = new CheckUpdateService(native, runtime);
   });
 
@@ -49,6 +51,19 @@ describe('CheckUpdateService', () => {
     await service.checkForUpdate();
     expect(confirm).toHaveBeenCalledTimes(1);
   });
+
+  it('checks shortly after startup instead of waiting fifteen seconds', fakeAsync(() => {
+    (runtime.app.addListener as jasmine.Spy).and.resolveTo({ remove: async () => undefined });
+    (runtime.app.getState as jasmine.Spy).and.resolveTo({ isActive: true });
+    void service.initialize();
+    flushMicrotasks();
+    tick(2999);
+    expect(native.getRelease).not.toHaveBeenCalled();
+    tick(1);
+    flushMicrotasks();
+    expect(native.getRelease).toHaveBeenCalledTimes(1);
+    service.ngOnDestroy();
+  }));
 
   it('downloads only after consent', async () => {
     confirm.and.resolveTo({ value: true });
@@ -194,7 +209,15 @@ describe('CheckUpdateService', () => {
     native.getRelease.and.resolveTo({});
     await service.checkForUpdate(true);
     expect(runtime.dialog.alert).toHaveBeenCalled();
+    expect((runtime.dialog.alert as jasmine.Spy).calls.mostRecent().args[0].message).toContain('Versi dipasang: 1.3.0');
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('includes the actual check failure when the user checks manually', async () => {
+    native.getRelease.and.rejectWith(new Error('Update server returned HTTP 403'));
+    spyOn(console, 'warn');
+    await service.checkForUpdate(true);
+    expect((runtime.dialog.alert as jasmine.Spy).calls.mostRecent().args[0].message).toContain('HTTP 403');
   });
 
   it('shows verification failures immediately even after today\'s download prompt', async () => {

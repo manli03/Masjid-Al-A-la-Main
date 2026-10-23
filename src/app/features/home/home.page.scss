@@ -88,6 +88,9 @@
   --padding-end: 0;
 }
 
+.cover-actions { display: flex; align-items: center; gap: 8px; }
+.reminder-button ion-spinner { width: 21px; height: 21px; --color: #ffffff; }
+
 .reminder-button ion-icon {
   font-size: 21px;
 }

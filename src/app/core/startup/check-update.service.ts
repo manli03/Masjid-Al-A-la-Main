@@ -38,7 +38,7 @@ export class CheckUpdateService implements OnDestroy {
         });
       });
       this.active = (await this.runtime.app.getState()).isActive;
-      this.schedule(15000);
+      this.schedule(3000);
     } catch (error) {
       this.started = false;
       void this.progressListener?.remove();
@@ -102,14 +102,20 @@ export class CheckUpdateService implements OnDestroy {
       if (release && this.active) {
         await this.promptDownload(release);
       } else if (!release && manual && this.active) {
-        await this.runtime.dialog.alert({ title: 'Kemas Kini', message: 'Aplikasi anda sudah menggunakan versi terkini.' });
+        let currentVersion = '';
+        try { currentVersion = (await this.runtime.app.getInfo()).version; } catch { /* Version is optional on unsupported runtimes. */ }
+        await this.runtime.dialog.alert({ title: 'Kemas Kini', message: currentVersion
+          ? `Versi dipasang: ${currentVersion}. Tiada versi lebih baharu tersedia.`
+          : 'Tiada versi lebih baharu tersedia.' });
       }
     } catch (error) {
       console.warn('Update check failed:', error);
       this.lastCheck = Date.now() - 6 * 60 * 60 * 1000 + 15 * 60 * 1000;
       if (manual && this.active) {
+        const detail = error instanceof Error ? error.message : (error as { message?: string })?.message;
         await this.runtime.dialog.alert({ title: 'Semakan Gagal', message:
-          'Tidak dapat menyemak kemas kini. Sila semak sambungan Internet dan cuba lagi.' });
+          'Tidak dapat menyemak kemas kini. Sila semak sambungan Internet dan cuba lagi.' +
+          (detail ? `\n\n${detail.slice(0, 180)}` : '') });
       }
     } finally {
       this.busy = false;

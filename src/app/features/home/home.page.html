@@ -10,10 +10,18 @@
 
       <div class="cover-topline">
         <span class="brand-name">MASJID <b>AL-A'LA</b></span>
+        <div class="cover-actions">
+        <ion-button *ngIf="updater.supported" fill="clear" class="reminder-button"
+          (click)="updater.checkForUpdate(true)" [disabled]="(updater.checking$ | async) === true"
+          aria-label="Semak kemas kini aplikasi" title="Semak kemas kini">
+          <ion-spinner *ngIf="updater.checking$ | async; else updateIcon" name="crescent" aria-hidden="true"></ion-spinner>
+          <ng-template #updateIcon><ion-icon name="cloud-download-outline" slot="icon-only"></ion-icon></ng-template>
+        </ion-button>
         <ion-button fill="clear" class="reminder-button" (click)="openNotificationSettings()"
           aria-label="Tetapan peringatan solat">
           <ion-icon name="notifications-outline" slot="icon-only"></ion-icon>
         </ion-button>
+        </div>
       </div>
 
       <div class="cover-copy">
